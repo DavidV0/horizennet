@@ -14,17 +14,17 @@ import { MatIconModule } from '@angular/material/icon';
 export class NavbarComponent {
   isScrolled = false;
 
-  @HostListener('window:scroll', [])
-  onWindowScroll() {
-    this.isScrolled = window.scrollY > 20;
-  }
-
-  navItems = [
+  readonly navItems = [
     { path: '/', label: 'Home' },
-    { path: '/projekte', label: 'Projekte' },
+    { path: '/produkte', label: 'Produkte' },
     { path: '/ueber-uns', label: 'Über uns' },
     { path: '/blog', label: 'Blog' },
     { path: '/events', label: 'Events' },
     { path: '/shop', label: 'Shop' }
   ];
+
+  @HostListener('window:scroll', [])
+  onWindowScroll() {
+    this.isScrolled = window.scrollY > 20;
+  }
 } 

@@ -86,9 +86,11 @@ html, body {
   font-family: var(--font-family);
   font-size: var(--font-size-md);
   line-height: var(--line-height-normal);
-  background-color: var(--color-white);
-  color: var(--color-primary);
-  padding-top: var(--navbar-height);
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  padding-top: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
 // Premium Scrollbar
@@ -198,15 +200,15 @@ h3, .h3 {
   left: 0;
   right: 0;
   height: var(--navbar-height);
-  background-color: var(--navbar-bg);
-  color: var(--navbar-text);
+  background-color: var(--color-primary);
+  color: var(--color-white);
   z-index: 1000;
   transition: all 0.3s ease;
 
   &.scrolled {
     height: var(--navbar-height-scrolled);
-    background: rgba(0, 0, 0, 0.95);
-    backdrop-filter: blur(10px);
+    background-color: var(--color-primary);
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
   }
 
   .navbar-container {
@@ -295,9 +297,10 @@ h3, .h3 {
 
 // Fügen Sie dies zu Ihren bestehenden Styles hinzu
 .page-container {
-  padding: var(--spacing-xl);
-  max-width: 1440px;
-  margin: 0 auto;
+  padding: 0;
+  max-width: 100%;
+  margin: 0;
+  padding-top: var(--navbar-height);
   min-height: calc(100vh - var(--navbar-height));
   
   h1 {

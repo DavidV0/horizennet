@@ -5,11 +5,7 @@ import { CommonModule } from '@angular/common';
   selector: 'app-shop',
   standalone: true,
   imports: [CommonModule],
-  template: `
-    <div class="page-container">
-      <h1>Shop</h1>
-      <p>Entdecken Sie unsere Produkte.</p>
-    </div>
-  `
+  templateUrl: './shop.component.html',
+  styleUrls: ['./shop.component.scss']
 })
 export class ShopComponent {}

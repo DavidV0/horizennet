@@ -1,7 +1,11 @@
 <nav class="navbar" [class.scrolled]="isScrolled">
   <div class="navbar-container">
     <a class="navbar-brand" routerLink="/">
-      <span class="text-premium">HORIZENNET</span>
+      <span class="logo">
+        <span class="text-white">HORIZON </span>
+        <span class="text-accent">NET.</span>
+        <span class="registered">®</span>
+      </span>
     </a>
 
     <div class="nav-links">
@@ -17,8 +21,8 @@
       </ng-container>
     </div>
 
-    <button mat-flat-button class="cta-button gold-gradient" routerLink="/dashboard">
-      Login
+    <button mat-flat-button class="cta-button hover-effect" routerLink="/dashboard">
+      <span>Login</span>
     </button>
   </div>
 </nav> 

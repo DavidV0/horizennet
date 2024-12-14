@@ -5,11 +5,7 @@ import { CommonModule } from '@angular/common';
   selector: 'app-events',
   standalone: true,
   imports: [CommonModule],
-  template: `
-    <div class="page-container">
-      <h1>Events</h1>
-      <p>Kommende Veranstaltungen und Events.</p>
-    </div>
-  `
+  templateUrl: './events.component.html',
+  styleUrls: ['./events.component.scss']
 })
 export class EventsComponent {}

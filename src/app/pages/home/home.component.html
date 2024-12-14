@@ -1,0 +1,112 @@
+<div class="page-container">
+  <section class="hero-section">
+    <div class="background-effects">
+      <div class="light-orb orb1"></div>
+      <div class="light-orb orb2"></div>
+      <div class="light-orb orb3"></div>
+      <div class="gradient-overlay"></div>
+    </div>
+    
+    <div class="hero-content">
+      <div class="hero-text">
+        <h2 class="hero-headline">DEINE ZUKUNFT</h2>
+        <h2 class="hero-headline">DEINE ENTSCHEIDUNG</h2>
+      </div>
+      <div class="logo-container">
+        <div class="logo-3d">
+          <span class="logo">
+            <span class="text-white">HORIZON</span>
+            <span class="text-accent">NET.</span>
+            <span class="registered">®</span>
+          </span>
+        </div>
+      </div>
+      <p class="hero-subtitle">Das Geheimwissen der obersten 1% in einer Plattform</p>
+      <div class="cta-group">
+        <button mat-raised-button class="cta-button gold-gradient hover-effect" routerLink="/produkte">
+          Produkte entdecken
+        </button>
+        <button mat-stroked-button class="hover-effect" routerLink="/kontakt" color="primary">
+          Kontakt aufnehmen
+        </button>
+      </div>
+    </div>
+    
+    <div class="ticker-container">
+      <div class="ticker-wrapper">
+        <div class="ticker-track">
+          <ng-container *ngFor="let item of tickerItems">
+            <div class="ticker-item">
+              <img [src]="'assets/icons/' + item.icon + '.svg'" [alt]="item.symbol">
+              <span class="coin-name">{{item.name}}({{item.symbol}})</span>
+              <span class="price">€{{item.price}}</span>
+              <span class="change" [class.positive]="item.change > 0" [class.negative]="item.change < 0">
+                {{item.change > 0 ? '+' : ''}}{{item.change}}%
+              </span>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="intro-section">
+    <div class="intro-content">
+      <div class="intro-text">
+        <h2 #animatedElement class="animated fade-in-up">Von der Vision zur Realität</h2>
+        <p #animatedElement class="animated fade-in-up intro-lead">
+          Mit 16 Jahren, einem Handy und einem großen Traum begann die Geschichte von HorizonNet Consulting.
+        </p>
+        <p #animatedElement class="animated fade-in-up intro-story">
+          Heute sind wir eine führende Plattform, die jungen Menschen zeigt, dass Erfolg keine Frage des Alters ist – 
+          sondern eine Frage der richtigen Unterstützung, des Wissens und der Entschlossenheit. Von Kryptowährungen 
+          über Edelmetalle bis hin zu persönlicher Entwicklung: Wir bieten dir die Werkzeuge für deine Erfolgsgeschichte.
+        </p>
+        <div #animatedElement class="animated fade-in-up stats-container">
+          <div class="stat-item">
+            <span class="stat-number">7+</span>
+            <span class="stat-label">Branchen</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number">1000+</span>
+            <span class="stat-label">Erfolgreiche Kunden</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number">23</span>
+            <span class="stat-label">Jahre Expertise</span>
+          </div>
+        </div>
+        
+        <div #animatedElement class="animated fade-in-up cta-container">
+          <button mat-raised-button class="primary-cta hover-effect" routerLink="/ueber-uns">
+            <span class="button-content">
+              Mehr über unsere Geschichte
+              <mat-icon>arrow_forward</mat-icon>
+            </span>
+          </button>
+        </div>
+      </div>
+      <div #animatedElement class="animated fade-in-right intro-image">
+        <img src="assets/images/success-story.jpg" alt="HorizonNet Success Story">
+      </div>
+    </div>
+  </section>
+
+  <section class="features-section">
+    <h2>Unsere Leistungen</h2>
+    <div class="features-grid">
+      <div class="feature-card hover-effect">
+        <h3>Digitale Lösungen</h3>
+        <p>Maßgeschneiderte Softwarelösungen für Ihr Unternehmen</p>
+      </div>
+      <div class="feature-card hover-effect">
+        <h3>Webentwicklung</h3>
+        <p>Moderne Webapplikationen mit neuester Technologie</p>
+      </div>
+      <div class="feature-card hover-effect">
+        <h3>IT-Beratung</h3>
+        <p>Professionelle Beratung für Ihre digitale Transformation</p>
+      </div>
+    </div>
+  </section>
+</div>

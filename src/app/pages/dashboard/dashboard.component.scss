@@ -1,0 +1,43 @@
+.dashboard-section {
+  text-align: center;
+  padding: calc(var(--spacing-xl) * 2) 0;
+  max-width: 1200px;
+  margin: 0 auto;
+
+  h1 {
+    font-size: var(--font-size-3xl);
+    margin-bottom: var(--spacing-md);
+    font-weight: var(--font-weight-bold);
+  }
+
+  .section-subtitle {
+    font-size: var(--font-size-xl);
+    color: var(--color-secondary);
+    margin-bottom: var(--spacing-xl);
+  }
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--spacing-xl);
+  margin-top: var(--spacing-xl);
+}
+
+.dashboard-card {
+  padding: var(--spacing-lg);
+  background: var(--color-white);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  }
+
+  mat-card-title {
+    color: var(--color-primary);
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--spacing-md);
+  }
+}

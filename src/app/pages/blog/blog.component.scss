@@ -1,0 +1,25 @@
+.blog-section {
+  text-align: center;
+  padding: calc(var(--spacing-xl) * 2) 0;
+  max-width: 1200px;
+  margin: 0 auto;
+
+  h1 {
+    font-size: var(--font-size-3xl);
+    margin-bottom: var(--spacing-md);
+    font-weight: var(--font-weight-bold);
+  }
+
+  .section-subtitle {
+    font-size: var(--font-size-xl);
+    color: var(--color-secondary);
+    margin-bottom: var(--spacing-xl);
+  }
+}
+
+.blog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--spacing-xl);
+  margin-top: var(--spacing-xl);
+}

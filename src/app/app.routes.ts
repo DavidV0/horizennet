@@ -1,13 +1,14 @@
 import { Routes } from '@angular/router';
+import { HomeComponent } from './pages/home/home.component';
 
 export const routes: Routes = [
   {
     path: '',
-    loadComponent: () => import('./pages/home/home.component').then(m => m.HomeComponent)
+    component: HomeComponent
   },
   {
-    path: 'projekte',
-    loadComponent: () => import('./pages/projekte/projekte.component').then(m => m.ProjekteComponent)
+    path: 'produkte',
+    loadComponent: () => import('./pages/produkte/produkte.component').then(m => m.ProdukteComponent)
   },
   {
     path: 'ueber-uns',

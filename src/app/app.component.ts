@@ -1,14 +1,36 @@
-import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Component, OnInit } from '@angular/core';
+import { RouterOutlet, Router, NavigationStart } from '@angular/router';
+import { CommonModule } from '@angular/common';
 import { NavbarComponent } from './core/components/navbar/navbar.component';
+import { LoadingScreenComponent } from './core/components/loading-screen/loading-screen.component';
+import { LoadingService } from './core/services/loading.service';
+import { Observable } from 'rxjs';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, NavbarComponent],
+  imports: [CommonModule, RouterOutlet, NavbarComponent, LoadingScreenComponent],
   templateUrl: './app.component.html',
-  styleUrl: './app.component.scss'
+  styleUrls: ['./app.component.scss']
 })
-export class AppComponent {
-  title = 'horizennet';
+export class AppComponent implements OnInit {
+  loading$: Observable<boolean>;
+
+  constructor(
+    private router: Router,
+    private loadingService: LoadingService
+  ) {
+    this.loading$ = this.loadingService.isLoading$;
+  }
+
+  ngOnInit() {
+    this.router.events.subscribe(event => {
+      if (event instanceof NavigationStart) {
+        this.loadingService.show();
+        setTimeout(() => {
+          this.loadingService.hide();
+        }, 1000);
+      }
+    });
+  }
 }
