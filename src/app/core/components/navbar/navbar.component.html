@@ -1,0 +1,24 @@
+<nav class="navbar" [class.scrolled]="isScrolled">
+  <div class="navbar-container">
+    <a class="navbar-brand" routerLink="/">
+      <span class="text-premium">HORIZENNET</span>
+    </a>
+
+    <div class="nav-links">
+      <ng-container *ngFor="let item of navItems">
+        <a 
+          class="nav-link hover-effect" 
+          [routerLink]="item.path"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{exact: item.path === '/'}"
+        >
+          {{item.label}}
+        </a>
+      </ng-container>
+    </div>
+
+    <button mat-flat-button class="cta-button gold-gradient" routerLink="/dashboard">
+      Login
+    </button>
+  </div>
+</nav> 
