@@ -2,27 +2,43 @@
   <div class="navbar-container">
     <a class="navbar-brand" routerLink="/">
       <span class="logo">
-        <span class="text-white">HORIZON </span>
+        <span class="text-white">HORIZON</span>
         <span class="text-accent">NET.</span>
-        <span class="registered">®</span>
+        <img src="assets/HorizonNet_tHwL.png" alt="HorizonNet Logo">
       </span>
     </a>
 
-    <div class="nav-links">
+    <!-- Navigation Links -->
+    <div class="nav-links" [class.open]="isMobileMenuOpen">
       <ng-container *ngFor="let item of navItems">
         <a 
           class="nav-link hover-effect" 
           [routerLink]="item.path"
           routerLinkActive="active"
           [routerLinkActiveOptions]="{exact: item.path === '/'}"
+          (click)="isMobileMenuOpen = false"
         >
           {{item.label}}
         </a>
       </ng-container>
+      
+      <!-- Login Button im Mobile Menu -->
+      <button *ngIf="showLoginInMenu" class="cta-button hover-effect" routerLink="/dashboard" (click)="isMobileMenuOpen = false">
+        <span>Login</span>
+      </button>
     </div>
 
-    <button mat-flat-button class="cta-button hover-effect" routerLink="/dashboard">
-      <span>Login</span>
-    </button>
+    <div class="nav-right">
+      <button class="cta-button hover-effect" routerLink="/dashboard" *ngIf="!showLoginInMenu">
+        <span>Login</span>
+      </button>
+      
+      <!-- Burger Menu Button -->
+      <button class="mobile-menu-button" (click)="toggleMobileMenu()" [class.active]="isMobileMenuOpen">
+        <span class="burger-line"></span>
+        <span class="burger-line"></span>
+        <span class="burger-line"></span>
+      </button>
+    </div>
   </div>
 </nav> 

@@ -13,11 +13,40 @@
 
 .loading-content {
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.logo-container {
+  margin-bottom: 0;
+  perspective: 1200px;
+}
+
+.logo-3d {
+  display: inline-block;
+  animation: rotateLogo 15s infinite linear;
+  transform-style: preserve-3d;
+  position: relative;
   
-  span {
-    font-size: var(--font-size-2xl);
-    margin-bottom: var(--spacing-xl);
-    display: block;
+  .logo {
+    display: flex;
+    align-items: baseline;
+    position: relative;
+    overflow: visible;
+    
+    img {
+      width: 300px;
+      height: auto;
+      object-fit: contain;
+      display: block;
+      margin: 0 auto;
+      
+      @media (max-width: 768px) {
+        width: 200px;
+      }
+    }
   }
 }
 
@@ -26,8 +55,12 @@
   height: 4px;
   background: rgba(255, 183, 0, 0.2);
   border-radius: 2px;
-  margin-top: var(--spacing-lg);
+  margin-top: 0;
   overflow: hidden;
+  
+  @media (max-width: 768px) {
+    width: 150px;
+  }
 }
 
 .loading-progress {
@@ -36,6 +69,15 @@
   background: linear-gradient(135deg, var(--color-accent) 0%, #FFC740 100%);
   animation: loading 1s ease-in-out;
   transform-origin: left;
+}
+
+@keyframes rotateLogo {
+  0% {
+    transform: rotateY(0deg);
+  }
+  100% {
+    transform: rotateY(360deg);
+  }
 }
 
 @keyframes loading {

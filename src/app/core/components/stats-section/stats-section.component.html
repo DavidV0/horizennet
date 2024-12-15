@@ -1,0 +1,18 @@
+<section class="stats-section">
+  <div class="stats-container">
+    <div class="stats-grid">
+      <div class="stat-item animated fade-in-up" #animatedElement *ngFor="let stat of stats">
+        <h3 class="stat-number">{{stat.number}}</h3>
+        <p class="stat-label">{{stat.label}}</p>
+      </div>
+    </div>
+    
+    <div class="quote-container animated fade-in-up" #animatedElement>
+      <blockquote class="quote">
+        „NICHT WEIL ES SCHWER IST, WAGEN WIR ES NICHT,<br>
+        SONDERN WEIL WIR ES NICHT WAGEN, IST ES SCHWER."
+      </blockquote>
+      <cite class="quote-author">- Lucius Annaeus Seneca</cite>
+    </div>
+  </div>
+</section> 

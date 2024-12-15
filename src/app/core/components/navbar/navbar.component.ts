@@ -1,5 +1,5 @@
-import { Component, HostListener } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, HostListener, PLATFORM_ID, Inject } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -13,6 +13,8 @@ import { MatIconModule } from '@angular/material/icon';
 })
 export class NavbarComponent {
   isScrolled = false;
+  isMobileMenuOpen = false;
+  private isBrowser: boolean;
 
   readonly navItems = [
     { path: '/', label: 'Home' },
@@ -23,8 +25,29 @@ export class NavbarComponent {
     { path: '/shop', label: 'Shop' }
   ];
 
+  constructor(@Inject(PLATFORM_ID) platformId: Object) {
+    this.isBrowser = isPlatformBrowser(platformId);
+  }
+
   @HostListener('window:scroll', [])
   onWindowScroll() {
-    this.isScrolled = window.scrollY > 20;
+    if (this.isBrowser) {
+      this.isScrolled = window.scrollY > 20;
+    }
+  }
+
+  @HostListener('window:resize', [])
+  onResize() {
+    if (this.isBrowser && window.innerWidth > 1024) {
+      this.isMobileMenuOpen = false;
+    }
+  }
+
+  toggleMobileMenu() {
+    this.isMobileMenuOpen = !this.isMobileMenuOpen;
+  }
+
+  get showLoginInMenu(): boolean {
+    return this.isBrowser && window.innerWidth <= 400;
   }
 } 

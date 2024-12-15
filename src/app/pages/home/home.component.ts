@@ -3,6 +3,7 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { RouterModule } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
+import { StatsSectionComponent } from '../../core/components/stats-section/stats-section.component';
 
 interface TickerItem {
   icon: string;
@@ -15,7 +16,7 @@ interface TickerItem {
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, MatButtonModule, RouterModule, MatIconModule],
+  imports: [CommonModule, MatButtonModule, RouterModule, MatIconModule, StatsSectionComponent],
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss']
 })
@@ -58,7 +59,6 @@ export class HomeComponent implements OnInit, AfterViewInit {
         if (entry.isIntersecting) {
           const element = entry.target as HTMLElement;
           element.classList.add('animate');
-          console.log('Element animated:', element); // Debug-Log
           this.observer?.unobserve(element);
         }
       });
@@ -67,11 +67,9 @@ export class HomeComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit() {
     if (this.isBrowser) {
-      // Warte einen Moment, bis die View vollständig geladen ist
       setTimeout(() => {
         this.animatedElements?.forEach(({ nativeElement }) => {
           if (nativeElement) {
-            console.log('Observing element:', nativeElement); // Debug-Log
             this.observer?.observe(nativeElement);
           }
         });
