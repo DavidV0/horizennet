@@ -307,3 +307,44 @@ h3, .h3 {
     margin-bottom: var(--spacing-lg);
   }
 }
+
+// Globale Button-Styles
+.mat-mdc-raised-button.gold-gradient {
+  --mdc-filled-button-label-text-color: var(--color-primary);
+  --mdc-filled-button-container-color: transparent;
+  --mdc-filled-button-container-elevation: none;
+  --mdc-filled-button-container-shape: 8px;
+  
+  &::before {
+    background: linear-gradient(135deg, var(--color-accent) 0%, #FFC740 100%);
+  }
+
+  .mdc-button__label {
+    color: var(--color-primary);
+  }
+
+  .mat-icon {
+    color: var(--color-primary);
+  }
+
+  &:hover {
+    .mdc-button__label,
+    .mat-icon {
+      color: var(--color-primary);
+    }
+  }
+}
+
+// Überschreiben der Link-Styles innerhalb von Buttons
+a.mat-mdc-raised-button {
+  &.gold-gradient {
+    color: var(--color-primary);
+    text-decoration: none;
+    
+    &:hover,
+    &:visited,
+    &:active {
+      color: var(--color-primary);
+    }
+  }
+}

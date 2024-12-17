@@ -1,0 +1,78 @@
+// Text Effects
+@mixin gradient-text {
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+// Layout
+@mixin section-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-lg);
+  
+  @media (max-width: 768px) {
+    padding: 0 var(--spacing-md);
+  }
+}
+
+// Components
+@mixin card-base {
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+// Buttons
+@mixin button-base {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: clamp(12px, 2vw, 16px) clamp(24px, 4vw, 32px);
+  font-size: clamp(0.875rem, 2vw, 1rem);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 1px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 200px;
+}
+
+@mixin gold-gradient {
+  background: linear-gradient(135deg, var(--color-accent) 0%, #FFC740 100%);
+}
+
+// Animations
+@mixin fade-in($delay: 0s) {
+  opacity: 0;
+  animation: fadeIn 0.8s ease-out $delay forwards;
+}
+
+@mixin slide-in($direction: 'left', $delay: 0s) {
+  opacity: 0;
+  animation: slide#{$direction} 1s ease-out $delay forwards;
+}
+
+// Hover Effects
+@mixin hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  }
+}
+
+// Media Queries
+@mixin mobile {
+  @media (max-width: 768px) {
+    @content;
+  }
+}
+
+@mixin tablet {
+  @media (max-width: 1024px) {
+    @content;
+  }
+}

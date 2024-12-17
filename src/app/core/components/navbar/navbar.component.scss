@@ -84,8 +84,11 @@
     }
     
     .text-accent {
-      background: linear-gradient(135deg, var(--color-accent) 0%, #FFC740 100%);
+      background: linear-gradient(135deg, #FFF 0%, var(--color-accent) 25%, #FFC740 50%, var(--color-accent) 75%, #FFF 100%);
+      background-size: 200% auto;
+      background-clip: text;
       -webkit-background-clip: text;
+      color: transparent;
       -webkit-text-fill-color: transparent;
     }
   }

@@ -4,6 +4,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { RouterModule } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { StatsSectionComponent } from '../../core/components/stats-section/stats-section.component';
+import { ProductsSectionComponent } from '@core/components/products-section/products-section.component';
+import { IntroSectionComponent } from '@core/components/intro-section/intro-section.component';
+import { HeroSectionComponent } from '@core/components/hero-section/hero-section.component';
 
 interface TickerItem {
   icon: string;
@@ -16,7 +19,7 @@ interface TickerItem {
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, MatButtonModule, RouterModule, MatIconModule, StatsSectionComponent],
+  imports: [CommonModule, MatButtonModule, RouterModule, MatIconModule, StatsSectionComponent, ProductsSectionComponent, IntroSectionComponent, HeroSectionComponent], 
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss']
 })
