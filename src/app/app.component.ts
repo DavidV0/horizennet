@@ -5,11 +5,12 @@ import { NavbarComponent } from './core/components/navbar/navbar.component';
 import { LoadingScreenComponent } from './core/components/loading-screen/loading-screen.component';
 import { LoadingService } from './core/services/loading.service';
 import { Observable } from 'rxjs';
+import { FooterComponent } from '@core/components/footer/footer.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, NavbarComponent, LoadingScreenComponent],
+  imports: [CommonModule, RouterOutlet, NavbarComponent, LoadingScreenComponent, FooterComponent],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
 })
