@@ -135,7 +135,9 @@
 }
 
 .cta-container {
-  margin-top: var(--spacing-xl);
+  display: flex;
+  justify-content: center;
+  margin-top: 2rem;
 
   .primary-cta {
     @include mix.button-base;

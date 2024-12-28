@@ -1,67 +1,45 @@
-@use 'swiper/scss' as swiper;
-@use 'swiper/scss/navigation';
-@use 'swiper/scss/pagination';
-
-.testimonials-section {
+.events-section {
   padding: 6rem 0;
-  
-  @media (max-width: 768px) {
-    padding: 4rem 0;
-  }
-
-  background: #1E1E1E;
-  color: var(--color-white);
+  background: var(--color-white);
 
   .container {
     width: 100%;
-    max-width: 1000px;
+    max-width: 1200px;
     margin: 0 auto;
     padding: 0 1rem;
   }
 
-  .section-header {
+  .section-title {
     text-align: center;
     margin-bottom: 4rem;
-
-    .section-title {
-      font-size: 1.2rem;
-      
-      @media (max-width: 768px) {
-        font-size: 1rem;
-      }
-    }
-
-    .section-subtitle {
-      font-size: 2.8rem;
-      
-      @media (max-width: 768px) {
-        font-size: 2rem;
-      }
-
-      @media (max-width: 480px) {
-        font-size: 1.8rem;
-        br {
-          display: none;
-        }
-      }
-    }
+    font-size: 2.5rem;
+    font-weight: 600;
+    color: var(--color-primary);
   }
 
-  .testimonial-card {
-    background: #2A2A2A;
-    border-radius: 0.5rem;
+  .events-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+  }
+
+  .event-card {
+    background: var(--color-white);
+    border-radius: 1rem;
     overflow: hidden;
-    padding: 2rem;
-    
-    @media (max-width: 768px) {
-      padding: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
     }
-    max-width: 800px;
-    margin: 0 auto;
   }
 
-  .testimonial-image {
-    height: 240px;
+  .event-image {
+    position: relative;
+    height: 200px;
     overflow: hidden;
 
     img {
@@ -69,143 +47,97 @@
       height: 100%;
       object-fit: cover;
     }
+
+    .event-date {
+      position: absolute;
+      top: 1rem;
+      left: 1rem;
+      background: var(--color-accent);
+      color: var(--color-primary);
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      border: none;
+      text-align: center;
+
+      .day {
+        display: block;
+        font-size: 1.5rem;
+        font-weight: bold;
+        line-height: 1;
+      }
+
+      .month {
+        display: block;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+      }
+    }
   }
 
-  .testimonial-content {
-    // Entferne das padding, da es jetzt in der Card ist
-    // padding: 2rem;
-  }
+  .event-content {
+    padding: 1.5rem;
 
-  .rating {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 1.5rem;
-
-    .rating-value {
-      font-size: 1.4rem;
-      font-weight: 700;
+    .event-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0 0 1rem;
+      color: var(--color-primary);
     }
 
-    .stars {
+    .event-details {
       display: flex;
-      color: var(--color-accent);
+      flex-direction: column;
+      gap: 0.5rem;
 
-      mat-icon {
-        font-size: 1.2rem;
-        width: 1.2rem;
-        height: 1.2rem;
+      .detail {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--color-secondary);
+
+        mat-icon {
+          font-size: 1.2rem;
+          width: 1.2rem;
+          height: 1.2rem;
+          color: var(--color-accent);
+        }
       }
     }
   }
 
-  .testimonial-profile {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-
-    .profile-image {
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 2px solid var(--color-accent);
-    }
-
-    .profile-info {
-      .profile-name {
-        font-weight: 600;
-        margin: 0;
-        color: var(--color-accent);
-      }
-
-      .profile-position {
-        font-size: 0.9rem;
-        opacity: 0.7;
-        margin: 0;
-      }
-    }
-  }
-
-  .testimonial-title {
-    font-size: 1.5rem;
-    font-weight: 700;
-    margin-bottom: 1rem;
-    line-height: 1.3;
-    color: var(--color-white);
-    
-    @media (max-width: 768px) {
-      font-size: 1.3rem;
-    }
-  }
-
-  .testimonial-text {
-    font-size: 1rem;
-    line-height: 1.6;
-    opacity: 0.8;
-    margin-bottom: 1.5rem;
-  }
-
-  .verification-badge {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.85rem;
-    opacity: 0.6;
-    padding-top: 1rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-
-    mat-icon {
-      color: var(--color-accent);
-      font-size: 1.1rem;
-      width: 1.1rem;
-      height: 1.1rem;
-    }
-  }
-
-  .section-footer {
+  .view-all {
     text-align: center;
-    margin-top: 4rem;
+    margin-top: 3rem;
 
-    .cta-button {
+    .view-all-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 1rem 2rem;
       background: var(--color-accent);
       color: var(--color-primary);
       border: none;
-      padding: 1.2rem 4rem;
-      font-size: 1.3rem;
-      font-weight: 700;
       border-radius: 0.5rem;
-      cursor: pointer;
+      text-decoration: none;
+      font-weight: 600;
       transition: all 0.3s ease;
-      text-transform: uppercase;
-      letter-spacing: 1px;
 
       &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 20px rgba(255, 183, 0, 0.4);
+        background: var(--color-primary);
+        color: var(--color-accent);
+
+        mat-icon {
+          transform: translateX(4px);
+        }
       }
 
-      @media (max-width: 768px) {
-        padding: 1rem 3rem;
-        font-size: 1.1rem;
+      mat-icon {
+        transition: transform 0.3s ease;
       }
-
-      @media (max-width: 480px) {
-        padding: 0.8rem 2rem;
-        font-size: 1rem;
-      }
-    }
-
-    .spots-left {
-      margin-top: 1.2rem;
-      font-size: 1rem;
-      opacity: 0.7;
-      letter-spacing: 0.5px;
     }
   }
 
-  .testimonials-slider {
+  .events-slider {
     padding: 2rem 4rem;
     position: relative;
 
@@ -297,8 +229,8 @@
         width: var(--swiper-pagination-bullet-width);
         height: var(--swiper-pagination-bullet-height);
         border-radius: var(--swiper-pagination-bullet-border-radius);
-        background: var(--color-white);
-        opacity: 0.3;
+        background: var(--color-primary);
+        opacity: var(--swiper-pagination-bullet-inactive-opacity);
         margin: 0 var(--swiper-pagination-bullet-horizontal-gap);
         transition: all 0.3s ease;
 

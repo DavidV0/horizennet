@@ -1,0 +1,51 @@
+<section class="events-section">
+  <div class="container">
+    <h2 class="section-title">Kommende Veranstaltungen</h2>
+    
+    <swiper-container
+      [slidesPerView]="1"
+      [spaceBetween]="30"
+      [pagination]="true"
+      [navigation]="true"
+      [loop]="true"
+      [autoplay]="{
+        delay: 5000,
+        disableOnInteraction: false
+      }"
+      class="events-slider">
+      
+      <swiper-slide *ngFor="let event of events">
+        <div class="event-card">
+          <div class="event-image">
+            <img [src]="event.image" [alt]="event.title">
+            <div class="event-date">
+              <span class="day">{{ event.date.day }}</span>
+              <span class="month">{{ event.date.month }}</span>
+            </div>
+          </div>
+          <div class="event-content">
+            <h3 class="event-title">{{ event.title }}</h3>
+            <div class="event-details">
+              <div class="detail">
+                <mat-icon>schedule</mat-icon>
+                <span>{{ event.time }}</span>
+              </div>
+              <div class="detail">
+                <mat-icon>location_on</mat-icon>
+                <span>{{ event.location }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </swiper-slide>
+      
+    </swiper-container>
+
+    <div class="view-all">
+      <a routerLink="/events" class="view-all-button">
+        Alle Veranstaltungen
+        <mat-icon>arrow_forward</mat-icon>
+      </a>
+    </div>
+  </div>
+</section> 

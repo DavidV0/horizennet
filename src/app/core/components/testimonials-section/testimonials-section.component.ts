@@ -8,9 +8,11 @@ register();
 interface Testimonial {
   name: string;
   position: string;
-  company: string;
+  rating: number;
+  title: string;
   content: string;
-  image?: string;
+  image: string;
+  verified: boolean;
 }
 
 @Component({
@@ -25,40 +27,22 @@ interface Testimonial {
 export class TestimonialsSectionComponent {
   testimonials: Testimonial[] = [
     {
-      name: 'Sarah Meyer',
-      position: 'CEO',
-      company: 'TechVision GmbH',
-      content: 'HorizonNet hat unsere Erwartungen übertroffen. Die Plattform ist intuitiv und die Unterstützung ist erstklassig.'
+      name: 'Peter Ladwig',
+      position: 'Früher KFZ Ausbildung',
+      rating: 5.0,
+      title: 'Früher KFZ Ausbildung, heute verdient Peter 7.215 € monatlich mit Kryptonet!',
+      content: 'Peter war skeptisch gegenüber Online-Plattformen und kämpfte mit einem geringen Einkommen. Doch nach dem ersten Monat mit der VIP-Mentoring-Strategie von Kryptonet verdiente er 1.200 € und sein Vertrauen wuchs. Heute ist er einer unserer Top-Verdiener mit über 7.000 € monatlich. "Kryptonet hat mich vom Skeptiker zum erfolgreichen Unternehmer gemacht und meine finanziellen Probleme gelöst"',
+      image: 'assets/images/testimonials/peter.jpg',
+      verified: true
     },
     {
-      name: 'Michael Schmidt',
-      position: 'CTO',
-      company: 'Digital Solutions AG',
-      content: 'Die Sicherheit und Zuverlässigkeit der Dienste ist beeindruckend. Absolut empfehlenswert!'
-    },
-    {
-      name: 'Laura Weber',
-      position: 'Projektmanagerin',
-      company: 'Innovation Labs',
-      content: 'Seit wir HorizonNet nutzen, hat sich unsere Effizienz deutlich verbessert. Ein Game-Changer für unser Unternehmen.'
-    },
-    {
-      name: 'Thomas Bauer',
-      position: 'Finanzvorstand',
-      company: 'Global Finance AG',
-      content: 'Die Investition in HorizonNet war eine der besten Entscheidungen für unser Unternehmen. Der ROI spricht für sich.'
-    },
-    {
-      name: 'Julia Hoffmann',
-      position: 'Marketing Direktorin',
-      company: 'Creative Mind GmbH',
-      content: 'Innovative Lösungen, die unsere Marketing-Strategien auf ein neues Level gehoben haben. Hervorragender Support!'
-    },
-    {
-      name: 'Markus Winter',
-      position: 'Geschäftsführer',
-      company: 'Winter & Partner',
-      content: 'Als langjähriger Kunde schätzen wir besonders die kontinuierliche Weiterentwicklung und den persönlichen Service.'
+      name: 'Max Limberger',
+      position: 'Erfolgreicher Trader',
+      rating: 5.0,
+      title: '4000.00€ pro Monat zusätzlich, nach 6 Monaten',
+      content: 'Lukas kämpfte ständig mit finanziellen Engpässen und träumte von Unabhängigkeit. Mit der Hyper-KI-Bots-Strategie von Kryptonet lernte er Schritt für Schritt, wie er mit Krypto-Trading und Dropshipping erfolgreich wird. Nach sechs Monaten verdient er 4.000 € monatlich. "Dank Kryptonet habe ich mir meine finanzielle Situation komplett verändert und lebe jetzt meinen Traum."',
+      image: 'assets/images/testimonials/max.jpg',
+      verified: true
     }
   ];
 

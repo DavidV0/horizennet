@@ -1,49 +1,53 @@
 <section class="testimonials-section">
   <div class="container">
-    <h2 class="section-title">Was unsere Kunden sagen</h2>
+    <div class="section-header">
+      <h2 class="section-title">NUR WENN DU WIRKLICH 100% GIBST</h2>
+      <h3 class="section-subtitle">SEI TEIL DER COMMUNITY, SCHAU<br>DIR AN, WAS MÖGLICH IST!</h3>
+    </div>
     
     <swiper-container
       [slidesPerView]="1"
       [spaceBetween]="30"
       [pagination]="true"
       [navigation]="true"
-      [breakpoints]="{
-        '640': {
-          slidesPerView: 1,
-          spaceBetween: 20
-        },
-        '768': {
-          slidesPerView: 2,
-          spaceBetween: 30
-        },
-        '1024': {
-          slidesPerView: 3,
-          spaceBetween: 30
-        }
+      [loop]="true"
+      [autoplay]="{
+        delay: 5000,
+        disableOnInteraction: false
       }"
       class="testimonials-slider">
       
       <swiper-slide *ngFor="let testimonial of testimonials">
         <div class="testimonial-card">
           <div class="testimonial-content">
-            <mat-icon class="quote-icon">format_quote</mat-icon>
-            <p class="testimonial-text">{{ testimonial.content }}</p>
-          </div>
-          <div class="testimonial-author">
-            <div class="author-image" [class.initials]="!testimonial.image" [style.background-color]="!testimonial.image ? getRandomColor(testimonial.name) : null">
-              <img *ngIf="testimonial.image" [src]="testimonial.image" [alt]="testimonial.name">
-              <span *ngIf="!testimonial.image" class="initials-text">{{ getInitials(testimonial.name) }}</span>
+            <div class="rating">
+              <span class="rating-value">{{ testimonial.rating }}</span>
+              <div class="stars">
+                <mat-icon *ngFor="let star of [1,2,3,4,5]">star</mat-icon>
+              </div>
             </div>
-            <div class="author-info">
-              <h4 class="author-name">{{ testimonial.name }}</h4>
-              <p class="author-position">{{ testimonial.position }}</p>
-              <p class="author-company">{{ testimonial.company }}</p>
+            <div class="testimonial-profile">
+              <img [src]="testimonial.image" [alt]="testimonial.name" class="profile-image">
+              <div class="profile-info">
+                <h4 class="profile-name">{{ testimonial.name }}</h4>
+                <p class="profile-position">{{ testimonial.position }}</p>
+              </div>
+            </div>
+            <h3 class="testimonial-title">{{ testimonial.title }}</h3>
+            <p class="testimonial-text">{{ testimonial.content }}</p>
+            <div class="verification-badge" *ngIf="testimonial.verified">
+              <mat-icon>verified</mat-icon>
+              <span>Referenz wurde anonym anhand echter Bewertung erstellt</span>
             </div>
           </div>
         </div>
       </swiper-slide>
       
-      <div class="swiper-pagination"></div>
     </swiper-container>
+    
+    <div class="section-footer">
+      <button class="cta-button">Bin ich geeignet?</button>
+      <p class="spots-left">86/90 Plätze vergeben</p>
+    </div>
   </div>
 </section> 
