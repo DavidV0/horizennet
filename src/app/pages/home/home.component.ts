@@ -7,6 +7,7 @@ import { StatsSectionComponent } from '../../core/components/stats-section/stats
 import { ProductsSectionComponent } from '@core/components/products-section/products-section.component';
 import { IntroSectionComponent } from '@core/components/intro-section/intro-section.component';
 import { HeroSectionComponent } from '@core/components/hero-section/hero-section.component';
+import { TestimonialsSectionComponent } from '@core/components/testimonials-section/testimonials-section.component';
 
 interface TickerItem {
   icon: string;
@@ -19,7 +20,7 @@ interface TickerItem {
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, MatButtonModule, RouterModule, MatIconModule, StatsSectionComponent, ProductsSectionComponent, IntroSectionComponent, HeroSectionComponent], 
+  imports: [CommonModule, MatButtonModule, RouterModule, MatIconModule, StatsSectionComponent, ProductsSectionComponent, IntroSectionComponent, HeroSectionComponent, TestimonialsSectionComponent], 
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss']
 })

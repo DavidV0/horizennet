@@ -1,0 +1,178 @@
+@import 'swiper/scss';
+@import 'swiper/scss/navigation';
+@import 'swiper/scss/pagination';
+
+.testimonials-section {
+  padding: 6rem 0;
+  background: var(--surface-container);
+
+  .container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+
+  .section-title {
+    text-align: center;
+    margin-bottom: 4rem;
+    font-size: 2.5rem;
+    font-weight: 600;
+    color: var(--on-surface);
+  }
+
+  .testimonials-slider {
+    padding: 2rem 4rem;
+    position: relative;
+
+    // Swiper Navigation Styles
+    --swiper-navigation-size: 20px;
+    --swiper-navigation-color: var(--color-accent);
+    --swiper-navigation-background: var(--color-primary);
+    --swiper-navigation-border-radius: 50%;
+    --swiper-navigation-width: 50px;
+    --swiper-navigation-height: 50px;
+
+    // Swiper Pagination Styles
+    --swiper-pagination-color: var(--color-accent);
+    --swiper-pagination-bullet-size: 8px;
+    --swiper-pagination-bullet-width: 30px;
+    --swiper-pagination-bullet-height: 3px;
+    --swiper-pagination-bullet-inactive-color: var(--color-white);
+    --swiper-pagination-bullet-inactive-opacity: 0.5;
+    --swiper-pagination-bullet-opacity: 1;
+    --swiper-pagination-bullet-horizontal-gap: 6px;
+    --swiper-pagination-bullet-border-radius: 2px;
+  }
+
+  .testimonial-card {
+    background: var(--surface);
+    border-radius: 1rem;
+    padding: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    height: 100%;
+    transition: transform 0.3s ease;
+
+    &:hover {
+      transform: translateY(-5px);
+    }
+  }
+
+  .testimonial-content {
+    position: relative;
+    margin-bottom: 2rem;
+
+    .quote-icon {
+      color: var(--primary);
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+
+    .testimonial-text {
+      font-size: 1rem;
+      line-height: 1.6;
+      color: var(--on-surface);
+    }
+  }
+
+  .testimonial-author {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+
+    .author-image {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      &.initials {
+        color: white;
+        font-weight: 600;
+        font-size: 1.5rem;
+      }
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .initials-text {
+        line-height: 1;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+      }
+    }
+
+    .author-info {
+      .author-name {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin: 0;
+        color: var(--on-surface);
+      }
+
+      .author-position,
+      .author-company {
+        font-size: 0.9rem;
+        color: var(--on-surface-variant);
+        margin: 0;
+      }
+    }
+  }
+
+  ::ng-deep {
+    // ... Navigation Styles bleiben gleich ...
+
+    // Verbesserte Pagination Styles
+    .swiper-pagination {
+      position: relative;
+      bottom: -20px;
+      margin-top: 3.5rem;
+      padding-top: 1rem;
+
+      .swiper-pagination-bullet {
+        width: var(--swiper-pagination-bullet-width);
+        height: var(--swiper-pagination-bullet-height);
+        border-radius: var(--swiper-pagination-bullet-border-radius);
+        background: var(--color-white);
+        opacity: var(--swiper-pagination-bullet-inactive-opacity);
+        margin: 0 var(--swiper-pagination-bullet-horizontal-gap);
+        transition: all 0.3s ease;
+
+        &:hover {
+          opacity: 0.8;
+          background: var(--color-accent);
+        }
+
+        &.swiper-pagination-bullet-active {
+          width: 45px;
+          background: var(--color-accent);
+          opacity: 1;
+          box-shadow: 0 0 10px rgba(255, 183, 0, 0.3);
+        }
+      }
+    }
+  }
+
+  @media (max-width: 768px) {
+    .testimonials-slider {
+      padding: 2rem 3rem;
+    }
+
+    .swiper-button-next,
+    .swiper-button-prev {
+      width: 40px;
+      height: 40px;
+
+      &:after {
+        width: 10px;
+        height: 10px;
+        border-width: 2px;
+      }
+    }
+  }
+} 

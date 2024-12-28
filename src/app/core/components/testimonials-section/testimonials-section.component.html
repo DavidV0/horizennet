@@ -1,0 +1,49 @@
+<section class="testimonials-section">
+  <div class="container">
+    <h2 class="section-title">Was unsere Kunden sagen</h2>
+    
+    <swiper-container
+      [slidesPerView]="1"
+      [spaceBetween]="30"
+      [pagination]="true"
+      [navigation]="true"
+      [breakpoints]="{
+        '640': {
+          slidesPerView: 1,
+          spaceBetween: 20
+        },
+        '768': {
+          slidesPerView: 2,
+          spaceBetween: 30
+        },
+        '1024': {
+          slidesPerView: 3,
+          spaceBetween: 30
+        }
+      }"
+      class="testimonials-slider">
+      
+      <swiper-slide *ngFor="let testimonial of testimonials">
+        <div class="testimonial-card">
+          <div class="testimonial-content">
+            <mat-icon class="quote-icon">format_quote</mat-icon>
+            <p class="testimonial-text">{{ testimonial.content }}</p>
+          </div>
+          <div class="testimonial-author">
+            <div class="author-image" [class.initials]="!testimonial.image" [style.background-color]="!testimonial.image ? getRandomColor(testimonial.name) : null">
+              <img *ngIf="testimonial.image" [src]="testimonial.image" [alt]="testimonial.name">
+              <span *ngIf="!testimonial.image" class="initials-text">{{ getInitials(testimonial.name) }}</span>
+            </div>
+            <div class="author-info">
+              <h4 class="author-name">{{ testimonial.name }}</h4>
+              <p class="author-position">{{ testimonial.position }}</p>
+              <p class="author-company">{{ testimonial.company }}</p>
+            </div>
+          </div>
+        </div>
+      </swiper-slide>
+      
+      <div class="swiper-pagination"></div>
+    </swiper-container>
+  </div>
+</section> 
