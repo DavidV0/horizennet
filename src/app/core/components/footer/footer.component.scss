@@ -62,16 +62,6 @@
     grid-template-columns: repeat(3, 1fr);
     width: 100%;
     text-align: center;
-
-    .link-group {
-      a {
-        justify-content: center;
-      }
-
-      .contact-link {
-        justify-content: center;
-      }
-    }
   }
 
   @media (max-width: 770px) {
@@ -126,6 +116,16 @@
       height: 18px;
     }
   }
+
+  @include mix.tablet {
+    a {
+      justify-content: center;
+    }
+
+    .contact-link {
+      justify-content: center;
+    }
+  }
 }
 
 .footer-bottom {
@@ -141,12 +141,6 @@
   justify-content: space-between;
   align-items: center;
   padding: 0 var(--spacing-lg);
-
-  @include mix.mobile {
-    flex-direction: column;
-    gap: var(--spacing-md);
-    text-align: center;
-  }
 
   p {
     margin: 0;
@@ -173,5 +167,11 @@
     .separator {
       opacity: 0.5;
     }
+  }
+
+  @include mix.mobile {
+    flex-direction: column;
+    gap: var(--spacing-md);
+    text-align: center;
   }
 } 

@@ -1,6 +1,6 @@
-@import 'swiper/scss';
-@import 'swiper/scss/navigation';
-@import 'swiper/scss/pagination';
+@use 'swiper/scss' as swiper;
+@use 'swiper/scss/navigation';
+@use 'swiper/scss/pagination';
 
 .testimonials-section {
   padding: 6rem 0;
