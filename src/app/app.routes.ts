@@ -4,7 +4,8 @@ import { HomeComponent } from './pages/home/home.component';
 export const routes: Routes = [
   {
     path: '',
-    component: HomeComponent
+    component: HomeComponent,
+    data: { scrollPositionRestoration: 'top' }
   },
   {
     path: 'produkte',
@@ -31,7 +32,37 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/dashboard/dashboard.component').then(m => m.DashboardComponent)
   },
   {
+    path: 'agb',
+    loadComponent: () => import('./pages/agb/agb.component').then(m => m.AgbComponent)
+  },
+  {
+    path: 'widerruf',
+    loadComponent: () => import('./pages/widerruf/widerruf.component').then(m => m.WiderrufComponent)
+  },
+  {
+    path: 'disclaimer',
+    loadComponent: () => import('./pages/disclaimer/disclaimer.component').then(m => m.DisclaimerComponent)
+  },
+  {
+    path: 'impressum',
+    loadComponent: () => import('./pages/impressum/impressum.component').then(m => m.ImpressumComponent)
+  },
+  {
+    path: 'datenschutz',
+    loadComponent: () => import('./pages/datenschutz/datenschutz.component').then(m => m.DatenschutzComponent)
+  },
+  {
+    path: 'faq',
+    loadComponent: () => import('./pages/faq/faq.component').then(m => m.FaqComponent)
+  },
+  {
     path: '**',
     redirectTo: ''
   }
 ];
+
+export const routerConfig = {
+  scrollPositionRestoration: 'enabled',
+  anchorScrolling: 'enabled',
+  scrollOffset: [0, 0]
+};

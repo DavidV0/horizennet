@@ -1,0 +1,140 @@
+.faq-section {
+  padding: calc(var(--spacing-xl) * 2) var(--spacing-lg);
+  padding-bottom: 0;
+  max-width: 1200px;
+  margin: 0 auto;
+
+  h1 {
+    text-align: center;
+    margin-bottom: var(--spacing-sm);
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-bold);
+  }
+
+  .subtitle {
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+    font-size: var(--font-size-lg);
+    color: var(--color-text-light);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+}
+
+.faq-content {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: var(--spacing-xl);
+
+  ::ng-deep {
+    .mat-expansion-panel {
+      background: transparent;
+      color: var(--color-text);
+      margin-bottom: var(--spacing-md);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      &.mat-expanded {
+        border-color: var(--color-accent);
+      }
+    }
+
+    .mat-expansion-panel-header {
+      padding: var(--spacing-lg);
+      
+      &:hover {
+        background: rgba(255, 255, 255, 0.03);
+      }
+    }
+
+    .mat-expansion-panel-header-title {
+      color: var(--color-text);
+      font-size: var(--font-size-md);
+      font-weight: var(--font-weight-medium);
+    }
+
+    .mat-expansion-panel-body {
+      padding: var(--spacing-lg);
+      padding-top: 0;
+      line-height: 1.6;
+    }
+
+    .mat-expansion-indicator::after {
+      color: var(--color-accent);
+    }
+  }
+}
+
+// Tablet
+@media (max-width: 1024px) {
+  .faq-section {
+    padding: calc(var(--spacing-xl) * 1.5) var(--spacing-lg);
+    
+    h1 {
+      font-size: calc(var(--font-size-3xl) * 0.9);
+    }
+    
+    .subtitle {
+      font-size: calc(var(--font-size-lg) * 0.9);
+    }
+  }
+}
+
+// Mobile Large
+@media (max-width: 768px) {
+  .faq-section {
+    padding: var(--spacing-xl) var(--spacing-md);
+    
+    h1 {
+      font-size: calc(var(--font-size-3xl) * 0.8);
+    }
+    
+    .subtitle {
+      font-size: calc(var(--font-size-lg) * 0.8);
+      margin-bottom: var(--spacing-lg);
+    }
+  }
+  
+  .faq-content {
+    padding: var(--spacing-lg);
+    
+    ::ng-deep {
+      .mat-expansion-panel-header {
+        padding: var(--spacing-md);
+      }
+      
+      .mat-expansion-panel-body {
+        padding: var(--spacing-md);
+        padding-top: 0;
+      }
+    }
+  }
+}
+
+// Mobile Small
+@media (max-width: 480px) {
+  .faq-section {
+    padding: var(--spacing-lg) var(--spacing-sm);
+    
+    h1 {
+      font-size: calc(var(--font-size-3xl) * 0.7);
+    }
+    
+    .subtitle {
+      font-size: calc(var(--font-size-lg) * 0.7);
+    }
+  }
+  
+  .faq-content {
+    padding: var(--spacing-md);
+    
+    ::ng-deep {
+      .mat-expansion-panel-header-title {
+        font-size: var(--font-size-sm);
+      }
+    }
+  }
+} 

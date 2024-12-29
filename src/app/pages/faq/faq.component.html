@@ -1,0 +1,22 @@
+<div class="page-container">
+  <section class="faq-section">
+    <h1>Du hast Fragen?</h1>
+    <h2 class="subtitle">WIR HABEN DIE ANTWORTEN</h2>
+    
+    <div class="faq-content">
+      <mat-accordion>
+        <mat-expansion-panel *ngFor="let item of faqItems" class="faq-item">
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              {{ item.question }}
+            </mat-panel-title>
+          </mat-expansion-panel-header>
+          <p>{{ item.answer }}</p>
+        </mat-expansion-panel>
+      </mat-accordion>
+    </div>
+  </section>
+
+  <!-- Contact Section -->
+  <app-contact-section></app-contact-section>
+</div> 

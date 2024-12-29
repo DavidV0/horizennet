@@ -1,6 +1,6 @@
 .contact-section {
   padding: 6rem 0;
-  background: #1E1E1E;
+  background: #000000;
   color: var(--color-white);
 
   .container {
@@ -44,16 +44,16 @@
 
       ::ng-deep {
         .mat-mdc-form-field-flex {
-          background-color: #f5f5f5;
+          background-color: #cbcbcb;
           border-radius: 4px;
         }
 
         .mat-mdc-text-field-wrapper {
-          background-color: #f5f5f5;
+          background-color: #cbcbcb;
         }
 
         .mdc-text-field--outlined {
-          --mdc-outlined-text-field-container-color: #f5f5f5;
+          --mdc-outlined-text-field-container-color: #cbcbcb;
         }
 
         .mat-mdc-input-element {
@@ -61,7 +61,7 @@
         }
 
         .mat-mdc-form-field-label {
-          color: rgba(0, 0, 0, 0.6);
+          color: rgba(0, 0, 0, 0.3);
         }
 
         textarea {
@@ -153,34 +153,18 @@
         }
       }
     }
-  }
 
-  .success-message {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    background-color: #4caf50;
-    color: white;
-    padding: 1rem;
-    border-radius: 4px;
-    margin-bottom: 2rem;
-    animation: slideDown 0.3s ease-out;
-
-    mat-icon {
-      font-size: 20px;
-      width: 20px;
-      height: 20px;
-    }
-  }
-
-  @keyframes slideDown {
-    from {
-      transform: translateY(-20px);
-      opacity: 0;
-    }
-    to {
-      transform: translateY(0);
-      opacity: 1;
+    .form-group {
+      input, textarea {
+        background-color: rgb(200, 200, 200);
+        background-color: #C8C8C8;
+        color: var(--color-text-dark);
+        
+        &::placeholder {
+          color: rgb(0, 0, 0);
+          color: #000000;
+        }
+      }
     }
   }
 } 
