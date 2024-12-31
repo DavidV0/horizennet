@@ -26,8 +26,12 @@
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
-              "src/assets",
-              "src/favicon.ico"
+              {
+                "glob": "**/*",
+                "input": "src/assets/favicons",
+                "output": "/assets/favicons"
+              },
+              "src/assets"
             ],
             "styles": [
               "@angular/material/prebuilt-themes/cyan-orange.css",
