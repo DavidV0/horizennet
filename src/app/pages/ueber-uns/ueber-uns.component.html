@@ -1,1 +1,120 @@
-<p>ueber-uns works!</p>
+<div class="page-container">
+  <section class="hero-section">
+    <div class="content-wrapper">
+      <h1 class="animated fade-in-down" #animatedElement>About Horizon NET.</h1>
+      <p class="subtitle animated fade-in-up" #animatedElement>
+        Erfahren Sie, wer HORIZON NET. ist,<br>
+        tauchen Sie ein in unsere inspirierende Entstehungsgeschichte
+      </p>
+    </div>
+    <div class="background-effects">
+      <div class="light-orb orb1"></div>
+      <div class="light-orb orb2"></div>
+      <div class="light-orb orb3"></div>
+    </div>
+  </section>
+
+  <section class="features-section">
+    <h2 class="animated fade-in-up" #animatedElement>WAS UNS STOLZ MACHT</h2>
+    
+    <div class="features-grid">
+      <div class="feature-card animated fade-in-up" 
+           *ngFor="let feature of features; let i = index" 
+           #animatedElement
+           [style.animation-delay]="i * 0.2 + 's'">
+        <div class="icon-wrapper">
+          <mat-icon>{{feature.icon}}</mat-icon>
+        </div>
+        <h3>{{feature.title}}</h3>
+        <p>{{feature.description}}</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="mission-section">
+    <div class="content-wrapper">
+      <div class="section-header animated fade-in-up" #animatedElement>
+        <h2>MISSION UND VISION</h2>
+        <h3>Die Entstehung von HorizonNet Consulting – Von der Vision zur Realität</h3>
+      </div>
+
+      <div class="story-content">
+        <div class="story-block animated fade-in-left" #animatedElement>
+          <p>Es gibt Momente, in denen Träume von einem besseren Leben in der Kritik anderer ersticken. Ich habe immer wieder gesehen, wie junge Menschen sich nach Wohlstand und Unabhängigkeit sehnten, aber nicht wussten, wie sie ihre Ziele erreichen können. Oft waren es die Stimmen von Freunden, der Familie oder dem Umfeld, die ihnen einredeten, ihre Träume seien zu riskant oder unrealistisch. Genau in diesen Momenten entstand die Vision von HorizonNet Consulting: eine Plattform, die jungen Menschen zeigt, dass Erfolg möglich ist – mit der richtigen Unterstützung und den passenden Werkzeugen.</p>
+        </div>
+
+        <div class="story-block animated fade-in-right" #animatedElement>
+          <p>Meine eigene Reise begann früh. Schon als Teenager war ich von der Welt der Selbstständigkeit und des Investierens fasziniert. Mit 16 Jahren hatte ich das Glück, meinen ersten Mentor zu treffen, der mir die Grundlagen zeigte und mich inspirierte, selbst nach mehr zu streben. Doch der Anfang war bescheiden – kein Laptop, kein Tablet, kein Computer, sondern nur ein Handy. Im digitalen Zeitalter reicht oft genau das, um etwas Großes zu schaffen.</p>
+        </div>
+
+        <div class="milestone-grid">
+          <div class="milestone animated fade-in-up" #animatedElement>
+            <div class="milestone-icon">
+              <mat-icon>trending_up</mat-icon>
+            </div>
+            <h4>Erster Erfolg</h4>
+            <p>Mit 17 Jahren: Über 11.000€ Umsatz</p>
+          </div>
+
+          <div class="milestone animated fade-in-up" #animatedElement>
+            <div class="milestone-icon">
+              <mat-icon>groups</mat-icon>
+            </div>
+            <h4>Wachsendes Team</h4>
+            <p>Entwicklung zu einem Team junger Selbstständiger</p>
+          </div>
+
+          <div class="milestone animated fade-in-up" #animatedElement>
+            <div class="milestone-icon">
+              <mat-icon>school</mat-icon>
+            </div>
+            <h4>Mentoring</h4>
+            <p>Inspiration durch erfahrene Mentoren</p>
+          </div>
+        </div>
+
+        <div class="story-block animated fade-in-left" #animatedElement>
+          <h3>Unser Angebot heute</h3>
+          <p>Heute ist HorizonNet Consulting viel mehr als nur eine Idee – es ist eine Plattform, die Menschen dabei hilft, ihre Ziele zu erreichen und ihr Leben zu verändern. Von Edelmetallen, Versicherungen, Fitness und Immobilien über Kryptowährungen bis hin zu unserer hauseigenen Academy decken wir die relevantesten Branchen ab.</p>
+        </div>
+
+        <div class="cta-section animated fade-in-up" #animatedElement>
+          <h3>Bereit, deinen eigenen Weg zu gehen?</h3>
+          <p>Lass uns gemeinsam an deiner Vision arbeiten und eine Strategie entwickeln, die zu dir passt.</p>
+          <button mat-raised-button class="cta-button gold-gradient">
+            Jetzt durchstarten
+            <mat-icon>arrow_forward</mat-icon>
+          </button>
+        </div>
+
+        <div class="author-block animated fade-in-up" #animatedElement>
+          <p class="author">– verfasst von Erdem Yildirim</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="team-section">
+    <div class="content-wrapper">
+      <div class="section-header animated fade-in-up" #animatedElement>
+        <h2>UNSER TEAM</h2>
+        <p class="subtitle">Die Experten hinter HorizonNet</p>
+      </div>
+      
+      <div class="team-grid">
+        <div class="team-member animated fade-in-up" 
+             *ngFor="let member of teamMembers; let i = index"
+             #animatedElement
+             [style.animation-delay]="i * 0.1 + 's'">
+          <div class="member-image">
+            <img [src]="member.image" [alt]="member.name">
+            <div class="crown-icon"></div>
+            <div class="wings"></div>
+          </div>
+          <h3>{{member.name}}</h3>
+          <p>{{member.position}}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
