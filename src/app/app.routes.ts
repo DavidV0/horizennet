@@ -24,21 +24,16 @@ export const routes: Routes = [
       },
       {
         path: ':slug',
-        loadComponent: () => import('./pages/blog/blog-detail/blog-detail.component').then(m => m.BlogDetailComponent)
+        loadComponent: () => import('./pages/blog/blog-detail/blog-detail.component').then(m => m.BlogDetailComponent),
+        data: {
+          ssr: false
+        }
       }
     ]
   },
   {
     path: 'events',
     loadComponent: () => import('./pages/events/events.component').then(m => m.EventsComponent)
-  },
-  {
-    path: 'shop',
-    loadComponent: () => import('./pages/shop/shop.component').then(m => m.ShopComponent)
-  },
-  {
-    path: 'dashboard',
-    loadComponent: () => import('./pages/dashboard/dashboard.component').then(m => m.DashboardComponent)
   },
   {
     path: 'agb',
@@ -67,7 +62,10 @@ export const routes: Routes = [
   {
     path: 'produkte/:id',
     loadComponent: () => import('./pages/product-detail/product-detail.component')
-      .then(m => m.ProductDetailComponent)
+      .then(m => m.ProductDetailComponent),
+    data: {
+      ssr: false
+    }
   },
   {
     path: '**',
