@@ -1,20 +1,40 @@
 <div class="page-container">
   <section class="products-section">
-    <h1>Unsere Produkte</h1>
-    <p class="section-subtitle">Entdecken Sie unser vielfältiges Produktangebot.</p>
+    <div class="hero-section">
+      <h1>UNSERE PRODUKTE</h1>
+      <p class="section-subtitle">Entdecken Sie unser exklusives Produktportfolio für Ihren Erfolg</p>
+    </div>
+
     <div class="products-grid">
-      <mat-card class="product-card hover-effect" *ngFor="let i of [1,2,3]">
-        <img mat-card-image src="assets/images/placeholder.jpg" alt="Produkt Thumbnail">
-        <mat-card-header>
-          <mat-card-title>Produkt {{i}}</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <p>Eine detaillierte Beschreibung des Produkts und seiner Vorteile.</p>
-        </mat-card-content>
-        <mat-card-actions>
-          <button mat-raised-button class="gold-gradient">Details</button>
-        </mat-card-actions>
-      </mat-card>
+      <div class="product-card" *ngFor="let product of products">
+        <div class="product-content">
+          <div class="product-text">
+            <h2>{{product.title}}</h2>
+            <p class="product-description">{{product.description}}</p>
+            
+            <ul class="product-features" *ngIf="product.features">
+              <li *ngFor="let feature of product.features">{{feature}}</li>
+            </ul>
+
+            <p class="product-long-description" *ngIf="product.longDescription">
+              {{product.longDescription}}
+            </p>
+
+            <button mat-raised-button 
+                    [class.gold-gradient]="product.id === 'academy'"
+                    class="cta-button hover-effect" 
+                    [routerLink]="product.ctaLink">
+              {{product.ctaText}}
+              <mat-icon>rocket_launch</mat-icon>
+            </button>
+          </div>
+          
+          <div class="product-image">
+            <img [src]="product.image" [alt]="product.title" class="floating-image">
+            <div class="image-overlay"></div>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 </div> 

@@ -1,0 +1,50 @@
+<div class="page-container">
+  <article class="blog-detail">
+    <header class="blog-header animated fade-in-up" #animatedElement>
+      <div class="category-badge">{{blogPost.category}}</div>
+      <h1>{{blogPost.title}}</h1>
+      <div class="meta-info">
+        <span class="date">
+          <mat-icon>calendar_today</mat-icon>
+          {{blogPost.date}}
+        </span>
+        <span class="read-time">
+          <mat-icon>schedule</mat-icon>
+          {{blogPost.readTime}}
+        </span>
+      </div>
+    </header>
+
+    <div class="featured-image animated fade-in-up" #animatedElement>
+      <img [src]="blogPost.image" [alt]="blogPost.title">
+      <div class="image-overlay"></div>
+    </div>
+
+    <div class="blog-content">
+      <div *ngFor="let section of blogPost.content" class="content-section animated fade-in-up" #animatedElement>
+        <ng-container [ngSwitch]="section.type">
+          <p *ngSwitchCase="'paragraph'" class="paragraph">{{section.text}}</p>
+          
+          <h2 *ngSwitchCase="'subheading'" class="subheading">{{section.text}}</h2>
+          
+          <blockquote *ngSwitchCase="'quote'" class="quote">
+            <p>{{section.text}}</p>
+          </blockquote>
+          
+          <ul *ngSwitchCase="'list'" class="content-list">
+            <li *ngFor="let item of section.items">{{item}}</li>
+          </ul>
+        </ng-container>
+      </div>
+
+      <div class="cta-section animated fade-in-up" #animatedElement>
+        <h3>Bereit für Ihren eigenen Erfolg?</h3>
+        <p>Starten Sie jetzt Ihre Reise zum erfolgreichen Krypto-Trading</p>
+        <button mat-raised-button class="cta-button gold-gradient" routerLink="/produkte/crypto">
+          Jetzt durchstarten
+          <mat-icon>rocket_launch</mat-icon>
+        </button>
+      </div>
+    </div>
+  </article>
+</div> 

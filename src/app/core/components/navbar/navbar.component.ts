@@ -21,8 +21,7 @@ export class NavbarComponent {
     { path: '/produkte', label: 'Produkte' },
     { path: '/ueber-uns', label: 'Über uns' },
     { path: '/blog', label: 'Blog' },
-    { path: '/events', label: 'Events' },
-    { path: '/shop', label: 'Shop' }
+    { path: '/events', label: 'Events' }
   ];
 
   constructor(@Inject(PLATFORM_ID) platformId: Object) {

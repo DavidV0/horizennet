@@ -17,7 +17,16 @@ export const routes: Routes = [
   },
   {
     path: 'blog',
-    loadComponent: () => import('./pages/blog/blog.component').then(m => m.BlogComponent)
+    children: [
+      {
+        path: '',
+        loadComponent: () => import('./pages/blog/blog.component').then(m => m.BlogComponent)
+      },
+      {
+        path: ':slug',
+        loadComponent: () => import('./pages/blog/blog-detail/blog-detail.component').then(m => m.BlogDetailComponent)
+      }
+    ]
   },
   {
     path: 'events',
@@ -54,6 +63,11 @@ export const routes: Routes = [
   {
     path: 'faq',
     loadComponent: () => import('./pages/faq/faq.component').then(m => m.FaqComponent)
+  },
+  {
+    path: 'produkte/:id',
+    loadComponent: () => import('./pages/product-detail/product-detail.component')
+      .then(m => m.ProductDetailComponent)
   },
   {
     path: '**',

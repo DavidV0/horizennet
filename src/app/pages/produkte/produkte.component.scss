@@ -1,81 +1,177 @@
 .products-section {
-  text-align: center;
   padding: calc(var(--spacing-xl) * 2) 0;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
+}
 
+.hero-section {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+  
   h1 {
     font-size: var(--font-size-3xl);
     margin-bottom: var(--spacing-md);
     font-weight: var(--font-weight-bold);
+    color: var(--color-accent);
   }
 
   .section-subtitle {
     font-size: var(--font-size-xl);
-    color: var(--color-secondary);
-    margin-bottom: var(--spacing-xl);
+    color: var(--color-text);
+    opacity: 0.8;
   }
 }
 
 .products-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: var(--spacing-xl);
-  margin-top: var(--spacing-xl);
+  padding: 0 var(--spacing-lg);
 }
 
 .product-card {
-  display: flex;
-  flex-direction: column;
-  background: var(--color-white);
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 12px;
   overflow: hidden;
   transition: all 0.3s ease;
-
-  img {
-    width: 100%;
-    height: 200px;
-    object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    
+    .floating-image {
+      transform: scale(1.05);
+    }
   }
+}
 
-  mat-card-header {
-    padding: var(--spacing-lg);
+.product-content {
+  display: flex;
+  gap: var(--spacing-xl);
+  padding: var(--spacing-xl);
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
   }
+}
 
-  mat-card-title {
-    color: var(--color-primary);
-    font-size: var(--font-size-lg);
+.product-text {
+  flex: 1;
+  
+  h2 {
+    color: var(--color-accent);
+    font-size: var(--font-size-2xl);
     margin-bottom: var(--spacing-md);
+    font-weight: var(--font-weight-bold);
   }
+  
+  .product-description {
+    color: var(--color-text);
+    font-size: var(--font-size-lg);
+    line-height: 1.6;
+    margin-bottom: var(--spacing-lg);
+  }
+}
 
-  mat-card-content {
-    padding: 0 var(--spacing-lg);
-    flex-grow: 1;
-
-    p {
-      color: var(--color-secondary);
-      line-height: var(--line-height-relaxed);
+.product-features {
+  list-style: none;
+  padding: 0;
+  margin: var(--spacing-lg) 0;
+  
+  li {
+    color: var(--color-text);
+    margin-bottom: var(--spacing-sm);
+    padding-left: var(--spacing-md);
+    position: relative;
+    
+    &::before {
+      content: '•';
+      color: var(--color-accent);
+      position: absolute;
+      left: 0;
     }
   }
+}
 
-  mat-card-actions {
-    padding: var(--spacing-lg);
-    display: flex;
-    justify-content: center;
+.product-image {
+  flex: 1;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;  
+  min-height: 300px;
+  
+  .floating-image {
+    width: 70%;
+    height: 70%;
+    object-fit: contain;
+    border-radius: 8px;
+    transition: transform 0.3s ease;
+  }
+  
+  .image-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, rgba(0,0,0,0.4) 0%, transparent 100%);
+    border-radius: 8px;
+  }
+}
 
-    button {
-      min-width: 120px;
+.cta-button {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-xl);
+  font-weight: var(--font-weight-bold);
+  margin-top: var(--spacing-lg);
+  background: linear-gradient(45deg, var(--color-accent) 0%, #FFC740 100%) !important;
+  color: var(--color-primary) !important;
+  border: none;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(255, 199, 64, 0.3);
+    
+    mat-icon {
+      animation: rocketLaunch 1s ease infinite;
     }
   }
+}
 
-  &.hover-effect:hover {
+@keyframes rocketLaunch {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
     transform: translateY(-4px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  }
+}
+
+@media (max-width: 1200px) {
+  .products-grid {
+    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 768px) {
-  .products-grid {
-    grid-template-columns: 1fr;
+  .product-content {
+    flex-direction: column-reverse;
   }
+  
+  .product-image {
+    min-height: 200px;
+  }
+}
+
+.product-long-description {
+  color: var(--color-text);
+  font-size: var(--font-size-md);
+  line-height: 1.6;
+  margin: var(--spacing-lg) 0;
+  opacity: 0.9;
 } 

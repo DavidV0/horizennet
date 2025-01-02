@@ -1,0 +1,54 @@
+<div class="page-container" *ngIf="product">
+  <section class="product-detail">
+    <div class="product-hero">
+      <div class="hero-content">
+        <h1>{{product.title}}</h1>
+        <p class="hero-description">{{product.description}}</p>
+      </div>
+      <div class="hero-image">
+        <img [src]="product.image" [alt]="product.title">
+      </div>
+    </div>
+
+    <div class="product-content">
+      <div class="features-section">
+        <h2>Hauptmerkmale</h2>
+        <div class="features-honeycomb">
+          <div class="feature-hex" *ngFor="let feature of product.features; let i = index"
+               [style.animation-delay]="i * 0.15 + 's'">
+            <div class="hex-content">
+              <div class="icon-wrapper">
+                <mat-icon>{{getFeatureIcon(i)}}</mat-icon>
+              </div>
+              <h3>{{feature}}</h3>
+              <div class="hex-overlay"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="description-section">
+        <h2>Über das Produkt</h2>
+        <p>{{product.longDescription}}</p>
+      </div>
+
+      <div class="benefits-section" *ngIf="product.benefits">
+        <h2>Ihre Vorteile</h2>
+        <ul class="benefits-list">
+          <li *ngFor="let benefit of product.benefits; let i = index"
+              [style.animation-delay]="i * 0.1 + 's'">
+            <mat-icon>star</mat-icon>
+            <span>{{benefit}}</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="cta-section">
+        <button mat-raised-button class="cta-button gold-gradient">
+          {{product.ctaText || 'Jetzt entdecken'}}
+          <mat-icon>rocket_launch</mat-icon>
+        </button>
+      </div>
+    </div>
+  </section>
+</div> 

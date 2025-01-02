@@ -1,4 +1,6 @@
 .events-section {
+  max-width: 1100px;
+  margin: 0 auto;
   padding: calc(var(--spacing-xl) * 2) var(--spacing-lg);
   background: var(--color-background);
 
@@ -21,10 +23,10 @@
   }
 
   .filters {
+    margin: 0 auto var(--spacing-xl);
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: var(--spacing-md);
-    margin-bottom: var(--spacing-xl);
     padding: var(--spacing-md);
     background: rgba(255, 255, 255, 0.03);
     border-radius: 8px;
@@ -320,8 +322,10 @@
 
   .events-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: var(--spacing-xl);
+    max-width: 900px;
+    margin: 0 auto;
   }
 
   .event-card {
@@ -454,10 +458,11 @@
 @media (max-width: 768px) {
   .events-section {
     padding: var(--spacing-xl) var(--spacing-md);
-
-    .events-grid {
-      grid-template-columns: 1fr;
-    }
+  }
+  
+  .events-grid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-lg);
   }
 }
 

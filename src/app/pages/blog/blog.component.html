@@ -1,9 +1,42 @@
 <div class="page-container">
   <section class="blog-section">
-    <h1>Blog</h1>
-    <p class="section-subtitle">Aktuelle News und Artikel.</p>
+    <div class="section-header animated fade-in-up" #animatedElement>
+      <h1>BLOG & NEWS</h1>
+      <p class="section-subtitle">Insights, Strategien und Erfolgsgeschichten</p>
+    </div>
+
     <div class="blog-grid">
-      <!-- Blog-Posts werden hier später dynamisch eingefügt -->
+      <article class="blog-card animated fade-in-up" #animatedElement>
+        <div class="blog-image">
+          <img src="assets/images/blog/crypto-success.jpg" alt="Krypto Erfolgsgeschichte">
+          <div class="image-overlay"></div>
+          <div class="blog-category">Krypto</div>
+        </div>
+        <div class="blog-content">
+          <div class="blog-meta">
+            <span class="date">
+              <mat-icon>calendar_today</mat-icon>
+              15. März 2024
+            </span>
+            <span class="read-time">
+              <mat-icon>schedule</mat-icon>
+              5 min read
+            </span>
+          </div>
+          <h2>Von 0 auf 100k€: Eine Krypto Erfolgsgeschichte</h2>
+          <p class="blog-excerpt">
+            Entdecken Sie die inspirierende Geschichte eines unserer Mitglieder, der durch strategisches 
+            Trading und unsere Expertise seinen Weg zum Erfolg gefunden hat. Lernen Sie die wichtigsten 
+            Prinzipien und Strategien kennen...
+          </p>
+          <div class="blog-footer">
+            <button mat-raised-button class="read-more-btn gold-gradient" [routerLink]="['/blog', 'crypto-success-story']">
+              Weiterlesen
+              <mat-icon>arrow_forward</mat-icon>
+            </button>
+          </div>
+        </div>
+      </article>
     </div>
   </section>
 </div>
