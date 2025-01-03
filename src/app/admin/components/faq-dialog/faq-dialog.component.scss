@@ -1,0 +1,23 @@
+.dialog-content {
+  padding: var(--spacing-lg);
+  
+  h2 {
+    color: var(--color-accent);
+    margin-bottom: var(--spacing-xl);
+  }
+}
+
+mat-dialog-content {
+  padding-top: var(--spacing-md);
+  padding-bottom: var(--spacing-md);
+}
+
+.full-width {
+  width: 100%;
+  margin-bottom: var(--spacing-md);
+}
+
+mat-dialog-actions {
+  padding: var(--spacing-md) 0;
+  gap: var(--spacing-md);
+} 

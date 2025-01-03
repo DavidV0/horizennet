@@ -1,4 +1,4 @@
-import { Component, ViewChildren, QueryList, ElementRef, AfterViewInit, PLATFORM_ID, Inject, ViewChild } from '@angular/core';
+import { Component, ViewChildren, QueryList, ElementRef, AfterViewInit, PLATFORM_ID, Inject, ViewChild, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -9,18 +9,9 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { FormGroup, FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatDateRangePicker } from '@angular/material/datepicker';
-
-interface Event {
-  date: {
-    day: string;
-    month: string;
-  };
-  title: string;
-  description: string;
-  time: string;
-  location: string;
-  image: string;
-}
+import { EventService } from '../../shared/services/event.service';
+import { Event } from '../../shared/interfaces/event.interface';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-events',
@@ -39,11 +30,12 @@ interface Event {
   templateUrl: './events.component.html',
   styleUrls: ['./events.component.scss']
 })
-export class EventsComponent implements AfterViewInit {
+export class EventsComponent implements AfterViewInit, OnInit, OnDestroy {
   @ViewChildren('animatedElement') animatedElements!: QueryList<ElementRef>;
   @ViewChild('picker') datePicker!: MatDateRangePicker<Date>;
   
   private observer: IntersectionObserver | null = null;
+  private eventsSubscription?: Subscription;
 
   locations = [
     'Wien',
@@ -86,34 +78,27 @@ export class EventsComponent implements AfterViewInit {
     eventType: new FormControl('')
   });
 
-  events: Event[] = [
-    {
-      date: { day: '08', month: 'DEZ' },
-      title: 'Inner Circle MEETUP',
-      description: 'Exklusives Networking-Event für Inner Circle Mitglieder',
-      time: '2024-12-08 @ 05:00 PM - 2024-12-08 @ 10:00 PM',
-      location: 'Kontaktieren Sie uns per Mail für detaillierte Informationen',
-      image: 'assets/HorizonNet_tHwL.png'
-    },
-    {
-      date: { day: '20', month: 'DEZ' },
-      title: 'Inner Circle Weihnachtsfeier',
-      description: 'Festliche Jahresabschlussfeier mit dem gesamten Team',
-      time: '2024-12-20 @ 07:00 PM - 2024-12-20 @ 11:30 PM',
-      location: 'Kontaktieren Sie uns per Mail für detaillierte Informationen',
-      image: 'assets/images/events/christmas-party.jpg'
-    },
-    {
-      date: { day: '29', month: 'NOV' },
-      title: 'Inner Cricle Networking – Team Event',
-      description: 'Strategisches Networking und Teamentwicklung',
-      time: '2024-11-29 - 2024-12-01',
-      location: 'Kontaktieren Sie uns per Mail für detaillierte Informationen',
-      image: 'assets/images/events/networking.jpg'
-    }
-  ];
+  events: Event[] = [];
 
-  constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
+  constructor(
+    @Inject(PLATFORM_ID) private platformId: Object,
+    private eventService: EventService
+  ) {}
+
+  ngOnInit() {
+    this.loadEvents();
+  }
+
+  private loadEvents() {
+    this.eventsSubscription = this.eventService.getAllEvents().subscribe({
+      next: (events) => {
+        this.events = events;
+      },
+      error: (error) => {
+        console.error('Error loading events:', error);
+      }
+    });
+  }
 
   ngAfterViewInit() {
     if (isPlatformBrowser(this.platformId)) {
@@ -148,6 +133,9 @@ export class EventsComponent implements AfterViewInit {
   ngOnDestroy() {
     if (this.observer) {
       this.observer.disconnect();
+    }
+    if (this.eventsSubscription) {
+      this.eventsSubscription.unsubscribe();
     }
   }
 

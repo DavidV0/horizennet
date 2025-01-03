@@ -5,32 +5,36 @@
       <p class="section-subtitle">Insights, Strategien und Erfolgsgeschichten</p>
     </div>
 
-    <div class="blog-grid">
-      <article class="blog-card animated fade-in-up" #animatedElement>
+    <!-- No Blogs Message -->
+    <div class="no-blogs-container" *ngIf="blogs.length === 0">
+      <mat-icon>article</mat-icon>
+      <h2>Zurzeit gibt es keine Blog Beiträge</h2>
+    </div>
+
+    <div class="blog-grid" *ngIf="blogs.length > 0">
+      <article class="blog-card animated fade-in-up" *ngFor="let blog of blogs" #animatedElement>
         <div class="blog-image">
-          <img src="assets/images/blog/crypto-success.jpg" alt="Krypto Erfolgsgeschichte">
+          <img [src]="blog.image" [alt]="blog.title">
           <div class="image-overlay"></div>
-          <div class="blog-category">Krypto</div>
+          <div class="blog-category">{{blog.category}}</div>
         </div>
         <div class="blog-content">
           <div class="blog-meta">
             <span class="date">
               <mat-icon>calendar_today</mat-icon>
-              15. März 2024
+              {{blog.date}}
             </span>
             <span class="read-time">
               <mat-icon>schedule</mat-icon>
-              5 min read
+              {{blog.readTime}}
             </span>
           </div>
-          <h2>Von 0 auf 100k€: Eine Krypto Erfolgsgeschichte</h2>
+          <h2>{{blog.title}}</h2>
           <p class="blog-excerpt">
-            Entdecken Sie die inspirierende Geschichte eines unserer Mitglieder, der durch strategisches 
-            Trading und unsere Expertise seinen Weg zum Erfolg gefunden hat. Lernen Sie die wichtigsten 
-            Prinzipien und Strategien kennen...
+            {{blog.content[0].text}}
           </p>
           <div class="blog-footer">
-            <button mat-raised-button class="read-more-btn gold-gradient" [routerLink]="['/blog', 'crypto-success-story']">
+            <button mat-raised-button class="read-more-btn gold-gradient" (click)="navigateToBlogDetail(blog)">
               Weiterlesen
               <mat-icon>arrow_forward</mat-icon>
             </button>

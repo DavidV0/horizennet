@@ -23,7 +23,7 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/blog/blog.component').then(m => m.BlogComponent)
       },
       {
-        path: ':slug',
+        path: ':id',
         loadComponent: () => import('./pages/blog/blog-detail/blog-detail.component').then(m => m.BlogDetailComponent),
         data: {
           ssr: false
@@ -66,6 +66,10 @@ export const routes: Routes = [
     data: {
       ssr: false
     }
+  },
+  {
+    path: 'admin',
+    loadChildren: () => import('./admin/admin.module').then(m => m.AdminModule)
   },
   {
     path: '**',

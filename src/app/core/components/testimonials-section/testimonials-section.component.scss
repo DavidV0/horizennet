@@ -3,20 +3,22 @@
 @use 'swiper/scss/pagination';
 
 .testimonials-section {
-  padding: 6rem 0;
-  
+  background: #1E1E1E;
+  color: var(--color-white);
+  padding: calc(var(--spacing-xl) * 2) 0;
+  position: relative;
+  overflow: hidden;
+
   @media (max-width: 768px) {
     padding: 4rem 0;
   }
 
-  background: #1E1E1E;
-  color: var(--color-white);
-
   .container {
-    width: 100%;
-    max-width: 1000px;
+    position: relative;
+    z-index: 1;
+    max-width: 1200px;
     margin: 0 auto;
-    padding: 0 1rem;
+    padding: 0 var(--spacing-lg);
   }
 
   .section-header {
@@ -48,16 +50,18 @@
   }
 
   .testimonial-card {
-    background: #2A2A2A;
-    border-radius: 0.5rem;
-    overflow: hidden;
-    padding: 2rem;
+    & {
+      background: #2A2A2A;
+      border-radius: 0.5rem;
+      overflow: hidden;
+      padding: 2rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
     
     @media (max-width: 768px) {
       padding: 1.5rem;
     }
-    max-width: 800px;
-    margin: 0 auto;
   }
 
   .testimonial-image {
@@ -325,5 +329,24 @@
         margin-top: 3rem;
       }
     }
+  }
+}
+
+.testimonial-content {
+  & {
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  h2 {
+    font-size: 2.5rem;
+    margin-bottom: 2rem;
+  }
+
+  p {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin-bottom: 3rem;
   }
 } 

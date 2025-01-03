@@ -1,4 +1,7 @@
-import { Component, ViewChildren, QueryList, ElementRef, AfterViewInit, PLATFORM_ID, Inject } from '@angular/core';
+import { Component, OnInit, ViewChildren, QueryList, ElementRef, AfterViewInit, PLATFORM_ID, Inject } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { BlogService } from '../../../shared/services/blog.service';
+import { Blog } from '../../../shared/interfaces/blog.interface';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -6,73 +9,38 @@ import { RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-blog-detail',
+  templateUrl: './blog-detail.component.html',
+  styleUrls: ['./blog-detail.component.scss'],
   standalone: true,
   imports: [
     CommonModule,
     MatIconModule,
     MatButtonModule,
     RouterModule
-  ],
-  templateUrl: './blog-detail.component.html',
-  styleUrls: ['./blog-detail.component.scss']
+  ]
 })
-export class BlogDetailComponent implements AfterViewInit {
+export class BlogDetailComponent implements OnInit, AfterViewInit {
   @ViewChildren('animatedElement') animatedElements!: QueryList<ElementRef>;
-  
+  blog?: Blog;
+  isLoading = true;
+  error = false;
   private observer: IntersectionObserver | null = null;
 
-  blogPost = {
-    category: 'Krypto',
-    title: 'Von 0 auf 100k€: Eine Krypto Erfolgsgeschichte',
-    date: '15. März 2024',
-    readTime: '5 min read',
-    image: 'assets/images/blog/crypto-success.jpg',
-    content: [
-      {
-        type: 'paragraph',
-        text: 'Der Weg zum Erfolg im Krypto-Trading ist oft von Herausforderungen geprägt. In dieser inspirierenden Geschichte teilt eines unserer Mitglieder seine Reise vom Anfänger zum erfolgreichen Trader.'
-      },
-      {
-        type: 'subheading',
-        text: 'Die Anfänge'
-      },
-      {
-        type: 'paragraph',
-        text: 'Wie viele andere begann auch Michael (Name geändert) seine Krypto-Reise mit minimalen Kenntnissen über digitale Währungen. "Ich hatte von Bitcoin gehört und wusste, dass viele damit Geld verdienen, aber mir fehlte das grundlegende Verständnis für die Technologie und die Märkte", erinnert er sich.'
-      },
-      {
-        type: 'quote',
-        text: 'Der wichtigste Schritt war zu erkennen, dass ich professionelle Unterstützung und eine strukturierte Ausbildung brauchte.'
-      },
-      {
-        type: 'subheading',
-        text: 'Der Wendepunkt'
-      },
-      {
-        type: 'paragraph',
-        text: 'Nach mehreren Fehlversuchen und Verlusten entschied sich Michael für eine professionelle Ausbildung bei HorizonNet. "Die Kombination aus theoretischem Wissen und praktischer Anwendung war genau das, was ich brauchte. Besonders wertvoll waren die Live-Trading-Sessions und der direkte Austausch mit erfahrenen Tradern."'
-      },
-      {
-        type: 'subheading',
-        text: 'Strategien und Techniken'
-      },
-      {
-        type: 'paragraph',
-        text: 'Im Laufe seiner Ausbildung lernte Michael die wichtigsten Prinzipien des erfolgreichen Tradings:'
-      },
-      {
-        type: 'list',
-        items: [
-          'Risikomanagement als oberste Priorität',
-          'Technische Analyse und Chart-Patterns',
-          'Psychologische Aspekte des Tradings',
-          'Timing und Marktzyklen'
-        ]
-      }
-    ]
-  };
+  constructor(
+    private route: ActivatedRoute,
+    private router: Router,
+    private blogService: BlogService,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) {}
 
-  constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
+  ngOnInit() {
+    const blogId = this.route.snapshot.paramMap.get('id');
+    if (blogId) {
+      this.loadBlog(blogId);
+    } else {
+      this.router.navigate(['/blog']);
+    }
+  }
 
   ngAfterViewInit() {
     if (isPlatformBrowser(this.platformId)) {
@@ -107,6 +75,40 @@ export class BlogDetailComponent implements AfterViewInit {
   ngOnDestroy() {
     if (this.observer) {
       this.observer.disconnect();
+    }
+  }
+
+  private async loadBlog(id: string) {
+    try {
+      this.isLoading = true;
+      this.error = false;
+      const blog = await this.blogService.getBlog(id);
+      
+      if (blog) {
+        this.blog = blog;
+      } else {
+        this.error = true;
+        this.router.navigate(['/blog']);
+      }
+    } catch (error) {
+      this.error = true;
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  getContentClass(type: string): string {
+    switch (type) {
+      case 'paragraph':
+        return 'blog-paragraph';
+      case 'subheading':
+        return 'blog-subheading';
+      case 'quote':
+        return 'blog-quote';
+      case 'list':
+        return 'blog-list';
+      default:
+        return '';
     }
   }
 } 

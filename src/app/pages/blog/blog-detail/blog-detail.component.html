@@ -1,27 +1,43 @@
-<div class="page-container">
+<!-- Loading State -->
+<div class="loading-container" *ngIf="isLoading">
+  <mat-icon class="loading-icon">hourglass_empty</mat-icon>
+  <p>Lade Blog...</p>
+</div>
+
+<!-- Error State -->
+<div class="error-container" *ngIf="error">
+  <mat-icon class="error-icon">error_outline</mat-icon>
+  <p>Der Blog konnte nicht geladen werden.</p>
+  <button mat-raised-button color="primary" routerLink="/blog">
+    Zurück zur Übersicht
+  </button>
+</div>
+
+<!-- Blog Content -->
+<div class="page-container" *ngIf="blog && !isLoading && !error">
   <article class="blog-detail">
     <header class="blog-header animated fade-in-up" #animatedElement>
-      <div class="category-badge">{{blogPost.category}}</div>
-      <h1>{{blogPost.title}}</h1>
+      <div class="category-badge">{{blog.category}}</div>
+      <h1>{{blog.title}}</h1>
       <div class="meta-info">
         <span class="date">
           <mat-icon>calendar_today</mat-icon>
-          {{blogPost.date}}
+          {{blog.date}}
         </span>
         <span class="read-time">
           <mat-icon>schedule</mat-icon>
-          {{blogPost.readTime}}
+          {{blog.readTime}}
         </span>
       </div>
     </header>
 
     <div class="featured-image animated fade-in-up" #animatedElement>
-      <img [src]="blogPost.image" [alt]="blogPost.title">
+      <img [src]="blog.image" [alt]="blog.title">
       <div class="image-overlay"></div>
     </div>
 
     <div class="blog-content">
-      <div *ngFor="let section of blogPost.content" class="content-section animated fade-in-up" #animatedElement>
+      <div *ngFor="let section of blog.content" class="content-section animated fade-in-up" #animatedElement>
         <ng-container [ngSwitch]="section.type">
           <p *ngSwitchCase="'paragraph'" class="paragraph">{{section.text}}</p>
           

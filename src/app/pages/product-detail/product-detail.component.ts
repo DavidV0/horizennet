@@ -1,31 +1,29 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ActivatedRoute, RouterModule } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
+import { ActivatedRoute } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { ProductService } from '../../shared/services/product.service';
 import { Product } from '../../shared/interfaces/product.interface';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-product-detail',
-  standalone: true,
-  imports: [CommonModule, MatButtonModule, MatIconModule, RouterModule],
-  providers: [ProductService],
   templateUrl: './product-detail.component.html',
-  styleUrls: ['./product-detail.component.scss']
+  styleUrls: ['./product-detail.component.scss'],
+  standalone: true,
+  imports: [CommonModule, MatIconModule]
 })
 export class ProductDetailComponent implements OnInit {
-  product: Product | undefined;
+  product?: Product;
 
   constructor(
     private route: ActivatedRoute,
     private productService: ProductService
   ) {}
 
-  ngOnInit() {
+  async ngOnInit() {
     const productId = this.route.snapshot.paramMap.get('id');
     if (productId) {
-      this.product = this.productService.getProduct(productId);
+      this.product = await this.productService.getProduct(productId);
     }
   }
 

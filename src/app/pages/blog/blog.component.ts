@@ -1,4 +1,8 @@
-import { Component, ViewChildren, QueryList, ElementRef, AfterViewInit, PLATFORM_ID, Inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChildren, QueryList, ElementRef, AfterViewInit, PLATFORM_ID, Inject } from '@angular/core';
+import { Router } from '@angular/router';
+import { BlogService } from '../../shared/services/blog.service';
+import { Blog } from '../../shared/interfaces/blog.interface';
+import { Subscription } from 'rxjs';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -6,22 +10,31 @@ import { RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-blog',
+  templateUrl: './blog.component.html',
+  styleUrls: ['./blog.component.scss'],
   standalone: true,
   imports: [
     CommonModule,
     MatIconModule,
     MatButtonModule,
     RouterModule
-  ],
-  templateUrl: './blog.component.html',
-  styleUrls: ['./blog.component.scss']
+  ]
 })
-export class BlogComponent implements AfterViewInit {
+export class BlogComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChildren('animatedElement') animatedElements!: QueryList<ElementRef>;
-  
+  blogs: Blog[] = [];
+  private subscription?: Subscription;
   private observer: IntersectionObserver | null = null;
 
-  constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
+  constructor(
+    private blogService: BlogService,
+    private router: Router,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) {}
+
+  ngOnInit(): void {
+    this.loadBlogs();
+  }
 
   ngAfterViewInit() {
     if (isPlatformBrowser(this.platformId)) {
@@ -53,9 +66,32 @@ export class BlogComponent implements AfterViewInit {
     }, 100);
   }
 
-  ngOnDestroy() {
+  ngOnDestroy(): void {
+    if (this.subscription) {
+      this.subscription.unsubscribe();
+    }
     if (this.observer) {
       this.observer.disconnect();
+    }
+  }
+
+  private loadBlogs(): void {
+    this.subscription = this.blogService.getAllBlogs().subscribe({
+      next: (blogs) => {
+        this.blogs = blogs;
+      },
+      error: () => {}
+    });
+  }
+
+  navigateToBlogDetail(blog: Blog): void {
+    if (blog && blog.id) {
+      this.router.navigate(['/blog', blog.id]).then(() => {
+        // Optional: Scroll to top after navigation
+        window.scrollTo(0, 0);
+      }).catch(error => {
+        console.error('Navigation error:', error);
+      });
     }
   }
 }

@@ -18,6 +18,7 @@ import { Title } from '@angular/platform-browser';
 })
 export class AppComponent implements OnInit {
   loading$: Observable<boolean>;
+  isAdminRoute = false;
 
   constructor(
     private router: Router,
@@ -33,10 +34,19 @@ export class AppComponent implements OnInit {
     // Loading-Screen-Logik
     this.router.events.subscribe(event => {
       if (event instanceof NavigationStart) {
-        this.loadingService.show();
-        setTimeout(() => {
-          this.loadingService.hide();
-        }, 1000);
+        // Only show loading screen for non-admin routes
+        const isAdminNavigation = event.url.startsWith('/admin');
+        if (!isAdminNavigation) {
+          this.loadingService.show();
+          setTimeout(() => {
+            this.loadingService.hide();
+          }, 1000);
+        }
+      }
+      
+      // Check if we're in admin route
+      if (event instanceof NavigationEnd) {
+        this.isAdminRoute = this.router.url.startsWith('/admin');
       }
     });
 

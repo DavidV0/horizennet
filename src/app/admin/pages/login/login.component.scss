@@ -1,0 +1,83 @@
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: var(--color-primary);
+  padding: var(--spacing-lg);
+
+  mat-card {
+    width: 100%;
+    max-width: 400px;
+    background-color: var(--color-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    
+    mat-card-header {
+      justify-content: center;
+      margin-bottom: var(--spacing-xl);
+      color: var(--color-white);
+
+      mat-card-title {
+        font-size: var(--font-size-xl);
+        font-weight: var(--font-weight-bold);
+      }
+    }
+
+    mat-card-content {
+      form {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-lg);
+
+        mat-form-field {
+          width: 100%;
+
+          ::ng-deep {
+            .mat-mdc-text-field-wrapper {
+              background-color: rgba(255, 255, 255, 0.05);
+            }
+
+            .mat-mdc-form-field-focus-overlay {
+              background-color: rgba(255, 255, 255, 0.1);
+            }
+
+            .mdc-text-field--outlined:not(.mdc-text-field--disabled) .mdc-notched-outline__leading,
+            .mdc-text-field--outlined:not(.mdc-text-field--disabled) .mdc-notched-outline__notch,
+            .mdc-text-field--outlined:not(.mdc-text-field--disabled) .mdc-notched-outline__trailing {
+              border-color: rgba(255, 255, 255, 0.2);
+            }
+
+            .mat-mdc-form-field-label {
+              color: var(--color-white);
+            }
+
+            input {
+              color: var(--color-white);
+            }
+          }
+        }
+
+        .error-message {
+          color: #f44336;
+          font-size: var(--font-size-sm);
+          margin-top: calc(-1 * var(--spacing-md));
+        }
+
+        button {
+          background-color: var(--color-accent);
+          color: var(--color-primary);
+          font-weight: var(--font-weight-bold);
+          padding: var(--spacing-md) var(--spacing-lg);
+          
+          &:disabled {
+            background-color: rgba(255, 183, 0, 0.5);
+          }
+
+          &:not(:disabled):hover {
+            background-color: #ffc740;
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,137 @@
+.admin-container {
+  height: 100vh;
+  background-color: var(--color-primary);
+
+  .sidenav {
+    width: 260px;
+    background-color: var(--color-secondary);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+
+    .logo-container {
+      padding: var(--spacing-lg);
+      text-align: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+      h2 {
+        margin: 0;
+        font-size: var(--font-size-xl);
+      }
+    }
+
+    mat-nav-list {
+      padding-top: var(--spacing-md);
+
+      a {
+        color: var(--color-white);
+        opacity: 0.8;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+
+        &:before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 0;
+          height: 100%;
+          width: 3px;
+          background-color: var(--color-accent);
+          transform: translateX(-100%);
+          transition: transform 0.3s ease;
+        }
+
+        &:hover {
+          opacity: 1;
+          background: rgba(255, 255, 255, 0.1);
+        }
+
+        &.active-link {
+          opacity: 1;
+          background: rgba(255, 255, 255, 0.05);
+          
+          &:before {
+            transform: translateX(0);
+          }
+        }
+
+        mat-icon {
+          color: var(--color-white);
+          margin-right: var(--spacing-md);
+          transition: transform 0.3s ease;
+        }
+
+        &:hover mat-icon {
+          transform: scale(1.1);
+        }
+      }
+    }
+
+    .logout-container {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      padding: var(--spacing-md);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+
+      .logout-button {
+        width: 100%;
+        color: var(--color-white);
+        opacity: 0.8;
+        transition: all 0.3s ease;
+        
+        &:hover {
+          opacity: 1;
+          background: rgba(255, 255, 255, 0.1);
+          
+          mat-icon {
+            transform: translateX(4px);
+          }
+        }
+
+        mat-icon {
+          margin-right: var(--spacing-sm);
+          transition: transform 0.3s ease;
+        }
+      }
+    }
+  }
+
+  mat-sidenav-content {
+    background-color: var(--color-primary);
+    position: relative;
+    overflow-x: hidden;
+
+    mat-toolbar {
+      background-color: var(--color-secondary);
+      color: var(--color-white);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .content {
+      padding: var(--spacing-lg);
+      color: var(--color-white);
+      min-height: calc(100vh - 64px);
+      position: relative;
+
+      // Add smooth transition for route changes
+      ::ng-deep router-outlet + * {
+        display: block;
+        animation: fadeIn 0.3s ease-in-out;
+      }
+    }
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

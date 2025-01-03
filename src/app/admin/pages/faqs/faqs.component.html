@@ -1,0 +1,39 @@
+<div class="admin-container">
+  <div class="admin-header">
+    <h1>FAQ Verwaltung</h1>
+    <button mat-raised-button class="add-button" (click)="onAdd()">
+      <mat-icon>add</mat-icon>
+      Neue FAQ
+    </button>
+  </div>
+
+  <table mat-table [dataSource]="faqs" class="mat-elevation-z8">
+    <!-- Question Column -->
+    <ng-container matColumnDef="question">
+      <th mat-header-cell *matHeaderCellDef>Frage</th>
+      <td mat-cell *matCellDef="let faq">{{faq.question}}</td>
+    </ng-container>
+
+    <!-- Answer Column -->
+    <ng-container matColumnDef="answer">
+      <th mat-header-cell *matHeaderCellDef>Antwort</th>
+      <td mat-cell *matCellDef="let faq">{{faq.answer}}</td>
+    </ng-container>
+
+    <!-- Actions Column -->
+    <ng-container matColumnDef="actions">
+      <th mat-header-cell *matHeaderCellDef>Aktionen</th>
+      <td mat-cell *matCellDef="let faq">
+        <button mat-icon-button color="primary" class="edit-button" (click)="onEdit(faq)">
+          <mat-icon>edit</mat-icon>
+        </button>
+        <button mat-icon-button color="warn" class="delete-button" (click)="onDelete(faq)">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+  </table>
+</div>

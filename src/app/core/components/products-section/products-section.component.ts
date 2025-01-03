@@ -1,65 +1,38 @@
-import { Component, OnInit, ElementRef, ViewChildren, QueryList, AfterViewInit, PLATFORM_ID, Inject } from '@angular/core';
-import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { MatIconModule } from '@angular/material/icon';
+import { ProductService } from '../../../shared/services/product.service';
+import { Product } from '../../../shared/interfaces/product.interface';
+import { Subscription } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 @Component({
   selector: 'app-products-section',
-  standalone: true,
-  imports: [CommonModule, MatButtonModule, MatIconModule, RouterModule],
   templateUrl: './products-section.component.html',
-  styleUrls: ['./products-section.component.scss']
+  styleUrls: ['./products-section.component.scss'],
+  standalone: true,
+  imports: [CommonModule, RouterModule, MatIconModule]
 })
-export class ProductsSectionComponent implements OnInit, AfterViewInit {
-  @ViewChildren('animatedElement') animatedElements!: QueryList<ElementRef>;
+export class ProductsSectionComponent implements OnInit, OnDestroy {
+  products: Product[] = [];
+  private subscription?: Subscription;
 
-  private observer: IntersectionObserver | null = null;
-  private isBrowser: boolean;
+  constructor(private productService: ProductService) {}
 
-  constructor(@Inject(PLATFORM_ID) private platformId: Object) {
-    this.isBrowser = isPlatformBrowser(platformId);
-  }
-
-  ngOnInit() {
-    if (this.isBrowser) {
-      this.setupIntersectionObserver();
-    }
-  }
-
-  private setupIntersectionObserver() {
-    const options = {
-      root: null,
-      rootMargin: '0px',
-      threshold: 0.1
-    };
-
-    this.observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const element = entry.target as HTMLElement;
-          element.classList.add('animate');
-          // Nicht unobserve, damit die Animation beim Scrollen wiederholt wird
-        }
+  ngOnInit(): void {
+    this.subscription = this.productService.getAllProducts()
+      .pipe(
+        map(products => products.slice(0, 2))
+      )
+      .subscribe(products => {
+        this.products = products;
       });
-    }, options);
   }
 
-  ngAfterViewInit() {
-    if (this.isBrowser) {
-      setTimeout(() => {
-        this.animatedElements?.forEach(({ nativeElement }) => {
-          if (nativeElement) {
-            this.observer?.observe(nativeElement);
-          }
-        });
-      }, 100);
-    }
-  }
-
-  ngOnDestroy() {
-    if (this.observer) {
-      this.observer.disconnect();
+  ngOnDestroy(): void {
+    if (this.subscription) {
+      this.subscription.unsubscribe();
     }
   }
 } 

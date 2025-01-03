@@ -1,0 +1,88 @@
+.blogs-container {
+  padding: 20px;
+  background-color: #1a1a1a;
+  min-height: 100vh;
+  color: white;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+
+  h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 500;
+  }
+}
+
+.mat-mdc-table {
+  width: 100%;
+  background-color: #2a2a2a;
+  color: white;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.mat-mdc-row:hover {
+  background-color: #3a3a3a;
+  cursor: pointer;
+}
+
+.blog-image {
+  width: 100px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.mat-mdc-header-cell {
+  color: #ffd700;
+  font-weight: bold;
+  background-color: #2a2a2a;
+  font-size: 14px;
+}
+
+.mat-mdc-cell {
+  color: white;
+}
+
+button[color="accent"] {
+  background: linear-gradient(45deg, #ffd700, #ffed4a);
+  color: black;
+  border: none;
+  padding: 0 24px;
+  height: 40px;
+  border-radius: 20px;
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  mat-icon {
+    margin-right: 8px;
+  }
+}
+
+.mat-mdc-icon-button {
+  color: white;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: scale(1.1);
+  }
+
+  &[color="primary"] {
+    color: #ffd700;
+  }
+
+  &[color="warn"] {
+    color: #ff4444;
+  }
+}
