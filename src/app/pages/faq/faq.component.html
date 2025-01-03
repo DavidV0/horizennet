@@ -4,7 +4,13 @@
     <h2 class="subtitle">WIR HABEN DIE ANTWORTEN</h2>
     
     <div class="faq-content">
-      <mat-accordion>
+      <!-- No FAQs Message -->
+      <div class="no-faqs-container" *ngIf="faqItems.length === 0">
+        <mat-icon>help_outline</mat-icon>
+        <h2>Zurzeit gibt es keine FAQs</h2>
+      </div>
+
+      <mat-accordion *ngIf="faqItems.length > 0">
         <mat-expansion-panel *ngFor="let item of faqItems" class="faq-item">
           <mat-expansion-panel-header>
             <mat-panel-title>

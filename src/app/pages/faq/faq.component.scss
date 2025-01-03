@@ -26,6 +26,26 @@
   border-radius: 8px;
   padding: var(--spacing-xl);
 
+  .no-faqs-container {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--color-text-light);
+
+    mat-icon {
+      font-size: 48px;
+      width: 48px;
+      height: 48px;
+      margin-bottom: var(--spacing-md);
+      color: var(--color-accent);
+    }
+
+    h2 {
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-medium);
+      margin: 0;
+    }
+  }
+
   ::ng-deep {
     .mat-expansion-panel {
       background: transparent;

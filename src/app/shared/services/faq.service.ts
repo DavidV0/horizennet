@@ -1,5 +1,16 @@
 import { Injectable } from '@angular/core';
-import { Firestore, collection, doc, addDoc, updateDoc, deleteDoc, getDocs } from '@angular/fire/firestore';
+import { 
+  Firestore, 
+  collection, 
+  collectionData, 
+  doc, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc,
+  getDocs,
+  query as firestoreQuery,
+  orderBy as firestoreOrderBy
+} from '@angular/fire/firestore';
 import { Observable, from } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { FaqItem } from '../interfaces/faq.interface';
@@ -14,11 +25,14 @@ export class FaqService {
 
   getAllFaqs(): Observable<FaqItem[]> {
     const faqs = collection(this.firestore, this.collectionName);
-    return from(getDocs(faqs)).pipe(
-      map(snapshot => snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as FaqItem[])
+    const q = firestoreQuery(faqs, firestoreOrderBy('question'));
+    return from(getDocs(q)).pipe(
+      map(snapshot => {
+        return snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as FaqItem[];
+      })
     );
   }
 
@@ -29,11 +43,7 @@ export class FaqService {
 
   async updateFaq(id: string, faq: Partial<FaqItem>): Promise<void> {
     const faqDoc = doc(this.firestore, this.collectionName, id);
-    const updateData = {
-      question: faq.question,
-      answer: faq.answer
-    };
-    await updateDoc(faqDoc, updateData);
+    await updateDoc(faqDoc, { ...faq });
   }
 
   async deleteFaq(id: string): Promise<void> {
