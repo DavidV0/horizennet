@@ -2,6 +2,7 @@ import { Component, ViewEncapsulation, CUSTOM_ELEMENTS_SCHEMA } from '@angular/c
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { register } from 'swiper/element/bundle';
+import { RouterModule } from '@angular/router';
 
 register();
 
@@ -18,7 +19,7 @@ interface Testimonial {
 @Component({
   selector: 'app-testimonials-section',
   standalone: true,
-  imports: [CommonModule, MatIconModule],
+  imports: [CommonModule, MatIconModule, RouterModule],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './testimonials-section.component.html',
   styleUrls: ['./testimonials-section.component.scss'],

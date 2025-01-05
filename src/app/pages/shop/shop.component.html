@@ -1,9 +1,39 @@
 <div class="page-container">
   <section class="shop-section">
-    <h1>Shop</h1>
-    <p class="section-subtitle">Entdecken Sie unsere Produkte.</p>
+    <div class="welcome-text">
+      <h2>Willkommen in unserem exklusiven Shop</h2>
+      <p>Entdecken Sie unsere sorgfältig ausgewählten Produkte, die Ihnen den Weg zum finanziellen Erfolg ebnen. 
+         Mit unseren bewährten Strategien und Tools haben bereits zahlreiche Menschen ihre finanziellen Ziele erreicht. 
+         Werden auch Sie Teil unserer Erfolgsgeschichte!</p>
+    </div>
     <div class="products-grid">
-      <!-- Produkte werden hier später dynamisch eingefügt -->
+      <div class="product-card" *ngFor="let product of products$ | async">
+        <div class="product-image">
+          <img [src]="product.image" [alt]="product.name">
+          <span class="product-tag" *ngIf="product.tag">{{ product.tag }}</span>
+        </div>
+        <div class="product-info">
+          <h3>{{ product.name }}</h3>
+          <div class="price-container">
+            <div class="monthly-price">
+              <span class="price-label">ab</span>
+              <span class="current-price">€ {{ (product.price / 18) | number:'1.2-2' }}</span>
+              <span class="price-label">mtl.</span>
+            </div>
+            <div class="tax-info">
+              <span>(exkl. MwSt.)</span>
+            </div>
+          </div>
+          <button class="cta-button" 
+                  (click)="addToCart(product.id)"
+                  [disabled]="isInCart(product.id)"
+                  [class.in-cart]="isInCart(product.id)">
+            <span *ngIf="!isInCart(product.id)">In den Warenkorb</span>
+            <span *ngIf="isInCart(product.id)">Im Warenkorb</span>
+          </button>
+        </div>
+      </div>
     </div>
   </section>
+  <app-cart-sidebar></app-cart-sidebar>
 </div>

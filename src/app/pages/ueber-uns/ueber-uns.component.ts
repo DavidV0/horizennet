@@ -1,6 +1,7 @@
 import { Component, ViewChildren, QueryList, ElementRef, AfterViewInit, PLATFORM_ID, Inject } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
+import { RouterLink } from '@angular/router';
 
 interface TeamMember {
   name: string;
@@ -11,7 +12,7 @@ interface TeamMember {
 @Component({
   selector: 'app-ueber-uns',
   standalone: true,
-  imports: [CommonModule, MatIconModule],
+  imports: [CommonModule, MatIconModule, RouterLink],
   templateUrl: './ueber-uns.component.html',
   styleUrls: ['./ueber-uns.component.scss']
 })

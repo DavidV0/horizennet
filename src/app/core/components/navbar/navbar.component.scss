@@ -17,6 +17,62 @@
     backdrop-filter: blur(15px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   }
+
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+
+    .cart-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: 2px solid var(--color-accent);
+      color: var(--color-accent);
+      width: 40px;
+      height: 40px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+
+      mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+
+      .cart-count {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        background-color: var(--color-accent);
+        color: var(--color-text-light);
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: var(--font-weight-bold);
+        opacity: 0;
+        transform: scale(0.8);
+        transition: all 0.3s ease;
+      }
+
+      &:hover {
+        background-color: var(--color-accent);
+        color: var(--color-text-light);
+
+        .cart-count {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+    }
+  }
 }
 
 .navbar-container {

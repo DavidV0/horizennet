@@ -3,7 +3,6 @@ import { Product } from '../interfaces/product.interface';
 import { 
   Firestore, 
   collection, 
-  collectionData, 
   doc, 
   setDoc, 
   deleteDoc, 
@@ -11,7 +10,6 @@ import {
   getDocs,
   query,
   orderBy,
-  limit
 } from '@angular/fire/firestore';
 import { Observable, from } from 'rxjs';
 import { map } from 'rxjs/operators';

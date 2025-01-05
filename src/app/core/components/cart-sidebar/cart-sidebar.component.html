@@ -1,0 +1,49 @@
+<div class="cart-sidebar" [class.open]="isOpen">
+  <div class="cart-header">
+    <h3>Warenkorb</h3>
+    <button class="close-button" (click)="cartSidebarService.close()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+  
+  <div class="cart-content">
+    <div class="cart-items" *ngIf="cartService.getCartCount() > 0">
+      <div class="product-card" *ngFor="let productId of cartService.getCartItems()">
+        <div class="product-image">
+          <img [src]="getProduct(productId)?.image" [alt]="getProduct(productId)?.name">
+        </div>
+        <div class="product-details">
+          <h4>{{ getProduct(productId)?.name }}</h4>
+          <div class="price-info">
+            <p class="monthly-price">
+              <span class="price">€ {{ getMonthlyPrice(productId) | number:'1.2-2' }}</span>
+              <span class="label">mtl.</span>
+            </p>
+            <p class="tax-info">(exkl. MwSt.)</p>
+          </div>
+        </div>
+        <button class="remove-button" (click)="removeFromCart(productId)">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+    </div>
+    <div class="empty-cart" *ngIf="cartService.getCartCount() === 0">
+      <p>Ihr Warenkorb ist leer</p>
+    </div>
+  </div>
+
+  <div class="cart-footer" *ngIf="cartService.getCartCount() > 0">
+    <div class="price-summary">
+      <div class="summary-row monthly">
+        <span>Monatlich</span>
+        <span>€ {{ getMonthlyTotal() | number:'1.2-2' }}</span>
+      </div>
+      <div class="tax-info">
+        <span>(exkl. MwSt.)</span>
+      </div>
+    </div>
+    <button class="checkout-button">
+      Zur Kasse
+    </button>
+  </div>
+</div> 

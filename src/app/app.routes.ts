@@ -8,6 +8,10 @@ export const routes: Routes = [
     data: { scrollPositionRestoration: 'top' }
   },
   {
+    path: 'shop',
+    loadComponent: () => import('./pages/shop/shop.component').then(m => m.ShopComponent)
+  },
+  {
     path: 'produkte',
     loadComponent: () => import('./pages/produkte/produkte.component').then(m => m.ProdukteComponent)
   },
@@ -70,6 +74,10 @@ export const routes: Routes = [
   {
     path: 'admin',
     loadChildren: () => import('./admin/admin.module').then(m => m.AdminModule)
+  },
+  {
+    path: 'kontakt',
+    loadComponent: () => import('./pages/kontakt/kontakt.component').then(m => m.KontaktComponent)
   },
   {
     path: '**',

@@ -6,9 +6,9 @@ import { ProductsComponent } from './pages/products/products.component';
 import { EventsComponent } from './pages/events/events.component';
 import { BlogComponent } from './pages/blog/blog.component';
 import { FaqsComponent } from './pages/faqs/faqs.component';
-import { ShopComponent } from './pages/shop/shop.component';
 import { InquiriesComponent } from './pages/inquiries/inquiries.component';
 import { authGuard } from './guards/auth.guard';
+import { AdminShopComponent } from './pages/shop/shop.component';
 
 const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -21,7 +21,7 @@ const routes: Routes = [
       { path: 'events', component: EventsComponent },
       { path: 'blog', component: BlogComponent },
       { path: 'faqs', component: FaqsComponent },
-      { path: 'shop', component: ShopComponent },
+      { path: 'shop', component: AdminShopComponent },
       { path: 'inquiries', component: InquiriesComponent },
       { path: '', redirectTo: 'products', pathMatch: 'full' }
     ]
