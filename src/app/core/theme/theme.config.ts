@@ -21,4 +21,7 @@ export class ThemeConfig {
   readonly animationDurationShort = '200ms';
   readonly animationDurationMedium = '400ms';
   readonly animationDurationLong = '600ms';
+
+  
 } 
+

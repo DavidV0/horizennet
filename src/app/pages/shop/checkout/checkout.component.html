@@ -1,0 +1,132 @@
+<div class="checkout-container">
+  <header>
+    <h1>ZUR KASSE</h1>
+    <a routerLink="/shop" class="back-link">← Zurück zum Shop</a>
+  </header>
+
+  <div class="checkout-content">
+    <div class="checkout-form">
+      <form [formGroup]="checkoutForm" (ngSubmit)="onSubmit()">
+        <div class="checkout-steps">
+          <!-- Step 1: Customer Info -->
+          <div class="step">
+            <h2>Ihre Angaben</h2>
+            
+            <div class="form-row">
+              <mat-form-field appearance="outline">
+                <mat-label>Vorname</mat-label>
+                <input matInput formControlName="firstName" required>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Nachname</mat-label>
+                <input matInput formControlName="lastName" required>
+              </mat-form-field>
+            </div>
+
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>E-Mail</mat-label>
+                <input matInput type="email" formControlName="email" required>
+              </mat-form-field>
+            </div>
+
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="street">
+                <mat-label>Straße</mat-label>
+                <input matInput formControlName="street" required>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="street-number">
+                <mat-label>Hausnummer</mat-label>
+                <input matInput formControlName="streetNumber">
+              </mat-form-field>
+            </div>
+
+            <div class="form-row">
+              <mat-form-field appearance="outline">
+                <mat-label>PLZ</mat-label>
+                <input matInput formControlName="zipCode" required>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Stadt</mat-label>
+                <input matInput formControlName="city" required>
+              </mat-form-field>
+            </div>
+
+            <div class="form-row">
+              <mat-form-field appearance="outline">
+                <mat-label>Land</mat-label>
+                <mat-select formControlName="country">
+                  <mat-option value="Austria">Österreich</mat-option>
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <div class="form-row">
+              <mat-form-field appearance="outline">
+                <mat-label>Mobiltelefon</mat-label>
+                <input matInput formControlName="mobile" required>
+              </mat-form-field>
+            </div>
+          </div>
+
+          <!-- Step 2: Payment -->
+          <div class="step">
+            <h2>02 ÜBERPRÜFUNG UND BEZAHLUNG</h2>
+            
+            <div class="checkbox-row">
+              <mat-checkbox formControlName="acceptTerms" required>
+                Ich akzeptiere die AGB und Datenschutzerklärung
+              </mat-checkbox>
+            </div>
+
+            <div class="checkbox-row">
+              <mat-checkbox formControlName="newsletter">
+                Ja, hiermit akzeptiere ich das das Rücktrittsrecht erlischt.
+              </mat-checkbox>
+            </div>
+
+            <button mat-raised-button color="primary" type="submit" [disabled]="!checkoutForm.valid">
+              FORTSETZEN
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- Order Summary -->
+    <div class="order-summary">
+      <div class="summary-card">
+        <h3>WARENKORB ZUSAMMENFASSUNG</h3>
+        
+        <div class="summary-content">
+          <h4>heutige Auftrage:</h4>
+          
+          <div class="product-list">
+            <div class="product-item" *ngFor="let product of cartProducts">
+              <img [src]="product.image" [alt]="product.name">
+              <div class="product-details">
+                <h5>{{ product.name }}</h5>
+                <div class="price">€ {{ getMonthlyPrice(product.price) | number:'1.2-2' }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="summary-totals">
+            <div class="total-row">
+              <span>ZWISCHENSUMME:</span>
+              <span>€ {{ monthlyTotal | number:'1.2-2' }}</span>
+            </div>
+
+            <div class="total-row grand-total">
+              <span>GESAMT:</span>
+              <span>€ {{ monthlyTotal | number:'1.2-2' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div> 

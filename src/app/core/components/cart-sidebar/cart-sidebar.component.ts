@@ -7,11 +7,12 @@ import { ShopService } from '../../../shared/services/shop.service';
 import { ShopProduct } from '../../../shared/interfaces/shop-product.interface';
 import { Subscription, BehaviorSubject, combineLatest } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-cart-sidebar',
   standalone: true,
-  imports: [CommonModule, MatIconModule],
+  imports: [CommonModule, MatIconModule, RouterLink],
   templateUrl: './cart-sidebar.component.html',
   styleUrls: ['./cart-sidebar.component.scss']
 })
