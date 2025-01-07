@@ -6,6 +6,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { ContactService } from '../../../shared/services/contact.service';
 
 @Component({
   selector: 'app-contact-section',
@@ -26,18 +27,23 @@ import { MatIconModule } from '@angular/material/icon';
 export class ContactSectionComponent {
   contactForm: FormGroup;
   submitSuccess: boolean = false;
+  isSubmitting: boolean = false;
+  errorMessage: string | null = null;
 
-  constructor(private fb: FormBuilder) {
+  constructor(
+    private fb: FormBuilder,
+    private contactService: ContactService
+  ) {
     this.contactForm = this.fb.group({
       firstName: ['', [
         Validators.required, 
         Validators.minLength(2),
-        Validators.pattern(/^[a-zA-ZäöüßÄÖÜ\s-]*$/) // Nur Buchstaben, Leerzeichen und Bindestrich
+        Validators.pattern(/^[a-zA-ZäöüßÄÖÜ\s-]*$/)
       ]],
       lastName: ['', [
         Validators.required, 
         Validators.minLength(2),
-        Validators.pattern(/^[a-zA-ZäöüßÄÖÜ\s-]*$/) // Nur Buchstaben, Leerzeichen und Bindestrich
+        Validators.pattern(/^[a-zA-ZäöüßÄÖÜ\s-]*$/)
       ]],
       email: ['', [Validators.required, Validators.email]],
       message: ['', [Validators.required, Validators.minLength(10)]],
@@ -45,7 +51,6 @@ export class ContactSectionComponent {
     });
   }
 
-  // Hilfsmethoden für die Template-Validierung
   getErrorMessage(fieldName: string): string {
     const control = this.contactForm.get(fieldName);
     if (control?.errors) {
@@ -67,21 +72,27 @@ export class ContactSectionComponent {
 
   onSubmit() {
     if (this.contactForm.valid) {
-      console.log(this.contactForm.value);
-      // Hier kommt die Submit-Logik
-      
-      // Zeige Erfolgsmeldung
-      this.submitSuccess = true;
-      
-      // Formular zurücksetzen
-      this.contactForm.reset();
-      
-      // Erfolgsmeldung nach 5 Sekunden ausblenden
-      setTimeout(() => {
-        this.submitSuccess = false;
-      }, 5000);
+      this.isSubmitting = true;
+      this.errorMessage = null;
+
+      this.contactService.sendContactForm(this.contactForm.value).subscribe({
+        next: () => {
+          this.submitSuccess = true;
+          this.contactForm.reset();
+          this.isSubmitting = false;
+          
+          // Hide success message after 5 seconds
+          setTimeout(() => {
+            this.submitSuccess = false;
+          }, 5000);
+        },
+        error: (error) => {
+          console.error('Error sending message:', error);
+          this.errorMessage = 'Es ist ein Fehler aufgetreten. Bitte versuchen Sie es später erneut.';
+          this.isSubmitting = false;
+        }
+      });
     } else {
-      // Markiere alle Felder als berührt, um Fehler anzuzeigen
       Object.keys(this.contactForm.controls).forEach(key => {
         const control = this.contactForm.get(key);
         control?.markAsTouched();

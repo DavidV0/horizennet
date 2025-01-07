@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { register } from 'swiper/element/bundle';
@@ -22,8 +22,7 @@ interface Testimonial {
   imports: [CommonModule, MatIconModule, RouterModule],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './testimonials-section.component.html',
-  styleUrls: ['./testimonials-section.component.scss'],
-  encapsulation: ViewEncapsulation.None
+  styleUrls: ['./testimonials-section.component.scss']
 })
 export class TestimonialsSectionComponent {
   testimonials: Testimonial[] = [

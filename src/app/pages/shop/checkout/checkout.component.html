@@ -76,6 +76,17 @@
           <div class="step">
             <h2>02 ÜBERPRÜFUNG UND BEZAHLUNG</h2>
             
+            <!-- Add Stripe Card Element -->
+            <div class="payment-section">
+              <h3>Zahlungsinformationen</h3>
+              <div class="card-element-container">
+                <div id="card-element"></div>
+                <div id="card-errors" role="alert" class="payment-error" *ngIf="paymentError">
+                  {{ paymentError }}
+                </div>
+              </div>
+            </div>
+
             <div class="checkbox-row">
               <mat-checkbox formControlName="acceptTerms" required>
                 Ich akzeptiere die AGB und Datenschutzerklärung
@@ -88,8 +99,11 @@
               </mat-checkbox>
             </div>
 
-            <button mat-raised-button color="primary" type="submit" [disabled]="!checkoutForm.valid">
-              FORTSETZEN
+            <button mat-raised-button color="primary" type="submit" 
+                    [disabled]="!checkoutForm.valid || isProcessing"
+                    class="submit-button">
+              <span *ngIf="!isProcessing">JETZT KAUFEN</span>
+              <span *ngIf="isProcessing">WIRD VERARBEITET...</span>
             </button>
           </div>
         </div>

@@ -30,10 +30,22 @@
   <div class="ticker-container">
     <div class="ticker-wrapper">
       <div class="ticker-track">
+        <!-- First set of items -->
         <ng-container *ngFor="let item of tickerItems">
           <div class="ticker-item">
-            <img [src]="'assets/icons/' + item.icon + '.svg'" [alt]="item.symbol">
-            <span class="coin-name">{{item.name}}({{item.symbol}})</span>
+            <img [src]="'assets/icons/' + getCoinIcon(item.name)" [alt]="item.symbol">
+            <span class="coin-name">{{item.name}} ({{item.symbol}})</span>
+            <span class="price">€{{item.price}}</span>
+            <span class="change" [class.positive]="item.change > 0" [class.negative]="item.change < 0">
+              {{item.change > 0 ? '+' : ''}}{{item.change}}%
+            </span>
+          </div>
+        </ng-container>
+        <!-- Duplicate set of items for seamless loop -->
+        <ng-container *ngFor="let item of tickerItems">
+          <div class="ticker-item">
+            <img [src]="'assets/icons/' + getCoinIcon(item.name)" [alt]="item.symbol">
+            <span class="coin-name">{{item.name}} ({{item.symbol}})</span>
             <span class="price">€{{item.price}}</span>
             <span class="change" [class.positive]="item.change > 0" [class.negative]="item.change < 0">
               {{item.change > 0 ? '+' : ''}}{{item.change}}%

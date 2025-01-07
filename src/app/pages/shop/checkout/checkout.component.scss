@@ -302,4 +302,56 @@
       }
     }
   }
+}
+
+.payment-section {
+  margin: var(--spacing-lg) 0;
+  
+  h3 {
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: var(--spacing-md);
+    color: var(--color-accent);
+  }
+
+  .card-element-container {
+    background: rgba(255, 255, 255, 0.05);
+    padding: var(--spacing-md);
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+
+    #card-element {
+      padding: var(--spacing-sm) 0;
+    }
+  }
+
+  .payment-error {
+    color: #fa755a;
+    margin-top: var(--spacing-sm);
+    font-size: 14px;
+  }
+}
+
+.submit-button {
+  margin-top: var(--spacing-lg);
+  background: var(--color-accent) !important;
+  color: var(--color-primary) !important;
+  border: none;
+  padding: 0 var(--spacing-xl);
+  height: 48px;
+  border-radius: 24px;
+  font-weight: 500;
+  width: 100%;
+  font-size: 16px;
+  transition: all 0.3s ease;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 } 

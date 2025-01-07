@@ -1,67 +1,68 @@
 <section class="contact-section">
-  <div class="container">
-    <div class="section-header">
-      <h2 class="section-title">Du hast noch Fragen?</h2>
-      <p class="section-subtitle">Etwas ist unklar? Kontaktiere uns gerne</p>
-    </div>
-    
-    <div class="success-message" *ngIf="submitSuccess">
-      <mat-icon>check_circle</mat-icon>
-      Ihre Nachricht wurde erfolgreich versendet!
-    </div>
+  <div class="contact-content">
+    <h2>Kontaktieren Sie uns</h2>
+    <p class="subtitle">Haben Sie Fragen? Wir sind für Sie da!</p>
 
     <form [formGroup]="contactForm" (ngSubmit)="onSubmit()" class="contact-form">
       <div class="form-row">
         <mat-form-field appearance="outline">
-          <input matInput placeholder="VORNAME" formControlName="firstName">
-          <mat-error *ngIf="contactForm.get('firstName')?.errors?.['required'] && contactForm.get('firstName')?.touched">
-            Bitte geben Sie Ihren Vornamen ein
-          </mat-error>
-          <mat-error *ngIf="contactForm.get('firstName')?.errors?.['pattern'] && contactForm.get('firstName')?.touched">
-            Bitte verwenden Sie nur Buchstaben
+          <mat-label>Vorname</mat-label>
+          <input matInput formControlName="firstName" required>
+          <mat-error *ngIf="contactForm.get('firstName')?.invalid">
+            {{ getErrorMessage('firstName') }}
           </mat-error>
         </mat-form-field>
 
         <mat-form-field appearance="outline">
-          <input matInput placeholder="NACHNAME" formControlName="lastName">
-          <mat-error *ngIf="contactForm.get('lastName')?.errors?.['required'] && contactForm.get('lastName')?.touched">
-            Bitte geben Sie Ihren Nachnamen ein
-          </mat-error>
-          <mat-error *ngIf="contactForm.get('lastName')?.errors?.['pattern'] && contactForm.get('lastName')?.touched">
-            Bitte verwenden Sie nur Buchstaben
+          <mat-label>Nachname</mat-label>
+          <input matInput formControlName="lastName" required>
+          <mat-error *ngIf="contactForm.get('lastName')?.invalid">
+            {{ getErrorMessage('lastName') }}
           </mat-error>
         </mat-form-field>
       </div>
 
       <mat-form-field appearance="outline">
-        <input matInput placeholder="E-MAIL ADRESSE" formControlName="email">
-        <mat-error *ngIf="contactForm.get('email')?.errors?.['required'] && contactForm.get('email')?.touched">
-          Bitte geben Sie Ihre E-Mail-Adresse ein
-        </mat-error>
-        <mat-error *ngIf="contactForm.get('email')?.errors?.['email'] && contactForm.get('email')?.touched">
-          Bitte geben Sie eine gültige E-Mail-Adresse ein
+        <mat-label>E-Mail</mat-label>
+        <input matInput type="email" formControlName="email" required>
+        <mat-error *ngIf="contactForm.get('email')?.invalid">
+          {{ getErrorMessage('email') }}
         </mat-error>
       </mat-form-field>
 
       <mat-form-field appearance="outline">
-        <textarea matInput placeholder="DEINE NACHRICHT AN UNS..." formControlName="message" rows="5"></textarea>
-        <mat-error *ngIf="contactForm.get('message')?.errors?.['required'] && contactForm.get('message')?.touched">
-          Bitte geben Sie Ihre Nachricht ein
+        <mat-label>Ihre Nachricht</mat-label>
+        <textarea matInput rows="5" formControlName="message" required></textarea>
+        <mat-error *ngIf="contactForm.get('message')?.invalid">
+          {{ getErrorMessage('message') }}
         </mat-error>
       </mat-form-field>
 
       <div class="privacy-policy">
-        <mat-checkbox formControlName="privacyPolicy" color="primary">
-          Mit dem Absenden stimme ich der Datenschutzerklärung zu
+        <mat-checkbox formControlName="privacyPolicy" required>
+          Ich stimme der Verarbeitung meiner Daten gemäß der Datenschutzerklärung zu
         </mat-checkbox>
-        <mat-error *ngIf="contactForm.get('privacyPolicy')?.errors?.['required'] && contactForm.get('privacyPolicy')?.touched" class="checkbox-error">
+        <mat-error *ngIf="contactForm.get('privacyPolicy')?.invalid && contactForm.get('privacyPolicy')?.touched">
           Bitte stimmen Sie der Datenschutzerklärung zu
         </mat-error>
       </div>
 
-      <button mat-raised-button type="submit" class="submit-button" [disabled]="!contactForm.valid">
-        Absenden
-      </button>
+      <div class="form-actions">
+        <button mat-raised-button color="primary" type="submit" 
+                [disabled]="contactForm.invalid || isSubmitting"
+                class="submit-button">
+          <span *ngIf="!isSubmitting">Nachricht senden</span>
+          <span *ngIf="isSubmitting">Wird gesendet...</span>
+        </button>
+      </div>
+
+      <div class="alert success" *ngIf="submitSuccess">
+        Ihre Nachricht wurde erfolgreich gesendet. Wir werden uns in Kürze bei Ihnen melden.
+      </div>
+
+      <div class="alert error" *ngIf="errorMessage">
+        {{ errorMessage }}
+      </div>
     </form>
   </div>
 </section> 

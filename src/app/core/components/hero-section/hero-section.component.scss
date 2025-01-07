@@ -216,12 +216,14 @@
 .ticker-wrapper {
   max-width: 100%;
   overflow: hidden;
+  position: relative;
 }
 
 .ticker-track {
   display: flex;
   animation: ticker 30s linear infinite;
   white-space: nowrap;
+  will-change: transform;
 }
 
 .ticker-item {
@@ -231,6 +233,7 @@
   padding: 0 var(--spacing-md);
   color: var(--color-white);
   font-size: 0.875rem;
+  flex-shrink: 0;
   
   img {
     width: 20px;

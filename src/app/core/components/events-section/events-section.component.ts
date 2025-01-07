@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, CUSTOM_ELEMENTS_SCHEMA, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterModule } from '@angular/router';
@@ -15,8 +15,7 @@ register();
   imports: [CommonModule, MatIconModule, RouterModule],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './events-section.component.html',
-  styleUrls: ['./events-section.component.scss'],
-  encapsulation: ViewEncapsulation.None
+  styleUrls: ['./events-section.component.scss']
 })
 export class EventsSectionComponent implements OnInit, OnDestroy {
   events: Event[] = [];
