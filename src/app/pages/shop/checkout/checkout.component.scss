@@ -44,228 +44,357 @@
       border-radius: 8px;
       padding: var(--spacing-lg);
 
-      .checkout-steps {
-        .step {
-          margin-bottom: var(--spacing-xl);
+      .step {
+        h2 {
+          font-size: 20px;
+          font-weight: 500;
+          margin-bottom: var(--spacing-lg);
+          color: var(--color-accent);
+        }
 
-          h2 {
-            font-size: 20px;
-            font-weight: 500;
-            margin-bottom: var(--spacing-lg);
-            color: var(--color-accent);
+        .form-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: var(--spacing-md);
+          margin-bottom: var(--spacing-md);
+
+          &:last-child {
+            margin-bottom: 0;
           }
 
-          .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: var(--spacing-md);
-            margin-bottom: var(--spacing-md);
-
-            &:last-child {
-              margin-bottom: 0;
-            }
-
-            .full-width {
-              grid-column: 1 / -1;
-            }
-
-            .street {
-              flex: 2;
-            }
-
-            .street-number {
-              flex: 1;
-            }
+          .full-width {
+            grid-column: 1 / -1;
           }
 
-          .checkbox-row {
-            margin: var(--spacing-md) 0;
+          .street {
+            flex: 2;
+          }
+
+          .street-number {
+            flex: 1;
           }
 
           mat-form-field {
             width: 100%;
           }
+        }
 
-          ::ng-deep {
-            .mat-mdc-form-field-focus-overlay {
-              background-color: transparent;
+        ::ng-deep {
+          .mat-mdc-form-field-focus-overlay {
+            background-color: transparent;
+          }
+
+          .mdc-text-field--outlined {
+            --mdc-outlined-text-field-outline-color: rgba(255, 255, 255, 0.7);
+            --mdc-outlined-text-field-focus-outline-color: var(--color-accent);
+            --mdc-outlined-text-field-hover-outline-color: var(--color-accent);
+            --mdc-outlined-text-field-label-text-color: var(--color-white);
+            --mdc-outlined-text-field-focus-label-text-color: var(--color-accent);
+            --mdc-outlined-text-field-input-text-color: var(--color-white);
+            --mdc-outlined-text-field-caret-color: var(--color-accent);
+          }
+
+          .mdc-text-field {
+            background-color: transparent;
+            
+            .mdc-floating-label {
+              color: var(--color-white);
             }
-
-            .mdc-text-field--outlined {
-              --mdc-outlined-text-field-outline-color: var(--color-accent);
-              --mdc-outlined-text-field-focus-outline-color: var(--color-accent);
-              --mdc-outlined-text-field-hover-outline-color: var(--color-accent);
-              --mdc-outlined-text-field-label-text-color: var(--color-white);
-              --mdc-outlined-text-field-focus-label-text-color: var(--color-accent);
-              --mdc-outlined-text-field-input-text-color: var(--color-white);
-              --mdc-outlined-text-field-caret-color: var(--color-accent);
+            
+            .mdc-text-field__input {
+              color: var(--color-white);
+              padding: 12px 16px;
             }
-
-            .mat-mdc-select-arrow {
-              color: var(--color-accent);
+            
+            .mdc-notched-outline__leading,
+            .mdc-notched-outline__notch,
+            .mdc-notched-outline__trailing {
+              border-color: rgba(255, 255, 255, 0.7);
             }
-
-            .mdc-checkbox {
-              --mdc-checkbox-selected-checkmark-color: var(--color-primary);
-              --mdc-checkbox-selected-focus-icon-color: var(--color-accent);
-              --mdc-checkbox-selected-hover-icon-color: var(--color-accent);
-              --mdc-checkbox-selected-icon-color: var(--color-accent);
-              --mdc-checkbox-selected-pressed-icon-color: var(--color-accent);
-              --mdc-checkbox-unselected-focus-icon-color: var(--color-accent);
-              --mdc-checkbox-unselected-hover-icon-color: var(--color-accent);
-              --mdc-checkbox-unselected-icon-color: var(--color-accent);
-              --mdc-checkbox-unselected-pressed-icon-color: var(--color-accent);
-              --mdc-checkbox-disabled-selected-icon-color: rgba(255, 183, 0, 0.38);
-              --mdc-checkbox-disabled-unselected-icon-color: rgba(255, 183, 0, 0.38);
+            
+            &:hover .mdc-notched-outline__leading,
+            &:hover .mdc-notched-outline__notch,
+            &:hover .mdc-notched-outline__trailing {
+              border-color: var(--color-accent);
             }
-
-            .mat-mdc-select-panel {
-              background: var(--color-secondary);
-
-              .mat-mdc-option {
-                color: var(--color-white);
-
-                &:hover:not(.mat-mdc-option-disabled) {
-                  background: rgba(255, 183, 0, 0.1);
-                }
-
-                &.mat-mdc-option-selected:not(.mat-mdc-option-disabled) {
-                  color: var(--color-accent);
-                }
+            
+            &.mdc-text-field--focused {
+              .mdc-notched-outline__leading,
+              .mdc-notched-outline__notch,
+              .mdc-notched-outline__trailing {
+                border-color: var(--color-accent);
               }
             }
           }
 
-          button[type="submit"] {
-            margin-top: var(--spacing-lg);
-            background: var(--color-accent) !important;
-            color: var(--color-primary) !important;
-            border: none;
-            padding: 0 var(--spacing-xl);
-            height: 48px;
-            border-radius: 24px;
-            font-weight: 500;
-            width: 100%;
-            font-size: 16px;
-            transition: all 0.3s ease;
+          .mat-mdc-form-field-error {
+            color: #f44336;
+            font-size: 12px;
+            margin-top: 4px;
+          }
 
-            &:hover:not(:disabled) {
-              transform: translateY(-2px);
-              box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+          .mat-mdc-select-value-text {
+            color: var(--color-white);
+          }
+
+          .mat-mdc-select-arrow {
+            color: var(--color-white);
+          }
+
+          .mdc-menu-surface.mat-mdc-select-panel {
+            background-color: var(--color-secondary);
+          }
+
+          .mat-mdc-option {
+            color: var(--color-white);
+
+            &:hover:not(.mat-mdc-option-disabled) {
+              background: rgba(255, 183, 0, 0.1);
             }
 
-            &:disabled {
-              opacity: 0.6;
-              cursor: not-allowed;
+            &.mat-mdc-option-active {
+              background: rgba(255, 183, 0, 0.2);
             }
+
+            &.mat-mdc-option-selected:not(.mat-mdc-option-disabled) {
+              background: rgba(255, 183, 0, 0.2);
+            }
+          }
+        }
+
+        button[mat-raised-button] {
+          margin-top: var(--spacing-lg);
+          background: var(--color-accent);
+          color: var(--color-primary);
+          border: none;
+          padding: 0 var(--spacing-xl);
+          height: 48px;
+          border-radius: 24px;
+          font-weight: 500;
+          width: 100%;
+          font-size: 16px;
+          transition: all 0.3s ease;
+
+          &:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+          }
+
+          &:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
           }
         }
       }
     }
 
-    .order-summary {
-      .summary-card {
-        background: var(--color-secondary);
-        border-radius: 8px;
-        padding: var(--spacing-lg);
+    .cart-summary {
+      background: var(--color-secondary);
+      border-radius: 8px;
+      padding: var(--spacing-lg);
+      height: fit-content;
 
-        h3 {
-          font-size: 18px;
-          font-weight: 500;
-          margin: 0 0 var(--spacing-lg);
-          color: var(--color-accent);
-        }
+      h3 {
+        font-size: 18px;
+        font-weight: 500;
+        margin-bottom: var(--spacing-lg);
+        color: var(--color-accent);
+      }
 
-        .summary-content {
-          h4 {
-            font-size: 16px;
-            font-weight: 500;
-            margin: 0 0 var(--spacing-md);
-            color: var(--color-white);
-          }
+      .product-list {
+        .product-item {
+          display: flex;
+          align-items: center;
+          gap: var(--spacing-md);
+          margin-bottom: var(--spacing-md);
+          padding-bottom: var(--spacing-md);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 
-          .product-list {
-            .product-item {
-              display: flex;
-              align-items: center;
-              gap: var(--spacing-md);
-              margin-bottom: var(--spacing-md);
-              padding-bottom: var(--spacing-md);
-              border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-
-              img {
-                width: 60px;
-                height: 60px;
-                object-fit: cover;
-                border-radius: 4px;
-              }
-
-              .product-details {
-                flex: 1;
-
-                h5 {
-                  margin: 0 0 var(--spacing-xs);
-                  font-size: 14px;
-                  font-weight: 500;
-                  color: var(--color-white);
-                }
-
-                .price {
-                  color: var(--color-accent);
-                  font-weight: 500;
-                }
-              }
-            }
-          }
-
-          .summary-totals {
-            margin: var(--spacing-lg) 0;
-
-            .total-row {
-              display: flex;
-              justify-content: space-between;
-              margin-bottom: var(--spacing-sm);
-              font-size: 14px;
-              color: var(--color-white);
-
-              &.grand-total {
-                margin-top: var(--spacing-md);
-                padding-top: var(--spacing-md);
-                border-top: 1px solid rgba(255, 255, 255, 0.1);
-                font-size: 16px;
-                font-weight: 500;
-                color: var(--color-accent);
-              }
-            }
-          }
-
-          .next-delivery {
-            background: var(--color-primary);
+          img {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
             border-radius: 4px;
-            padding: var(--spacing-md);
-            margin-top: var(--spacing-lg);
+          }
 
-            h4 {
-              color: var(--color-accent);
-              margin-bottom: var(--spacing-sm);
+          .product-details {
+            flex: 1;
+
+            h5 {
+              margin: 0 0 var(--spacing-xs);
+              font-size: 14px;
+              font-weight: 500;
+              color: var(--color-white);
             }
 
-            .delivery-info {
-              font-size: 14px;
-              color: var(--color-white);
-
-              .monthly-total {
-                display: flex;
-                justify-content: space-between;
-                margin-top: var(--spacing-md);
-                padding-top: var(--spacing-md);
-                border-top: 1px solid rgba(255, 255, 255, 0.1);
-                font-weight: 500;
-              }
+            .price {
+              color: var(--color-accent);
+              font-weight: 500;
             }
           }
         }
       }
+
+      .summary-totals {
+        margin-top: var(--spacing-lg);
+
+        .total-row {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: var(--spacing-sm);
+          color: var(--color-white);
+
+          &.grand-total {
+            margin-top: var(--spacing-md);
+            padding-top: var(--spacing-md);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--color-accent);
+          }
+        }
+      }
+    }
+  }
+}
+
+.payment-section {
+  background: var(--color-secondary);
+  border-radius: 8px;
+  padding: var(--spacing-lg);
+
+  .data-review {
+    background: rgba(255, 255, 255, 0.05);
+    padding: var(--spacing-md);
+    border-radius: 8px;
+    margin-bottom: var(--spacing-lg);
+
+    h3 {
+      color: var(--color-accent);
+      margin-bottom: var(--spacing-md);
+      font-size: 18px;
+      font-weight: 500;
+    }
+
+    .review-row {
+      display: flex;
+      margin-bottom: var(--spacing-sm);
+      
+      span:first-child {
+        min-width: 120px;
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.7);
+      }
+    }
+
+    button {
+      margin-top: var(--spacing-md);
+      color: var(--color-accent);
+    }
+  }
+
+  .payment-plan-section,
+  .card-payment-section {
+    margin-bottom: var(--spacing-lg);
+
+    h3 {
+      color: var(--color-accent);
+      margin-bottom: var(--spacing-md);
+      font-size: 18px;
+      font-weight: 500;
+    }
+
+    mat-form-field {
+      width: 100%;
+      margin-bottom: var(--spacing-sm);
+
+      ::ng-deep {
+        .mdc-text-field--outlined {
+          --mdc-outlined-text-field-outline-color: rgba(255, 255, 255, 0.7);
+          --mdc-outlined-text-field-focus-outline-color: var(--color-accent);
+          --mdc-outlined-text-field-hover-outline-color: var(--color-accent);
+          --mdc-outlined-text-field-label-text-color: var(--color-white);
+          --mdc-outlined-text-field-focus-label-text-color: var(--color-accent);
+          --mdc-outlined-text-field-input-text-color: var(--color-white);
+          --mdc-outlined-text-field-caret-color: var(--color-accent);
+        }
+
+        .mdc-text-field {
+          background-color: transparent;
+          
+          .mdc-floating-label {
+            color: var(--color-white);
+          }
+          
+          .mdc-text-field__input {
+            color: var(--color-white);
+            padding: 12px 16px;
+          }
+        }
+      }
+    }
+  }
+
+  .card-details {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-md);
+  }
+
+  .payment-actions {
+    margin-top: var(--spacing-lg);
+
+    mat-checkbox {
+      margin-bottom: var(--spacing-md);
+      display: block;
+      
+      ::ng-deep {
+        .mdc-checkbox {
+          --mdc-checkbox-selected-checkmark-color: var(--color-primary);
+          --mdc-checkbox-selected-focus-icon-color: var(--color-accent);
+          --mdc-checkbox-selected-hover-icon-color: var(--color-accent);
+          --mdc-checkbox-selected-icon-color: var(--color-accent);
+          --mdc-checkbox-selected-pressed-icon-color: var(--color-accent);
+        }
+        
+        .mdc-checkbox__background {
+          border-color: rgba(255, 255, 255, 0.7) !important;
+        }
+        
+        .mdc-form-field {
+          color: var(--color-white);
+        }
+      }
+    }
+
+    button[mat-raised-button] {
+      margin-top: var(--spacing-lg);
+      background: var(--color-accent);
+      color: var(--color-primary);
+      border: none;
+      padding: 0 var(--spacing-xl);
+      height: 48px;
+      border-radius: 24px;
+      font-weight: 500;
+      width: 100%;
+      font-size: 16px;
+      transition: all 0.3s ease;
+
+      &:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
+
+    .error-message {
+      color: #f44336;
+      margin-top: var(--spacing-sm);
+      font-size: 14px;
     }
   }
 }
@@ -302,56 +431,65 @@
       }
     }
   }
-}
+} 
 
-.payment-section {
-  margin: var(--spacing-lg) 0;
-  
-  h3 {
-    font-size: 16px;
-    font-weight: 500;
-    margin-bottom: var(--spacing-md);
-    color: var(--color-accent);
-  }
-
-  .card-element-container {
-    background: rgba(255, 255, 255, 0.05);
-    padding: var(--spacing-md);
-    border-radius: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-
-    #card-element {
-      padding: var(--spacing-sm) 0;
+::ng-deep {
+  .mat-mdc-select-panel {
+    background-color: var(--color-secondary) !important;
+    
+    .mat-mdc-option {
+      color: var(--color-white) !important;
+      
+      &:hover:not(.mat-mdc-option-disabled) {
+        background: rgba(255, 183, 0, 0.1) !important;
+      }
+      
+      &.mat-mdc-option-active {
+        background: rgba(255, 183, 0, 0.2) !important;
+      }
+      
+      &.mat-mdc-option-selected:not(.mat-mdc-option-disabled) {
+        background: rgba(255, 183, 0, 0.2) !important;
+      }
     }
   }
+} 
 
-  .payment-error {
-    color: #fa755a;
-    margin-top: var(--spacing-sm);
-    font-size: 14px;
-  }
-}
+.payment-plan-section {
+  margin-bottom: var(--spacing-lg);
 
-.submit-button {
-  margin-top: var(--spacing-lg);
-  background: var(--color-accent) !important;
-  color: var(--color-primary) !important;
-  border: none;
-  padding: 0 var(--spacing-xl);
-  height: 48px;
-  border-radius: 24px;
-  font-weight: 500;
-  width: 100%;
-  font-size: 16px;
-  transition: all 0.3s ease;
-
-  &:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  h3 {
+    color: var(--color-accent);
+    margin-bottom: var(--spacing-md);
+    font-size: 18px;
+    font-weight: 500;
   }
 
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+  mat-form-field {
+    width: 100%;
+    margin-bottom: var(--spacing-sm);
+
+    ::ng-deep {
+      .mdc-text-field--outlined {
+        --mdc-outlined-text-field-outline-color: rgba(255, 255, 255, 0.7);
+        --mdc-outlined-text-field-focus-outline-color: var(--color-accent);
+        --mdc-outlined-text-field-hover-outline-color: var(--color-accent);
+        --mdc-outlined-text-field-label-text-color: var(--color-white);
+        --mdc-outlined-text-field-focus-label-text-color: var(--color-accent);
+        --mdc-outlined-text-field-input-text-color: var(--color-white);
+      }
+
+      .mdc-text-field {
+        background-color: transparent;
+        
+        .mdc-floating-label {
+          color: var(--color-white);
+        }
+        
+        .mat-mdc-select {
+          padding: 12px 16px;
+        }
+      }
+    }
   }
 } 

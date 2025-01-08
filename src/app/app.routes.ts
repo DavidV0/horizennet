@@ -23,6 +23,23 @@ export const routes: Routes = [
     ]
   },
   {
+    path: 'success',
+    loadComponent: () => import('./pages/shop/success/success.component').then(m => m.SuccessComponent)
+  },
+  {
+    path: 'activate',
+    children: [
+      {
+        path: '',
+        loadComponent: () => import('./pages/activate/activate.component').then(m => m.ActivateComponent)
+      },
+      {
+        path: 'success',
+        loadComponent: () => import('./pages/activate/activate-success.component').then(m => m.ActivateSuccessComponent)
+      }
+    ]
+  },
+  {
     path: 'produkte',
     loadComponent: () => import('./pages/produkte/produkte.component').then(m => m.ProdukteComponent)
   },
