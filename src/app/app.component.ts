@@ -107,7 +107,7 @@ export class AppComponent implements OnInit {
             pageTitle = 'Home';
         }
         
-        this.titleService.setTitle(`${pageTitle} | HORIZEN NET Consulting`);
+        this.titleService.setTitle(`${pageTitle} | HORIZON NET Consulting`);
       });
     }
   }

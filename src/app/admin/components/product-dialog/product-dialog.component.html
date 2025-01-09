@@ -1,0 +1,102 @@
+<div class="dialog-container">
+  <h2 mat-dialog-title>{{ data?.product ? 'Produkt bearbeiten' : 'Neues Produkt' }}</h2>
+  
+  <form [formGroup]="productForm" (ngSubmit)="onSubmit()">
+    <div class="form-row">
+      <mat-form-field appearance="outline">
+        <mat-label>Titel</mat-label>
+        <input matInput formControlName="title" required>
+        <mat-error *ngIf="productForm.get('title')?.hasError('required')">
+          Titel ist erforderlich
+        </mat-error>
+      </mat-form-field>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline">
+        <mat-label>Kurzbeschreibung</mat-label>
+        <textarea matInput formControlName="shortDescription" rows="2" required></textarea>
+        <mat-error *ngIf="productForm.get('shortDescription')?.hasError('required')">
+          Kurzbeschreibung ist erforderlich
+        </mat-error>
+      </mat-form-field>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline">
+        <mat-label>Beschreibung</mat-label>
+        <textarea matInput formControlName="description" rows="4" required></textarea>
+        <mat-error *ngIf="productForm.get('description')?.hasError('required')">
+          Beschreibung ist erforderlich
+        </mat-error>
+      </mat-form-field>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline">
+        <mat-label>Lange Beschreibung</mat-label>
+        <textarea matInput formControlName="longDescription" rows="6" required></textarea>
+        <mat-error *ngIf="productForm.get('longDescription')?.hasError('required')">
+          Lange Beschreibung ist erforderlich
+        </mat-error>
+      </mat-form-field>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline">
+        <mat-label>Features</mat-label>
+        <textarea matInput formControlName="features" rows="4" required></textarea>
+        <mat-error *ngIf="productForm.get('features')?.hasError('required')">
+          Features sind erforderlich
+        </mat-error>
+      </mat-form-field>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline">
+        <mat-label>Vorteile</mat-label>
+        <textarea matInput formControlName="benefits" rows="4" required></textarea>
+        <mat-error *ngIf="productForm.get('benefits')?.hasError('required')">
+          Vorteile sind erforderlich
+        </mat-error>
+      </mat-form-field>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline">
+        <mat-label>CTA Text</mat-label>
+        <input matInput formControlName="ctaText" required>
+        <mat-error *ngIf="productForm.get('ctaText')?.hasError('required')">
+          CTA Text ist erforderlich
+        </mat-error>
+      </mat-form-field>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline">
+        <mat-label>CTA Link</mat-label>
+        <input matInput formControlName="ctaLink" required>
+        <mat-error *ngIf="productForm.get('ctaLink')?.hasError('required')">
+          CTA Link ist erforderlich
+        </mat-error>
+      </mat-form-field>
+    </div>
+
+    <div class="image-upload" (click)="fileInput.click()">
+      <input #fileInput type="file" hidden (change)="onFileSelected($event)" accept="image/*">
+      <mat-icon>cloud_upload</mat-icon>
+      <p class="upload-text">Klicken Sie hier, um ein Bild hochzuladen</p>
+      <div class="image-preview" *ngIf="imagePreview">
+        <img [src]="imagePreview" alt="Vorschau">
+      </div>
+      <mat-progress-bar *ngIf="uploadProgress > 0" mode="determinate" [value]="uploadProgress"></mat-progress-bar>
+    </div>
+
+    <mat-dialog-actions>
+      <button mat-button type="button" (click)="onCancel()">Abbrechen</button>
+      <button mat-raised-button color="primary" type="submit" [disabled]="!productForm.valid || isUploading">
+        {{ data?.product ? 'Speichern' : 'Erstellen' }}
+      </button>
+    </mat-dialog-actions>
+  </form>
+</div> 

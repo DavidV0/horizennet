@@ -11,7 +11,7 @@ import {
   query,
   orderBy
 } from '@angular/fire/firestore';
-import { Observable, from } from 'rxjs';
+import { Observable, from, of, catchError } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 @Injectable({
@@ -25,8 +25,26 @@ export class BlogService {
   getAllBlogs(): Observable<Blog[]> {
     const blogsRef = collection(this.firestore, this.collectionName);
     const q = query(blogsRef, orderBy('date', 'desc'));
+    
     return from(getDocs(q)).pipe(
-      map(snapshot => snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Blog))
+      map(snapshot => {
+        if (snapshot.empty) {
+          console.log('No blogs found in Firestore');
+          return [];
+        }
+        
+        return snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data
+          } as Blog;
+        });
+      }),
+      catchError(error => {
+        console.error('Error fetching blogs from Firestore:', error);
+        return of([]);
+      })
     );
   }
 

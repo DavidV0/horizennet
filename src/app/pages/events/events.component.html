@@ -5,67 +5,27 @@
       <p class="subtitle">Exklusive Veranstaltungen für unsere Community</p>
     </div>
 
-    <div class="filters animated fade-in-up" #animatedElement>
-      <mat-form-field appearance="fill">
-        <mat-label>Ort auswählen</mat-label>
-        <mat-select [formControl]="filterForm.controls.location">
-          <mat-option [value]="">Alle Orte</mat-option>
-          <mat-option *ngFor="let location of locations" [value]="location">
-            {{location}}
-          </mat-option>
-        </mat-select>
-      </mat-form-field>
-
-      <mat-form-field appearance="fill" (click)="openDatePicker(picker)">
-        <mat-label>Datum auswählen</mat-label>
-        <mat-date-range-input [formGroup]="filterForm.controls.dateRange" [rangePicker]="picker">
-          <input matStartDate formControlName="start" placeholder="Start date">
-          <input matEndDate formControlName="end" placeholder="End date">
-        </mat-date-range-input>
-        <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
-        <mat-date-range-picker #picker></mat-date-range-picker>
-      </mat-form-field>
-
-      <mat-form-field appearance="fill">
-        <mat-label>Kategorie auswählen</mat-label>
-        <mat-select [formControl]="filterForm.controls.category">
-          <mat-option [value]="">Alle Kategorien</mat-option>
-          <mat-option *ngFor="let category of categories" [value]="category">
-            {{category}}
-          </mat-option>
-        </mat-select>
-      </mat-form-field>
-
-      <mat-form-field appearance="fill">
-        <mat-label>Event-Typ auswählen</mat-label>
-        <mat-select [formControl]="filterForm.controls.eventType">
-          <mat-option [value]="">Alle Event-Typen</mat-option>
-          <mat-option *ngFor="let type of eventTypes" [value]="type">
-            {{type}}
-          </mat-option>
-        </mat-select>
-      </mat-form-field>
-    </div>
-
     <div class="events-grid">
       <div class="event-card animated fade-in-up" 
            *ngFor="let event of events; let i = index"
            #animatedElement
            [style.animation-delay]="i * 0.1 + 's'">
-        <div class="event-date">
-          <span class="day">{{event.date.day}}</span>
-          <span class="month">{{event.date.month}}</span>
-        </div>
-        <div class="event-image">
-          <img [src]="event.image" [alt]="event.title">
-          <div class="image-overlay"></div>
+        <div class="event-header">
+          <div class="event-image">
+            <img [src]="event.image || 'assets/images/event-placeholder.jpg'" [alt]="event.title">
+            <div class="image-overlay"></div>
+          </div>
+          <div class="event-date">
+            <span class="day">{{event.day}}</span>
+            <span class="month">{{event.month}}</span>
+          </div>
         </div>
         <div class="event-content">
           <h3>{{event.title}}</h3>
           <p class="description">{{event.description}}</p>
           <div class="event-details">
             <div class="detail">
-              <mat-icon>schedule</mat-icon>
+              <mat-icon>access_time</mat-icon>
               <span>{{event.time}}</span>
             </div>
             <div class="detail">
@@ -73,9 +33,22 @@
               <span>{{event.location}}</span>
             </div>
           </div>
-         
+          <div class="status" [ngClass]="event.status">
+            {{event.status}}
+          </div>
         </div>
       </div>
+    </div>
+  </section>
+
+  <section class="cta-section">
+    <div class="cta-content">
+      <h2>Interesse an unseren Events?</h2>
+      <p>Kontaktieren Sie uns für weitere Informationen oder um sich für ein Event anzumelden.</p>
+      <a routerLink="/contact" class="cta-button">
+        Jetzt Kontakt aufnehmen
+        <mat-icon>arrow_forward</mat-icon>
+      </a>
     </div>
   </section>
 </div>

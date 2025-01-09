@@ -1,46 +1,58 @@
-import { Component, OnInit, OnDestroy, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterModule } from '@angular/router';
-import { register } from 'swiper/element/bundle';
-import { EventService } from '../../../shared/services/event.service';
 import { Event } from '../../../shared/interfaces/event.interface';
-import { Subscription } from 'rxjs';
-
-register();
+import { EventService } from '../../../shared/services/event.service';
 
 @Component({
   selector: 'app-events-section',
-  standalone: true,
-  imports: [CommonModule, MatIconModule, RouterModule],
-  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './events-section.component.html',
-  styleUrls: ['./events-section.component.scss']
+  styleUrls: ['./events-section.component.scss'],
+  standalone: true,
+  imports: [
+    CommonModule,
+    MatIconModule,
+    RouterModule
+  ]
 })
-export class EventsSectionComponent implements OnInit, OnDestroy {
+export class EventsSectionComponent implements OnInit {
   events: Event[] = [];
-  private eventsSubscription?: Subscription;
+  loading = true;
 
   constructor(private eventService: EventService) {}
 
-  ngOnInit() {
+  ngOnInit(): void {
     this.loadEvents();
   }
 
-  private loadEvents() {
-    this.eventsSubscription = this.eventService.getAllEvents().subscribe({
-      next: (events) => {
-        this.events = events;
+  private loadEvents(): void {
+    this.eventService.getAllEvents().subscribe({
+      next: (events: Event[]) => {
+        this.events = events.map((event: Event) => ({
+          ...event,
+          day: event.day || new Date().getDate().toString(),
+          month: event.month || new Date().toLocaleString('default', { month: 'short' })
+        }));
+        this.loading = false;
       },
-      error: (error) => {
+      error: (error: unknown) => {
         console.error('Error loading events:', error);
+        this.loading = false;
       }
     });
   }
 
-  ngOnDestroy() {
-    if (this.eventsSubscription) {
-      this.eventsSubscription.unsubscribe();
+  getEventStatus(time: string): string {
+    const eventTime = new Date(time);
+    const now = new Date();
+    
+    if (eventTime < now) {
+      return 'abgeschlossen';
+    } else if (eventTime.toDateString() === now.toDateString()) {
+      return 'laufend';
+    } else {
+      return 'bevorstehend';
     }
   }
 } 

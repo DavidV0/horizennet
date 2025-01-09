@@ -1,62 +1,62 @@
 <div class="dialog-container">
-  <h2 mat-dialog-title>{{ data?.id ? 'Produkt bearbeiten' : 'Neues Produkt' }}</h2>
+  <h2 mat-dialog-title>{{ data?.product?.id ? 'Produkt bearbeiten' : 'Neues Produkt' }}</h2>
   
   <form [formGroup]="productForm" (ngSubmit)="onSubmit()">
-    <div mat-dialog-content>
-      <div class="form-row">
-        <mat-form-field appearance="outline">
-          <mat-label>Name</mat-label>
-          <input matInput formControlName="name" required>
-          <mat-error *ngIf="productForm.get('name')?.hasError('required')">
-            Name ist erforderlich
-          </mat-error>
-        </mat-form-field>
-      </div>
-
-      <div class="form-row price-inputs">
-        <mat-form-field appearance="outline">
-          <mat-label>Preis</mat-label>
-          <input matInput type="number" formControlName="price" required>
-          <span matSuffix>€</span>
-          <mat-error *ngIf="productForm.get('price')?.hasError('required')">
-            Preis ist erforderlich
-          </mat-error>
-          <mat-error *ngIf="productForm.get('price')?.hasError('min')">
-            Preis muss größer als 0 sein
-          </mat-error>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Alter Preis (optional)</mat-label>
-          <input matInput type="number" formControlName="oldPrice">
-          <span matSuffix>€</span>
-        </mat-form-field>
-      </div>
-
-      <div class="form-row">
-        <mat-form-field appearance="outline">
-          <mat-label>Tag (optional)</mat-label>
-          <input matInput formControlName="tag">
-        </mat-form-field>
-      </div>
-
-      <div class="form-row">
-        <mat-form-field appearance="outline">
-          <mat-label>Bild-Pfad</mat-label>
-          <input matInput formControlName="image" required>
-          <mat-hint>z.B.: assets/products/academy.jpg</mat-hint>
-          <mat-error *ngIf="productForm.get('image')?.hasError('required')">
-            Bild-Pfad ist erforderlich
-          </mat-error>
-        </mat-form-field>
-      </div>
+    <div class="form-row">
+      <mat-form-field appearance="outline">
+        <mat-label>Name</mat-label>
+        <input matInput formControlName="name" required>
+        <mat-error *ngIf="productForm.get('name')?.hasError('required')">
+          Name ist erforderlich
+        </mat-error>
+      </mat-form-field>
     </div>
 
-    <div mat-dialog-actions>
-      <button type="button" mat-button (click)="onCancel()">Abbrechen</button>
-      <button type="submit" mat-raised-button color="primary" [disabled]="!productForm.valid">
-        {{ data?.id ? 'Speichern' : 'Erstellen' }}
+    <div class="form-row price-inputs">
+      <mat-form-field appearance="outline">
+        <mat-label>Preis</mat-label>
+        <input matInput type="number" formControlName="price" required>
+        <span matSuffix>€</span>
+        <mat-error *ngIf="productForm.get('price')?.hasError('required')">
+          Preis ist erforderlich
+        </mat-error>
+        <mat-error *ngIf="productForm.get('price')?.hasError('min')">
+          Preis muss größer als 0 sein
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Alter Preis</mat-label>
+        <input matInput type="number" formControlName="oldPrice">
+        <span matSuffix>€</span>
+      </mat-form-field>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline">
+        <mat-label>Tag</mat-label>
+        <input matInput formControlName="tag">
+      </mat-form-field>
+    </div>
+
+    <div class="image-upload" (click)="fileInput.click()">
+      <input #fileInput type="file" hidden (change)="onFileSelected($event)" accept="image/*">
+      <mat-icon>cloud_upload</mat-icon>
+      <p class="upload-text">Klicken Sie hier, um ein Bild hochzuladen</p>
+      <div class="image-preview" *ngIf="imagePreview">
+        <img [src]="imagePreview" alt="Produktbild">
+        <button mat-icon-button class="remove-image" (click)="removeImage(); $event.stopPropagation()" type="button">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </div>
+      <mat-progress-bar *ngIf="uploadProgress > 0" mode="determinate" [value]="uploadProgress"></mat-progress-bar>
+    </div>
+
+    <mat-dialog-actions>
+      <button mat-button type="button" (click)="onCancel()">Abbrechen</button>
+      <button mat-raised-button color="primary" type="submit" [disabled]="!productForm.valid || isUploading">
+        {{ data?.product?.id ? 'Speichern' : 'Erstellen' }}
       </button>
-    </div>
+    </mat-dialog-actions>
   </form>
 </div> 

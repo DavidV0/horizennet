@@ -1,26 +1,28 @@
-<div class="dialog-content">
+<div class="dialog-container">
   <h2 mat-dialog-title>{{ mode === 'add' ? 'FAQ hinzufügen' : 'FAQ bearbeiten' }}</h2>
   
   <form [formGroup]="faqForm" (ngSubmit)="onSubmit()">
-    <mat-dialog-content>
-      <mat-form-field appearance="outline" class="full-width">
+    <div class="form-row">
+      <mat-form-field appearance="outline">
         <mat-label>Frage</mat-label>
         <input matInput formControlName="question" placeholder="Geben Sie die Frage ein">
         <mat-error *ngIf="faqForm.get('question')?.hasError('required')">
           Frage ist erforderlich
         </mat-error>
       </mat-form-field>
+    </div>
 
-      <mat-form-field appearance="outline" class="full-width">
+    <div class="form-row">
+      <mat-form-field appearance="outline">
         <mat-label>Antwort</mat-label>
         <textarea matInput formControlName="answer" placeholder="Geben Sie die Antwort ein" rows="4"></textarea>
         <mat-error *ngIf="faqForm.get('answer')?.hasError('required')">
           Antwort ist erforderlich
         </mat-error>
       </mat-form-field>
-    </mat-dialog-content>
+    </div>
 
-    <mat-dialog-actions align="end">
+    <mat-dialog-actions>
       <button mat-button type="button" (click)="onCancel()">Abbrechen</button>
       <button mat-raised-button color="primary" type="submit" [disabled]="!faqForm.valid">
         {{ mode === 'add' ? 'Hinzufügen' : 'Speichern' }}

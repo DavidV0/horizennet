@@ -30,16 +30,16 @@ export class AdminShopComponent {
   openProductDialog(product?: ShopProduct) {
     const dialogRef = this.dialog.open(ProductFormDialogComponent, {
       width: '600px',
-      data: product || {}
+      data: { product }
     });
 
     dialogRef.afterClosed().subscribe(async result => {
       if (result) {
         try {
           if (product?.id) {
-            await this.shopService.updateProduct(product.id, result);
+            await this.shopService.updateProduct(product.id, result.product, result.file);
           } else {
-            await this.shopService.createProduct(result);
+            await this.shopService.createProduct(result.product, result.file);
           }
           // Aktualisiere die Produktliste
           this.products$ = this.shopService.getAllProducts();

@@ -62,7 +62,10 @@ export const routes: Routes = [
     children: [
       {
         path: '',
-        loadComponent: () => import('./pages/blog/blog.component').then(m => m.BlogComponent)
+        loadComponent: () => import('./pages/blog/blog.component').then(m => m.BlogComponent),
+        data: {
+          ssr: false
+        }
       },
       {
         path: ':id',

@@ -14,7 +14,7 @@
     <div class="blog-grid" *ngIf="blogs.length > 0">
       <article class="blog-card animated fade-in-up" *ngFor="let blog of blogs" #animatedElement>
         <div class="blog-image">
-          <img [src]="blog.image" [alt]="blog.title">
+          <img [src]="blog.image" [alt]="blog.title" (error)="handleImageError($event)">
           <div class="image-overlay"></div>
           <div class="blog-category">{{blog.category}}</div>
         </div>
@@ -22,7 +22,7 @@
           <div class="blog-meta">
             <span class="date">
               <mat-icon>calendar_today</mat-icon>
-              {{blog.date}}
+              {{formatDate(blog.date || '')}}
             </span>
             <span class="read-time">
               <mat-icon>schedule</mat-icon>
@@ -31,7 +31,7 @@
           </div>
           <h2>{{blog.title}}</h2>
           <p class="blog-excerpt">
-            {{blog.content[0].text}}
+            {{getExcerpt(blog.content[0]?.text || '')}}
           </p>
           <div class="blog-footer">
             <button mat-raised-button class="read-more-btn gold-gradient" (click)="navigateToBlogDetail(blog)">

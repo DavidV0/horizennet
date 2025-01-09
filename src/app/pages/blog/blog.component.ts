@@ -78,16 +78,66 @@ export class BlogComponent implements OnInit, OnDestroy, AfterViewInit {
   private loadBlogs(): void {
     this.subscription = this.blogService.getAllBlogs().subscribe({
       next: (blogs) => {
-        this.blogs = blogs;
+        if (!blogs) {
+          console.error('No blogs returned from service');
+          this.blogs = [];
+          return;
+        }
+        
+        try {
+          this.blogs = blogs.sort((a, b) => {
+            if (!a.date || !b.date) return 0;
+            const dateA = new Date(this.convertGermanDate(a.date));
+            const dateB = new Date(this.convertGermanDate(b.date));
+            return dateB.getTime() - dateA.getTime();
+          });
+        } catch (error) {
+          console.error('Error sorting blogs:', error);
+          this.blogs = blogs;
+        }
       },
-      error: () => {}
+      error: (error) => {
+        console.error('Error loading blogs:', error);
+        this.blogs = [];
+      }
     });
+  }
+
+  private convertGermanDate(germanDate: string): string {
+    const [day, month, year] = germanDate.split('.');
+    return `${year}-${month}-${day}`;
+  }
+
+  getExcerpt(text: string, maxLength: number = 150): string {
+    if (!text) return '';
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  }
+
+  formatDate(dateStr: string): string {
+    try {
+      const [day, month, year] = dateStr.split('.');
+      const date = new Date(Number(year), Number(month) - 1, Number(day));
+      return date.toLocaleDateString('de-DE', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric'
+      });
+    } catch (error) {
+      return dateStr;
+    }
+  }
+
+  handleImageError(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    if (img) {
+      img.src = 'assets/images/placeholder-blog.jpg';
+    }
   }
 
   navigateToBlogDetail(blog: Blog): void {
     if (blog && blog.id) {
       this.router.navigate(['/blog', blog.id]).then(() => {
-        // Optional: Scroll to top after navigation
         window.scrollTo(0, 0);
       }).catch(error => {
         console.error('Navigation error:', error);

@@ -2,12 +2,10 @@ export interface Event {
   id: string;
   title: string;
   description: string;
+  day: string;
+  month: string;
   time: string;
   location: string;
-  image: string;
-  date: {
-    day: string;
-    month: string;
-  };
-  status?: 'upcoming' | 'ongoing' | 'past';
+  image?: string;
+  status: 'bevorstehend' | 'laufend' | 'abgeschlossen' | 'abgesagt';
 } 

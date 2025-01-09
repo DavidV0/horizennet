@@ -8,13 +8,18 @@
 <div class="error-container" *ngIf="error">
   <mat-icon class="error-icon">error_outline</mat-icon>
   <p>Der Blog konnte nicht geladen werden.</p>
-  <button mat-raised-button color="primary" routerLink="/blog">
+  <button mat-raised-button color="primary" (click)="navigateBack()">
     Zurück zur Übersicht
   </button>
 </div>
 
 <!-- Blog Content -->
 <div class="page-container" *ngIf="blog && !isLoading && !error">
+  <button mat-button class="back-button" (click)="navigateBack()">
+    <mat-icon>arrow_back</mat-icon>
+    Zurück zur Übersicht
+  </button>
+  
   <article class="blog-detail">
     <header class="blog-header animated fade-in-up" #animatedElement>
       <div class="category-badge">{{blog.category}}</div>
@@ -22,7 +27,7 @@
       <div class="meta-info">
         <span class="date">
           <mat-icon>calendar_today</mat-icon>
-          {{blog.date}}
+          {{formatDate(blog.date)}}
         </span>
         <span class="read-time">
           <mat-icon>schedule</mat-icon>
@@ -32,34 +37,31 @@
     </header>
 
     <div class="featured-image animated fade-in-up" #animatedElement>
-      <img [src]="blog.image" [alt]="blog.title">
+      <img [src]="blog.image" [alt]="blog.title" (error)="handleImageError($event)">
       <div class="image-overlay"></div>
     </div>
 
-    <div class="blog-content">
-      <div *ngFor="let section of blog.content" class="content-section animated fade-in-up" #animatedElement>
-        <ng-container [ngSwitch]="section.type">
-          <p *ngSwitchCase="'paragraph'" class="paragraph">{{section.text}}</p>
-          
-          <h2 *ngSwitchCase="'subheading'" class="subheading">{{section.text}}</h2>
-          
-          <blockquote *ngSwitchCase="'quote'" class="quote">
-            <p>{{section.text}}</p>
-          </blockquote>
-          
-          <ul *ngSwitchCase="'list'" class="content-list">
-            <li *ngFor="let item of section.items">{{item}}</li>
-          </ul>
-        </ng-container>
-      </div>
+    <div class="blog-content animated fade-in-up" #animatedElement>
+      <div *ngFor="let content of blog.content" [ngClass]="content.type">
+        <!-- Paragraph -->
+        <p *ngIf="content.type === 'paragraph'" class="blog-paragraph">
+          {{content.text}}
+        </p>
 
-      <div class="cta-section animated fade-in-up" #animatedElement>
-        <h3>Bereit für Ihren eigenen Erfolg?</h3>
-        <p>Starten Sie jetzt Ihre Reise zum erfolgreichen Krypto-Trading</p>
-        <button mat-raised-button class="cta-button gold-gradient" routerLink="/produkte/crypto">
-          Jetzt durchstarten
-          <mat-icon>rocket_launch</mat-icon>
-        </button>
+        <!-- Subheading -->
+        <h2 *ngIf="content.type === 'subheading'" class="blog-subheading">
+          {{content.text}}
+        </h2>
+
+        <!-- Quote -->
+        <blockquote *ngIf="content.type === 'quote'" class="blog-quote">
+          {{content.text}}
+        </blockquote>
+
+        <!-- List -->
+        <ul *ngIf="content.type === 'list'" class="blog-list">
+          <li *ngFor="let item of content.items">{{item}}</li>
+        </ul>
       </div>
     </div>
   </article>

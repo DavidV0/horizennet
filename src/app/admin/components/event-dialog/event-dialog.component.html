@@ -1,0 +1,99 @@
+<div class="dialog-container">
+  <h2 class="dialog-title">{{ data?.event ? 'Event bearbeiten' : 'Neues Event' }}</h2>
+
+  <form [formGroup]="eventForm" (ngSubmit)="onSubmit()" class="dialog-form">
+    <div class="form-content">
+      <div class="image-section">
+        <div class="image-preview" [class.has-image]="imagePreview">
+          <img *ngIf="imagePreview" [src]="imagePreview" alt="Event preview">
+          <div *ngIf="!imagePreview" class="placeholder">
+            <mat-icon>image</mat-icon>
+            <span>Bild auswählen</span>
+          </div>
+          <div class="image-actions">
+            <button type="button" mat-icon-button (click)="fileInput.click()">
+              <mat-icon>{{ imagePreview ? 'edit' : 'add_photo_alternate' }}</mat-icon>
+            </button>
+            <button *ngIf="imagePreview" type="button" mat-icon-button color="warn" (click)="removeImage()">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+          <input #fileInput type="file" (change)="onFileSelected($event)" accept="image/*" style="display: none">
+        </div>
+        <mat-progress-bar *ngIf="isUploading" mode="determinate" [value]="uploadProgress"></mat-progress-bar>
+      </div>
+
+      <div class="form-fields">
+        <mat-form-field appearance="outline">
+          <mat-label>Titel</mat-label>
+          <input matInput formControlName="title" placeholder="Event Titel">
+          <mat-error *ngIf="eventForm.get('title')?.hasError('required')">
+            Titel ist erforderlich
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Beschreibung</mat-label>
+          <textarea matInput formControlName="description" placeholder="Event Beschreibung" rows="4"></textarea>
+          <mat-error *ngIf="eventForm.get('description')?.hasError('required')">
+            Beschreibung ist erforderlich
+          </mat-error>
+        </mat-form-field>
+
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Tag</mat-label>
+            <input matInput formControlName="day" placeholder="Tag">
+            <mat-error *ngIf="eventForm.get('day')?.hasError('required')">
+              Tag ist erforderlich
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Monat</mat-label>
+            <input matInput formControlName="month" placeholder="Monat">
+            <mat-error *ngIf="eventForm.get('month')?.hasError('required')">
+              Monat ist erforderlich
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Zeit</mat-label>
+          <input matInput formControlName="time" placeholder="Zeit">
+          <mat-error *ngIf="eventForm.get('time')?.hasError('required')">
+            Zeit ist erforderlich
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Ort</mat-label>
+          <input matInput formControlName="location" placeholder="Event Ort">
+          <mat-error *ngIf="eventForm.get('location')?.hasError('required')">
+            Ort ist erforderlich
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Status</mat-label>
+          <mat-select formControlName="status">
+            <mat-option value="upcoming">Bevorstehend</mat-option>
+            <mat-option value="ongoing">Laufend</mat-option>
+            <mat-option value="completed">Abgeschlossen</mat-option>
+            <mat-option value="cancelled">Abgesagt</mat-option>
+          </mat-select>
+          <mat-error *ngIf="eventForm.get('status')?.hasError('required')">
+            Status ist erforderlich
+          </mat-error>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <div class="dialog-actions">
+      <button type="button" mat-button (click)="onCancel()">Abbrechen</button>
+      <button type="submit" mat-raised-button color="primary" [disabled]="!eventForm.valid">
+        {{ data?.event ? 'Speichern' : 'Erstellen' }}
+      </button>
+    </div>
+  </form>
+</div> 

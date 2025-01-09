@@ -88,7 +88,6 @@ export class UserService {
     }
 
     try {
-      alert('Starting product key activation for: ' + productKey);
       
       // Check if product key exists and is valid
       const keyDoc = await this.firestore.collection('productKeys').doc(productKey).get().toPromise();
@@ -107,13 +106,10 @@ export class UserService {
       let isNewUser = true;
       
       try {
-        alert('Attempting to create new user for email: ' + keyData.email);
         // Try to create new user
         const userCredential = await this.auth.createUserWithEmailAndPassword(keyData.email, password);
         user = userCredential.user;
-        alert('Successfully created new user: ' + user?.uid);
       } catch (authError: any) {
-        alert('Error creating user: ' + authError.code);
         isNewUser = false;
         // If user already exists, try to sign in
         if (authError.code === 'auth/email-already-in-use') {
@@ -129,7 +125,6 @@ export class UserService {
             throw new Error('Bitte melden Sie sich mit Ihrer E-Mail-Adresse an, um den Produktschlüssel zu aktivieren.');
           }
           user = currentUser;
-          alert('Using existing user: ' + user?.uid);
         } else {
           throw authError;
         }
@@ -160,11 +155,9 @@ export class UserService {
         activatedAt: new Date()
       };
 
-      alert('Creating user document in Firestore');
       // Create user document
       await this.firestore.collection('users').doc(user.uid).set(userData);
 
-      alert('Updating product key status');
       // Update product key status
       await this.firestore.collection('productKeys').doc(productKey).update({
         status: 'active',
@@ -175,7 +168,6 @@ export class UserService {
 
       // Send confirmation email with login credentials only if new user was created
       if (isNewUser) {
-        alert('Sending activation confirmation email to: ' + keyData.email);
         try {
           const sendEmail = this.functions.httpsCallable('sendActivationConfirmation');
           const result = await firstValueFrom(sendEmail({
@@ -184,18 +176,14 @@ export class UserService {
             firstName: keyData.firstName,
             lastName: keyData.lastName
           }));
-          alert('Email function result: ' + JSON.stringify(result.data));
         } catch (error: any) {
-          alert('Error sending email: ' + error.message);
           console.error('Error sending activation email:', error);
         }
       } else {
-        alert('Skipping activation email for existing user because isNewUser is false');
       }
 
       return true;
     } catch (error: any) {
-      alert('Error in activateProductKey: ' + error.message);
       throw error;
     }
   }

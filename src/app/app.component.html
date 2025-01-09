@@ -1,4 +1,11 @@
-<app-loading-screen *ngIf="loading$ | async"></app-loading-screen>
-<app-navbar *ngIf="!isAdminRoute"></app-navbar>
-<router-outlet></router-outlet>
-<app-footer *ngIf="!isAdminRoute"></app-footer>
+<div class="app-container">
+  <!-- Loading Screen -->
+  <app-loading-screen *ngIf="(loading$ | async) && !isAdminRoute"></app-loading-screen>
+
+  <!-- Main Content -->
+  <div class="main-content" [class.admin-route]="isAdminRoute">
+    <app-navbar *ngIf="!isAdminRoute"></app-navbar>
+    <router-outlet></router-outlet>
+    <app-footer *ngIf="!isAdminRoute"></app-footer>
+  </div>
+</div>

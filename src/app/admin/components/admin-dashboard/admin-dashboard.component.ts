@@ -7,7 +7,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { AuthService } from '../../services/auth.service';
+import { AdminService } from '../../../shared/services/admin.service';
 import { filter } from 'rxjs/operators';
+import { take } from 'rxjs/operators';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -26,6 +28,7 @@ import { filter } from 'rxjs/operators';
 })
 export class AdminDashboardComponent {
   currentSection = 'Dashboard';
+  isAdmin = false;
   navItems = [
     { path: 'products', icon: 'inventory_2', label: 'Products' },
     { path: 'events', icon: 'event', label: 'Events' },
@@ -37,6 +40,7 @@ export class AdminDashboardComponent {
 
   constructor(
     private authService: AuthService,
+    private adminService: AdminService,
     private router: Router
   ) {
     // Update current section based on route
@@ -47,6 +51,19 @@ export class AdminDashboardComponent {
       const currentNav = this.navItems.find(item => item.path === currentPath);
       this.currentSection = currentNav ? currentNav.label : 'Dashboard';
     });
+
+    // Check if user is admin
+    this.checkAdminStatus();
+  }
+
+  private async checkAdminStatus() {
+    const user = await this.authService.user$.pipe(take(1)).toPromise();
+    if (user) {
+      this.isAdmin = await this.adminService.isAdmin(user.uid);
+      if (this.isAdmin) {
+        this.navItems.push({ path: 'create-admin', icon: 'admin_panel_settings', label: 'Admin erstellen' });
+      }
+    }
   }
 
   async logout() {

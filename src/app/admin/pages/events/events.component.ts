@@ -1,103 +1,63 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { EventService } from '../../../shared/services/event.service';
 import { Event } from '../../../shared/interfaces/event.interface';
-import { Subscription } from 'rxjs';
-import { EventDialogComponent } from '../../../admin/components/event-dialog/event-dialog.component';
+import { EventDialogComponent } from '../../components/event-dialog/event-dialog.component';
+import { Observable } from 'rxjs';
 
 @Component({
   selector: 'app-admin-events',
-  templateUrl: './events.component.html',
-  styleUrls: ['./events.component.scss'],
   standalone: true,
   imports: [
     CommonModule,
-    MatTableModule,
     MatButtonModule,
     MatIconModule,
-    MatDialogModule
-  ]
+    MatDialogModule,
+    EventDialogComponent
+  ],
+  templateUrl: './events.component.html',
+  styleUrls: ['./events.component.scss']
 })
-export class EventsComponent implements OnInit, OnDestroy {
-  dataSource = new MatTableDataSource<Event>([]);
-  displayedColumns: string[] = ['image', 'title', 'date', 'location', 'status', 'actions'];
-  private subscription?: Subscription;
+export class AdminEventsComponent {
+  events$: Observable<Event[]>;
 
-  constructor(
-    private eventService: EventService,
-    private dialog: MatDialog
-  ) {}
-
-  ngOnInit(): void {
-    this.loadEvents();
+  constructor(private eventService: EventService, private dialog: MatDialog) {
+    this.events$ = this.eventService.getAllEvents();
   }
 
-  private loadEvents(): void {
-    this.subscription = this.eventService.getAllEvents()
-      .subscribe({
-        next: (events) => {
-          this.dataSource.data = events;
-        },
-        error: () => {
-          this.dataSource.data = [];
-        }
-      });
-  }
-
-  ngOnDestroy(): void {
-    if (this.subscription) {
-      this.subscription.unsubscribe();
-    }
-  }
-
-  async onDelete(id: string): Promise<void> {
-    if (confirm('Are you sure you want to delete this event?')) {
-      try {
-        await this.eventService.deleteEvent(id);
-        this.loadEvents();
-      } catch (error) {
-        // Handle error silently
-      }
-    }
-  }
-
-  onEdit(event: Event): void {
+  openEventDialog(event?: Event) {
     const dialogRef = this.dialog.open(EventDialogComponent, {
       width: '600px',
       data: { event }
     });
 
-    dialogRef.afterClosed().subscribe(async (result: Event) => {
+    dialogRef.afterClosed().subscribe(async result => {
       if (result) {
         try {
-          await this.eventService.updateEvent(result.id, result);
-          this.loadEvents();
+          if (event?.id) {
+            await this.eventService.updateEvent(event.id, result.event, result.file);
+          } else {
+            await this.eventService.createEvent(result.event, result.file);
+          }
+          this.events$ = this.eventService.getAllEvents();
         } catch (error) {
-          // Handle error silently
+          console.error('Error saving event:', error);
         }
       }
     });
   }
 
-  onAdd(): void {
-    const dialogRef = this.dialog.open(EventDialogComponent, {
-      width: '600px',
-      data: { event: null }
-    });
-
-    dialogRef.afterClosed().subscribe(async (result: Event) => {
-      if (result) {
-        try {
-          await this.eventService.createEvent(result);
-          this.loadEvents();
-        } catch (error) {
-          // Handle error silently
-        }
+  async deleteEvent(eventId: string) {
+    if (confirm('Sind Sie sicher, dass Sie dieses Event löschen möchten?')) {
+      try {
+        await this.eventService.deleteEvent(eventId);
+        this.events$ = this.eventService.getAllEvents();
+      } catch (error) {
+        console.error('Error deleting event:', error);
       }
-    });
+    }
   }
 }

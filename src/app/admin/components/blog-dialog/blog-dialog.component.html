@@ -1,0 +1,106 @@
+<div class="dialog-container">
+  <h2 mat-dialog-title>{{ data?.blog ? 'Blog bearbeiten' : 'Neuer Blog Post' }}</h2>
+  
+  <form [formGroup]="blogForm" (ngSubmit)="onSubmit()">
+    <div class="form-row">
+      <mat-form-field appearance="outline">
+        <mat-label>Titel</mat-label>
+        <input matInput formControlName="title" required>
+        <mat-error *ngIf="blogForm.get('title')?.hasError('required')">
+          Titel ist erforderlich
+        </mat-error>
+      </mat-form-field>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline">
+        <mat-label>Kategorie</mat-label>
+        <input matInput formControlName="category" required>
+        <mat-error *ngIf="blogForm.get('category')?.hasError('required')">
+          Kategorie ist erforderlich
+        </mat-error>
+      </mat-form-field>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline">
+        <mat-label>Datum</mat-label>
+        <input matInput formControlName="date" required>
+        <mat-error *ngIf="blogForm.get('date')?.hasError('required')">
+          Datum ist erforderlich
+        </mat-error>
+      </mat-form-field>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline">
+        <mat-label>Lesezeit</mat-label>
+        <input matInput formControlName="readTime" required>
+        <mat-error *ngIf="blogForm.get('readTime')?.hasError('required')">
+          Lesezeit ist erforderlich
+        </mat-error>
+      </mat-form-field>
+    </div>
+
+    <div formArrayName="content">
+      <div *ngFor="let content of contentControls.controls; let i = index" [formGroupName]="i" class="form-row">
+        <mat-form-field appearance="outline">
+          <mat-label>Typ</mat-label>
+          <mat-select formControlName="type" required>
+            <mat-option value="paragraph">Paragraph</mat-option>
+            <mat-option value="subheading">Überschrift</mat-option>
+            <mat-option value="quote">Zitat</mat-option>
+            <mat-option value="list">Liste</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" *ngIf="content.get('type')?.value !== 'list'">
+          <mat-label>Text</mat-label>
+          <textarea matInput formControlName="text" rows="4" required></textarea>
+        </mat-form-field>
+
+        <div *ngIf="content.get('type')?.value === 'list'" formArrayName="items">
+          <div *ngFor="let item of getItemsFormArray(i).controls; let j = index" class="list-item">
+            <mat-form-field appearance="outline">
+              <mat-label>Listenpunkt {{j + 1}}</mat-label>
+              <input matInput [formControlName]="j" required>
+            </mat-form-field>
+            <button mat-icon-button color="warn" type="button" (click)="removeListItem(i, j)">
+              <mat-icon>remove_circle</mat-icon>
+            </button>
+          </div>
+          <button mat-button type="button" (click)="addListItem(i)">
+            <mat-icon>add</mat-icon>
+            Listenpunkt hinzufügen
+          </button>
+        </div>
+
+        <button mat-icon-button color="warn" type="button" (click)="removeContent(i)" class="remove-content">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </div>
+    </div>
+
+    <button mat-button type="button" (click)="addContent()" class="add-content">
+      <mat-icon>add</mat-icon>
+      Inhalt hinzufügen
+    </button>
+
+    <div class="image-upload" (click)="fileInput.click()">
+      <input #fileInput type="file" hidden (change)="onFileSelected($event)" accept="image/*">
+      <mat-icon>cloud_upload</mat-icon>
+      <p class="upload-text">Klicken Sie hier, um ein Bild hochzuladen</p>
+      <div class="image-preview" *ngIf="imagePreview">
+        <img [src]="imagePreview" alt="Vorschau">
+      </div>
+      <mat-progress-bar *ngIf="uploadProgress > 0" mode="determinate" [value]="uploadProgress"></mat-progress-bar>
+    </div>
+
+    <mat-dialog-actions>
+      <button mat-button type="button" (click)="onCancel()">Abbrechen</button>
+      <button mat-raised-button color="primary" type="submit" [disabled]="!blogForm.valid || isUploading">
+        {{ data?.blog ? 'Speichern' : 'Erstellen' }}
+      </button>
+    </mat-dialog-actions>
+  </form>
+</div> 
