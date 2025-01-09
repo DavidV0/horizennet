@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { AngularFireFunctions } from '@angular/fire/compat/functions';
+import { firstValueFrom } from 'rxjs';
 
 export interface UserData {
   firstName: string;
@@ -87,6 +88,8 @@ export class UserService {
     }
 
     try {
+      alert('Starting product key activation for: ' + productKey);
+      
       // Check if product key exists and is valid
       const keyDoc = await this.firestore.collection('productKeys').doc(productKey).get().toPromise();
       if (!keyDoc?.exists) {
@@ -98,12 +101,42 @@ export class UserService {
         throw new Error('Dieser Produktschlüssel wurde bereits aktiviert.');
       }
 
-      // Generate password and create Firebase Auth user
+      // Generate password and create or get Firebase Auth user
       const password = Math.random().toString(36).slice(-8);
-      const { user } = await this.auth.createUserWithEmailAndPassword(keyData.email, password);
+      let user;
+      let isNewUser = true;
+      
+      try {
+        alert('Attempting to create new user for email: ' + keyData.email);
+        // Try to create new user
+        const userCredential = await this.auth.createUserWithEmailAndPassword(keyData.email, password);
+        user = userCredential.user;
+        alert('Successfully created new user: ' + user?.uid);
+      } catch (authError: any) {
+        alert('Error creating user: ' + authError.code);
+        isNewUser = false;
+        // If user already exists, try to sign in
+        if (authError.code === 'auth/email-already-in-use') {
+          // Check if user exists in our database
+          const existingUser = await this.checkIfUserExists(keyData.email);
+          if (existingUser) {
+            throw new Error('Diese E-Mail-Adresse wurde bereits aktiviert. Bitte verwenden Sie die Anmeldedaten aus Ihrer Aktivierungs-E-Mail.');
+          }
+          
+          // If user exists in Auth but not in our database, proceed with existing auth user
+          const currentUser = await this.auth.currentUser;
+          if (!currentUser) {
+            throw new Error('Bitte melden Sie sich mit Ihrer E-Mail-Adresse an, um den Produktschlüssel zu aktivieren.');
+          }
+          user = currentUser;
+          alert('Using existing user: ' + user?.uid);
+        } else {
+          throw authError;
+        }
+      }
       
       if (!user) {
-        throw new Error('Failed to create user account');
+        throw new Error('Failed to create or get user account');
       }
 
       // Create user document
@@ -127,9 +160,11 @@ export class UserService {
         activatedAt: new Date()
       };
 
+      alert('Creating user document in Firestore');
       // Create user document
       await this.firestore.collection('users').doc(user.uid).set(userData);
 
+      alert('Updating product key status');
       // Update product key status
       await this.firestore.collection('productKeys').doc(productKey).update({
         status: 'active',
@@ -138,18 +173,29 @@ export class UserService {
         firebaseUid: user.uid
       });
 
-      // Send confirmation email with login credentials
-      const sendEmail = this.functions.httpsCallable('sendActivationConfirmation');
-      await sendEmail({
-        email: keyData.email,
-        password: password,
-        firstName: keyData.firstName,
-        lastName: keyData.lastName
-      });
+      // Send confirmation email with login credentials only if new user was created
+      if (isNewUser) {
+        alert('Sending activation confirmation email to: ' + keyData.email);
+        try {
+          const sendEmail = this.functions.httpsCallable('sendActivationConfirmation');
+          const result = await firstValueFrom(sendEmail({
+            email: keyData.email,
+            password: password,
+            firstName: keyData.firstName,
+            lastName: keyData.lastName
+          }));
+          alert('Email function result: ' + JSON.stringify(result.data));
+        } catch (error: any) {
+          alert('Error sending email: ' + error.message);
+          console.error('Error sending activation email:', error);
+        }
+      } else {
+        alert('Skipping activation email for existing user because isNewUser is false');
+      }
 
       return true;
     } catch (error: any) {
-      console.error('Error in activateProductKey:', error);
+      alert('Error in activateProductKey: ' + error.message);
       throw error;
     }
   }

@@ -23,7 +23,13 @@ admin.initializeApp();
 const app = express();
 
 // CORS Middleware
-app.use(cors({origin: true}));
+app.use(cors({
+  origin: [
+    'http://localhost:4200',
+    'https://horizonnet-beta.netlify.app'
+  ],
+  credentials: true
+}));
 
 // Body Parser Middleware für JSON-Anfragen
 app.use(express.json());
@@ -44,14 +50,28 @@ const transporter = nodemailer.createTransport({
   secure: false, // STARTTLS
   auth: {
     user: process.env.EMAIL_USER || "horizon@atg-at.net",
-    pass: process.env.EMAIL_PASSWORD,
+    pass: process.env.EMAIL_PASSWORD || functions.config().email.password,
   },
+  tls: {
+    rejectUnauthorized: false // Accept self-signed certificates
+  },
+  debug: true, // Enable debug output
+  logger: true // Log information to console
+});
+
+// Verify transporter connection on startup
+transporter.verify(function(error, success) {
+  if (error) {
+    console.error('Transporter verification failed:', error);
+  } else {
+    console.log('Transporter is ready to send emails');
+  }
 });
 
 // Konfiguriere die Basis-URL basierend auf der Umgebung
-const BASE_URL = process.env.NODE_ENV === "production" ?
-  "https://horizonnet.at" :
-  "http://localhost:4200";
+const BASE_URL = process.env.NODE_ENV === 'production' 
+  ? "https://horizonnet-beta.netlify.app"
+  : "http://localhost:4200";
 
 // Contact Form Endpoint
 app.post("/sendContactEmail", async (req: Request, res: Response): Promise<void> => {
@@ -179,6 +199,8 @@ interface PurchaseConfirmationData {
 interface ActivationConfirmationData {
   email: string;
   password: string;
+  firstName?: string;
+  lastName?: string;
 }
 
 export const sendPurchaseConfirmation = functions.https.onCall(async (request: functions.https.CallableRequest<PurchaseConfirmationData>) => {
@@ -192,73 +214,86 @@ export const sendPurchaseConfirmation = functions.https.onCall(async (request: f
   const datenschutzBuffer = await admin.storage().bucket().file("documents/datenschutz.pdf").download();
   const widerrufsbelehrungBuffer = await admin.storage().bucket().file("documents/widerrufsbelehrung.pdf").download();
 
-  // Send email
-  await transporter.sendMail({
-    from: "\"HorizonNet\" <horizon@atg-at.net>",
-    to: email,
-    subject: "Ihre Bestellung - Produktschlüssel und Dokumente",
-    html: `
-      <h1>Vielen Dank für Ihre Bestellung!</h1>
-      <p>Sehr geehrte(r) ${firstName} ${lastName},</p>
-      <p>Ihr Produktschlüssel lautet: <strong>${productKey}</strong></p>
-      <p>Um Ihren Produktschlüssel einzulösen, klicken Sie bitte auf folgenden Link:</p>
-      <p><a href="${BASE_URL}/activate?key=${productKey}">Produktschlüssel einlösen</a></p>
-      <p>Im Anhang finden Sie:</p>
-      <ul>
-        <li>Ihre Rechnung</li>
-        <li>Unsere Allgemeinen Geschäftsbedingungen (AGB)</li>
-        <li>Unsere Datenschutzerklärung</li>
-        <li>Die Widerrufsbelehrung</li>
-      </ul>
-      <p>Bitte lesen Sie die beigefügten Dokumente sorgfältig durch.</p>
-      <p>Bei Fragen stehen wir Ihnen gerne zur Verfügung.</p>
-      <p>Mit freundlichen Grüßen,<br>Ihr HorizonNet Team</p>
-    `,
-    attachments: [
-      {
-        filename: "Rechnung.pdf",
-        content: invoicePdf,
-      },
-      {
-        filename: "AGB.pdf",
-        content: agbBuffer[0],
-      },
-      {
-        filename: "Datenschutzerklärung.pdf",
-        content: datenschutzBuffer[0],
-      },
-      {
-        filename: "Widerrufsbelehrung.pdf",
-        content: widerrufsbelehrungBuffer[0],
-      },
-    ],
-  });
+  try {
+    // Send email
+    const info = await transporter.sendMail({
+      from: "\"HorizonNet\" <horizon@atg-at.net>",
+      to: email,
+      subject: "Ihre Bestellung - Produktschlüssel und Dokumente",
+      html: `
+        <h1>Vielen Dank für Ihre Bestellung!</h1>
+        <p>Sehr geehrte(r) ${firstName} ${lastName},</p>
+        <p>Ihr Produktschlüssel lautet: <strong>${productKey}</strong></p>
+        <p>Um Ihren Produktschlüssel einzulösen, klicken Sie bitte auf folgenden Link:</p>
+        <p><a href="${BASE_URL}/activate?key=${productKey}">Produktschlüssel einlösen</a></p>
+        <p>Im Anhang finden Sie:</p>
+        <ul>
+          <li>Ihre Rechnung</li>
+          <li>Unsere Allgemeinen Geschäftsbedingungen (AGB)</li>
+          <li>Unsere Datenschutzerklärung</li>
+          <li>Die Widerrufsbelehrung</li>
+        </ul>
+        <p>Bitte lesen Sie die beigefügten Dokumente sorgfältig durch.</p>
+        <p>Bei Fragen stehen wir Ihnen gerne zur Verfügung.</p>
+        <p>Mit freundlichen Grüßen,<br>Ihr HorizonNet Team</p>
+      `,
+      attachments: [
+        {
+          filename: "Rechnung.pdf",
+          content: invoicePdf,
+        },
+        {
+          filename: "AGB.pdf",
+          content: agbBuffer[0],
+        },
+        {
+          filename: "Datenschutzerklärung.pdf",
+          content: datenschutzBuffer[0],
+        },
+        {
+          filename: "Widerrufsbelehrung.pdf",
+          content: widerrufsbelehrungBuffer[0],
+        },
+      ],
+    });
 
-  return {success: true};
+    console.log('Purchase confirmation email sent:', info);
+    return { data: { success: true } };
+  } catch (error: any) {
+    console.error('Error sending purchase confirmation:', error);
+    throw new functions.https.HttpsError('internal', `Failed to send email: ${error.message}`);
+  }
 });
 
 export const sendActivationConfirmation = functions.https.onCall(async (request: functions.https.CallableRequest<ActivationConfirmationData>) => {
   const {email, password} = request.data;
 
-  await transporter.sendMail({
-    from: "\"HorizonNet\" <horizon@atg-at.net>",
-    to: email,
-    subject: "Ihr Account wurde aktiviert",
-    html: `
-      <h1>Ihr Account wurde erfolgreich aktiviert!</h1>
-      <p>Sie können sich nun mit folgenden Zugangsdaten einloggen:</p>
-      <p><strong>E-Mail:</strong> ${email}</p>
-      <p><strong>Passwort:</strong> ${password}</p>
-      <p><strong>Wichtig:</strong> Bitte ändern Sie Ihr Passwort nach dem ersten Login.</p>
-      <p>Zum Login gelangen Sie hier:</p>
-      <p><a href="${BASE_URL}/login">Zum Login</a></p>
-      <p>In Ihrem Kundendashboard finden Sie alle wichtigen Informationen und Dokumente.</p>
-      <p>Bei Fragen stehen wir Ihnen gerne zur Verfügung.</p>
-      <p>Mit freundlichen Grüßen,<br>Ihr HorizonNet Team</p>
-    `,
-  });
+  try {
+    // Send email
+    const info = await transporter.sendMail({
+      from: "\"HorizonNet\" <horizon@atg-at.net>",
+      to: email,
+      subject: "Ihr Account wurde aktiviert",
+      html: `
+        <h1>Ihr Account wurde erfolgreich aktiviert!</h1>
+        <p>Sie können sich nun mit folgenden Zugangsdaten einloggen:</p>
+        <p><strong>E-Mail:</strong> ${email}</p>
+        <p><strong>Passwort:</strong> ${password}</p>
+        <p><strong>Wichtig:</strong> Bitte ändern Sie Ihr Passwort nach dem ersten Login.</p>
+        <p>Zum Login gelangen Sie hier:</p>
+        <p><a href="${BASE_URL}/login">Zum Login</a></p>
+        <p>In Ihrem Kundendashboard finden Sie alle wichtigen Informationen und Dokumente.</p>
+        <p>Bei Fragen stehen wir Ihnen gerne zur Verfügung.</p>
+        <p>Mit freundlichen Grüßen,<br>Ihr HorizonNet Team</p>
+      `
+    });
 
-  return {success: true};
+    console.log('Activation confirmation email sent:', info);
+    return { data: { success: true } };
+  } catch (error: any) {
+    console.error('Error sending activation confirmation:', error);
+    throw new functions.https.HttpsError('internal', `Failed to send email: ${error.message}`);
+  }
 });
 
 /**

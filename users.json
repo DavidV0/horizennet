@@ -1,0 +1,22 @@
+{"users": [
+{
+  "localId": "D41uUW1js7dKTBeH0gu0QFhUuz73",
+  "email": "david.v@atg-at.net",
+  "emailVerified": false,
+  "passwordHash": "L0Wa7U+nh4QcjZeBu2Ip3oyrgQnJFWcQW7hXELIkuojgjvTYHuUJczBYKb74fT/SnDVS1RDewCXVKqg910u9jQ==",
+  "salt": "EeqX9VvRvzyxGQ==",
+  "lastSignedInAt": "1736251420522",
+  "createdAt": "1735904099375",
+  "disabled": false,
+  "providerUserInfo": []
+},
+{
+  "localId": "YfvYRqJiy3bDkXwr8vRTHvs9FPP2",
+  "email": "davidvelickovic@hotmail.com",
+  "emailVerified": false,
+  "passwordHash": "AFJBCzhkrb7rr+nJomeJgPyA+RFF9WJYxIndIEygDag7HHi+tezUnTpiHZJP56WvpPHEJKCA4ZjSK6xhzAUbmA==",
+  "salt": "aeDfk3bUNZFH2w==",
+  "lastSignedInAt": "1736355003887",
+  "createdAt": "1736355003887",
+  "providerUserInfo": []
+}]}

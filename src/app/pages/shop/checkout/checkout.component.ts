@@ -257,6 +257,10 @@ export class CheckoutComponent implements OnInit, OnDestroy {
         // Save product key with user data
         await this.userService.createUser(userData);
 
+        // Send purchase confirmation email
+        const sendPurchaseConfirmation = httpsCallable(this.functions, 'sendPurchaseConfirmation');
+        await sendPurchaseConfirmation(userData);
+
         // Clear cart
         this.cartService.clearCart();
 

@@ -23,7 +23,7 @@
       </ng-container>
       
       <!-- Login Button im Mobile Menu -->
-      <button *ngIf="showLoginInMenu" class="cta-button hover-effect" routerLink="/dashboard" (click)="isMobileMenuOpen = false">
+      <button *ngIf="showLoginInMenu" class="cta-button hover-effect" routerLink="/login" (click)="isMobileMenuOpen = false">
         <span>Login</span>
       </button>
     </div>
@@ -37,7 +37,7 @@
         </span>
       </button>
 
-      <button class="cta-button hover-effect" routerLink="/dashboard" *ngIf="!showLoginInMenu">
+      <button class="cta-button hover-effect" routerLink="/login" *ngIf="!showLoginInMenu">
         <span>Login</span>
       </button>
       
