@@ -1,25 +1,79 @@
 @import '../../../shared/styles/dialog.scss';
 
-.dialog-content {
+.dialog-container {
   padding: var(--spacing-lg);
+  background-color: var(--color-secondary);
+  color: var(--color-white);
   
   h2 {
     color: var(--color-accent);
     margin-bottom: var(--spacing-xl);
+    font-size: 24px;
   }
-}
 
-mat-dialog-content {
-  padding-top: var(--spacing-md);
-  padding-bottom: var(--spacing-md);
-}
+  .form-row {
+    margin-bottom: var(--spacing-md);
+    width: 100%;
 
-.full-width {
-  width: 100%;
-  margin-bottom: var(--spacing-md);
-}
+    mat-form-field {
+      width: 100%;
 
-mat-dialog-actions {
-  padding: var(--spacing-md) 0;
-  gap: var(--spacing-md);
+      ::ng-deep {
+        .mat-mdc-form-field-flex {
+          background-color: var(--color-secondary);
+        }
+
+        .mdc-text-field--outlined {
+          --mdc-outlined-text-field-container-color: transparent;
+        }
+
+        .mdc-floating-label, .mat-mdc-input-element {
+          color: var(--color-white);
+          padding-left: 16px;
+        }
+
+        .mdc-notched-outline__leading,
+        .mdc-notched-outline__notch,
+        .mdc-notched-outline__trailing {
+          border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .mdc-text-field--focused .mdc-notched-outline__leading,
+        .mdc-text-field--focused .mdc-notched-outline__notch,
+        .mdc-text-field--focused .mdc-notched-outline__trailing {
+          border-color: var(--color-accent);
+        }
+      }
+    }
+  }
+
+  mat-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md) 0;
+    margin-top: var(--spacing-lg);
+
+    button {
+      &[type="submit"] {
+        background: linear-gradient(45deg, #ffd700, #ffed4a);
+        color: black;
+        font-weight: 500;
+
+        &:disabled {
+          background: rgba(255, 255, 255, 0.1);
+          color: rgba(255, 255, 255, 0.3);
+        }
+      }
+
+      &[type="button"] {
+        color: var(--color-white);
+        background-color: transparent;
+        
+        &:hover {
+          background-color: rgba(255, 255, 255, 0.1);
+        }
+      }
+    }
+  }
 } 

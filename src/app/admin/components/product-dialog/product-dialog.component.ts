@@ -143,6 +143,7 @@ import { StorageService } from '../../../shared/services/storage.service';
       .mat-mdc-form-field {
         width: 100%;
         margin-bottom: var(--spacing-md);
+        color: var(--color-white);
       }
 
       .mdc-text-field--outlined {

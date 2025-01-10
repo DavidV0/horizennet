@@ -189,6 +189,7 @@ import { Auth } from '@angular/fire/auth';
     }
 
     .upload-actions {
+      color: var(--color-white);
       display: flex;
       gap: 10px;
       justify-content: center;
