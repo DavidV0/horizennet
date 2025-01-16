@@ -31,7 +31,12 @@
                 "input": "src/assets/favicons",
                 "output": "/assets/favicons"
               },
-              "src/assets"
+              "src/assets",
+              {
+                "glob": ".htaccess",
+                "input": "src",
+                "output": "/"
+              }
             ],
             "styles": [
               "src/styles.scss",
