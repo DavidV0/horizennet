@@ -8,6 +8,9 @@ on:
       - 'src/**'
       - 'angular.json'
       - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/ftp-deploy.yml'
+      - '.htaccess'
 
 jobs:
   web-deploy:
