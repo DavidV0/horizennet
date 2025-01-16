@@ -36,21 +36,60 @@ export class ProductFormDialogComponent {
     private dialogRef: MatDialogRef<ProductFormDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: { id?: string; product?: any }
   ) {
+    // Create form with editable and read-only fields
     this.productForm = this.fb.group({
+      // Editable fields
       name: ['', [Validators.required, Validators.minLength(1)]],
-      price: ['', [Validators.required, Validators.min(0.01)]],
       oldPrice: [''],
       tag: [''],
-      image: ['']
+      // Read-only fields
+      price: [{value: '', disabled: true}],
+      stripeProductId: [{value: '', disabled: true}],
+      stripeFullPaymentId: [{value: '', disabled: true}],
+      stripeSixMonthsId: [{value: '', disabled: true}],
+      stripeTwelveMonthsId: [{value: '', disabled: true}],
+      stripeEighteenMonthsId: [{value: '', disabled: true}]
     });
 
     if (data?.product) {
+      // Set default Stripe IDs based on product name
+      let stripeProductId = '';
+      let stripePriceIds = {
+        fullPayment: '',
+        sixMonths: '',
+        twelveMonths: '',
+        eighteenMonths: ''
+      };
+
+      if (data.product.name === 'Horizon Academy') {
+        stripeProductId = 'prod_RaJP8uJTvZnxRj';
+        stripePriceIds = {
+          fullPayment: 'price_1Qh8mUGmKQzZmpXRRe5qUaj1',
+          sixMonths: 'price_1Qh8mUGmKQzZmpXRAq2gWoyZ',
+          twelveMonths: 'price_1Qh8mUGmKQzZmpXRHn9lgRHq',
+          eighteenMonths: 'price_1Qh8mUGmKQzZmpXRWXzdLWti'
+        };
+      } else if (data.product.name === 'Horizon Krypto') {
+        stripeProductId = 'prod_RaJPLaApWZxg7X';
+        stripePriceIds = {
+          fullPayment: 'price_1Qh8mVGmKQzZmpXRX7Ye4whH',
+          sixMonths: 'price_1Qh8mVGmKQzZmpXRchnqbJjG',
+          twelveMonths: 'price_1Qh8mVGmKQzZmpXRsd01cwXP',
+          eighteenMonths: 'price_1Qh8mVGmKQzZmpXRqcIJ0Lnm'
+        };
+      }
+
+      // Update form with existing values
       this.productForm.patchValue({
         name: data.product.name || '',
-        price: data.product.price || '',
         oldPrice: data.product.oldPrice || '',
         tag: data.product.tag || '',
-        image: data.product.image || ''
+        price: data.product.price || '',
+        stripeProductId: data.product.stripeProductId || stripeProductId,
+        stripeFullPaymentId: data.product.stripePriceIds?.fullPayment || stripePriceIds.fullPayment,
+        stripeSixMonthsId: data.product.stripePriceIds?.sixMonths || stripePriceIds.sixMonths,
+        stripeTwelveMonthsId: data.product.stripePriceIds?.twelveMonths || stripePriceIds.twelveMonths,
+        stripeEighteenMonthsId: data.product.stripePriceIds?.eighteenMonths || stripePriceIds.eighteenMonths
       });
 
       if (data.product.image) {
@@ -66,7 +105,6 @@ export class ProductFormDialogComponent {
       const reader = new FileReader();
       reader.onload = () => {
         this.imagePreview = reader.result as string;
-        this.productForm.patchValue({ image: '' });
       };
       reader.readAsDataURL(file);
     }
@@ -76,23 +114,24 @@ export class ProductFormDialogComponent {
     if (this.productForm.valid) {
       const formValue = this.productForm.getRawValue();
       
-      // Konvertiere und validiere die Daten
+      // Only include editable fields and preserve existing data
       const productData = {
+        ...this.data.product,
         name: String(formValue.name || '').trim(),
-        price: Number(formValue.price || 0),
         oldPrice: formValue.oldPrice ? Number(formValue.oldPrice) : null,
-        tag: formValue.tag ? String(formValue.tag).trim() : null,
-        image: formValue.image || null
+        tag: formValue.tag ? String(formValue.tag).trim() : null
       };
 
-      console.log('Submitting product data:', productData); // Debug-Log
+      // Keep existing Stripe data
+      if (this.data.product) {
+        productData.stripeProductId = this.data.product.stripeProductId;
+        productData.stripePriceIds = this.data.product.stripePriceIds;
+      }
 
       this.dialogRef.close({
         product: productData,
         file: this.selectedFile
       });
-    } else {
-      console.log('Form validation errors:', this.productForm.errors); // Debug-Log
     }
   }
 
@@ -103,6 +142,5 @@ export class ProductFormDialogComponent {
   removeImage(): void {
     this.imagePreview = undefined;
     this.selectedFile = undefined;
-    this.productForm.patchValue({ image: '' });
   }
 } 

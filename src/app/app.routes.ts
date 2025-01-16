@@ -121,6 +121,10 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/kontakt/kontakt.component').then(m => m.KontaktComponent)
   },
   {
+    path: 'partner-agreement',
+    loadComponent: () => import('./pages/legal/partner-agreement/partner-agreement.component').then(m => m.PartnerAgreementComponent)
+  },
+  {
     path: '**',
     redirectTo: ''
   }

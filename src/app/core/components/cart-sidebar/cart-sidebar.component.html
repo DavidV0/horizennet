@@ -19,7 +19,7 @@
               <span class="price">€ {{ getMonthlyPrice(productId) | number:'1.2-2' }}</span>
               <span class="label">mtl.</span>
             </p>
-            <p class="tax-info">(exkl. MwSt.)</p>
+            <p class="tax-info">(inkl. MwSt.)</p>
           </div>
         </div>
         <button class="remove-button" (click)="removeFromCart(productId)">
@@ -39,7 +39,7 @@
         <span>€ {{ getMonthlyTotal() | number:'1.2-2' }}</span>
       </div>
       <div class="tax-info">
-        <span>(exkl. MwSt.)</span>
+        <span>(inkl. MwSt.)</span>
       </div>
     </div>
     <button class="checkout-button" routerLink="/shop/checkout" (click)="cartSidebarService.close()">

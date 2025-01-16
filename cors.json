@@ -1,0 +1,8 @@
+[
+  {
+    "origin": ["http://localhost:4200", "https://horizonnet-ed13d.web.app", "https://horizonnet-ed13d.firebaseapp.com"],
+    "method": ["GET", "HEAD", "PUT", "POST", "DELETE"],
+    "responseHeader": ["Content-Type"],
+    "maxAgeSeconds": 3600
+  }
+] 

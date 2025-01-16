@@ -63,7 +63,7 @@ export class CartSidebarComponent implements OnInit, OnDestroy {
 
   getMonthlyPrice(productId: string): number {
     const product = this.getProduct(productId);
-    return (product?.price || 0) / 18;
+    return (product?.price || 0) / 18 * 1.2;
   }
 
   getMonthlyTotal(): number {

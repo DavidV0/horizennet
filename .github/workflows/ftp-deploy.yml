@@ -1,0 +1,41 @@
+name: Deploy to FTP
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'angular.json'
+      - 'package.json'
+      - '.htaccess'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build --configuration=production
+
+      - name: Copy .htaccess
+        run: cp .htaccess dist/horizennet/browser/
+
+      - name: Deploy to FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: w01ef01f.kasserver.com
+          username: f0172021
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./dist/horizennet/browser/
+          server-dir: ./
+          dangerous-clean-slate: true 

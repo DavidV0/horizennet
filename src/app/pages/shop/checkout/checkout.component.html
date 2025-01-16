@@ -79,7 +79,7 @@
             <mat-form-field appearance="outline">
               <mat-label>Land</mat-label>
               <mat-select formControlName="country" required>
-                <mat-option value="Austria">Österreich</mat-option>
+                <mat-option value="AT">Österreich</mat-option>
               </mat-select>
               <mat-error *ngIf="checkoutForm.get('country')?.invalid">
                 {{ getErrorMessage('country') }}
@@ -97,10 +97,13 @@
             </mat-form-field>
           </div>
 
-          <button mat-raised-button color="primary" 
-                  (click)="proceedToPayment()" 
+          <button mat-raised-button 
+                  color="primary" 
+                  type="button"
+                  (click)="proceedToPayment()"
                   [disabled]="isProcessing">
-            FORTSETZEN
+            <span *ngIf="!isProcessing">FORTSETZEN</span>
+            <span *ngIf="isProcessing">Bitte warten...</span>
           </button>
         </div>
       </form>
@@ -150,48 +153,37 @@
             <input matInput formControlName="cardholderName" required>
           </mat-form-field>
 
-          <mat-form-field appearance="outline">
-            <mat-label>Kartennummer</mat-label>
-            <input matInput formControlName="cardNumber" required
-                   (input)="formatCardNumber($event)">
-          </mat-form-field>
+          <div class="card-element-container">
+            <div #cardElement class="stripe-card-element"></div>
+          </div>
 
-          <div class="card-details">
-            <mat-form-field appearance="outline">
-              <mat-label>Monat</mat-label>
-              <input matInput formControlName="expiryMonth" required>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline">
-              <mat-label>Jahr</mat-label>
-              <input matInput formControlName="expiryYear" required>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline">
-              <mat-label>CVV</mat-label>
-              <input matInput formControlName="cvv" required>
-            </mat-form-field>
+          <div class="error-message" *ngIf="paymentError">
+            {{paymentError}}
           </div>
         </div>
 
         <div class="payment-actions">
           <mat-checkbox formControlName="acceptTerms" required>
-            Ich akzeptiere die AGB und Datenschutzerklärung
+            Ich habe die <a href="/agb" target="_blank">Allgemeinen Geschäftsbedingungen</a>, die <a href="/datenschutz" target="_blank">Datenschutzbestimmung</a> und die <a href="/widerruf" target="_blank">Widerrufsbelehrung</a> für digitale Inhalte gelesen und akzeptiert.
           </mat-checkbox>
 
-          <mat-checkbox formControlName="newsletter" required>
-            Ja, hiermit akzeptiere ich das das Rücktrittsrecht erlischt.
+          <mat-checkbox formControlName="newsletter">
+            Für digitale Inhalte: Ich stimme ausdrücklich zu, dass vor Ablauf der Widerrufsfrist mit der Ausführung des Vertrages begonnen wird. Mir ist bekannt, dass ich durch diese Zustimmung mit Beginn der Ausführung des Vertrages mein Widerrufsrecht verliere.
           </mat-checkbox>
 
-          <button mat-raised-button color="primary" 
-                  (click)="onSubmit()" 
-                  [disabled]="!checkoutForm.valid || isProcessing || !checkoutForm.get('acceptTerms')?.value">
-            JETZT KAUFEN
-          </button>
+          <mat-checkbox *ngIf="hasHorizonAcademy()" formControlName="becomePartner">
+            Ja, ich möchte Vertriebspartner werden
+          </mat-checkbox>
 
-          <div class="error-message" *ngIf="paymentError">
-            {{paymentError}}
+          <div class="notice-text">
+            <mat-icon>info</mat-icon>
+            <p>Hinweis: Digitale Inhalte sind solche, die nicht auf einem körperlichen Datenträger geliefert werden (Software-Downloads, E-Books, etc.).</p>
           </div>
+
+          <button mat-raised-button color="primary" (click)="onSubmit()" [disabled]="isProcessing">
+            <span *ngIf="!isProcessing">Zahlungspflichtig bestellen</span>
+            <span *ngIf="isProcessing">Bitte warten...</span>
+          </button>
         </div>
       </form>
     </div>
@@ -208,30 +200,57 @@
               <img [src]="product.image" [alt]="product.name">
               <div class="product-details">
                 <h5>{{ product.name }}</h5>
-                <div class="price">€ {{ getMonthlyPrice(product.price) | number:'1.2-2' }}</div>
+                <div class="price">€ {{ calculatePriceWithVAT(product.price) | number:'1.2-2' }}</div>
               </div>
             </div>
           </div>
 
           <div class="summary-totals">
             <div class="total-row">
-              <span>ZWISCHENSUMME:</span>
+              <span>NETTO:</span>
               <span>€ {{ monthlyTotal | number:'1.2-2' }}</span>
+            </div>
+
+            <div class="total-row">
+              <span>USt. (20%):</span>
+              <span>€ {{ monthlyTotal * 0.2 | number:'1.2-2' }}</span>
+            </div>
+
+            <div class="total-row grand-total">
+              <span>BRUTTO:</span>
+              <span>€ {{ calculatePriceWithVAT(monthlyTotal) | number:'1.2-2' }}</span>
             </div>
 
             <div class="total-row" *ngIf="checkoutForm.get('paymentPlan')?.value > 0">
               <span>LAUFZEIT:</span>
               <span>{{ checkoutForm.get('paymentPlan')?.value }} Monate</span>
             </div>
+            
+            <div class="payment-schedule-link" *ngIf="checkoutForm.get('paymentPlan')?.value > 0">
+              <button mat-button class="learn-more-btn" (click)="openPaymentSchedule()">
+                <mat-icon>calendar_today</mat-icon>
+                Dein Zahlungsplan
+              </button>
+            </div>
 
             <div class="total-row" *ngIf="checkoutForm.get('paymentPlan')?.value > 0">
-              <span>GESAMTBETRAG:</span>
+              <span>GESAMTBETRAG NETTO:</span>
               <span>€ {{ fullTotal | number:'1.2-2' }}</span>
             </div>
 
-            <div class="total-row grand-total">
-              <span>{{ checkoutForm.get('paymentPlan')?.value > 0 ? 'MONATLICHE RATE:' : 'GESAMT:' }}</span>
-              <span>€ {{ monthlyTotal | number:'1.2-2' }}</span>
+            <div class="total-row" *ngIf="checkoutForm.get('paymentPlan')?.value > 0">
+              <span>USt. (20%):</span>
+              <span>€ {{ fullTotal * 0.2 | number:'1.2-2' }}</span>
+            </div>
+
+            <div class="total-row grand-total" *ngIf="checkoutForm.get('paymentPlan')?.value > 0">
+              <span>GESAMTBETRAG BRUTTO:</span>
+              <span>€ {{ calculatePriceWithVAT(fullTotal) | number:'1.2-2' }}</span>
+            </div>
+
+            <div class="total-row grand-total" *ngIf="checkoutForm.get('paymentPlan')?.value > 0">
+              <span>MONATLICHE RATE (BRUTTO):</span>
+              <span>€ {{ calculatePriceWithVAT(monthlyTotal) | number:'1.2-2' }}</span>
             </div>
           </div>
         </div>
@@ -239,3 +258,33 @@
     </div>
   </div>
 </div> 
+
+<style>
+.card-element-container {
+  padding: 20px;
+  border: 1px solid #444;
+  border-radius: 4px;
+  background-color: #2d2d2d;
+  margin-bottom: 20px;
+  min-height: 40px;
+}
+
+.stripe-card-element {
+  width: 100%;
+  padding: 10px;
+  background-color: #2d2d2d;
+  min-height: 20px;
+  color: #ffffff;
+}
+
+.error-message {
+  color: #fa755a;
+  margin-top: 10px;
+}
+
+/* Stripe iframe specific styles */
+.stripe-card-element iframe {
+  color: #ffffff !important;
+  background-color: #2d2d2d !important;
+}
+</style> 

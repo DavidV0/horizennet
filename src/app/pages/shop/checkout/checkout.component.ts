@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ElementRef, ViewChild, PLATFORM_ID, Inject, ChangeDetectorRef, AfterViewChecked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -6,17 +6,34 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSelectModule } from '@angular/material/select';
+import { MatIconModule } from '@angular/material/icon';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { RouterModule, Router } from '@angular/router';
 import { CartService } from '../../../shared/services/cart.service';
 import { ShopService } from '../../../shared/services/shop.service';
-import { PaymentService } from '../../../shared/services/payment.service';
+import { PaymentService, PaymentIntent, Subscription as StripeSubscription } from '../../../shared/services/payment.service';
 import { ShopProduct } from '../../../shared/interfaces/shop-product.interface';
 import { Subscription } from 'rxjs';
-import { loadStripe, Stripe } from '@stripe/stripe-js';
+import { loadStripe, Stripe, StripeElements, StripeCardElement } from '@stripe/stripe-js';
 import { environment } from '../../../../environments/environment';
 import { UserService, UserData } from '../../../shared/services/user.service';
 import { firstValueFrom } from 'rxjs';
 import { Functions, getFunctions, httpsCallable } from '@angular/fire/functions';
+import { PaymentScheduleDialogComponent } from './payment-schedule-dialog/payment-schedule-dialog.component';
+import { StripeService } from '../../../shared/services/stripe.service';
+import { isPlatformBrowser } from '@angular/common';
+import { AngularFireAuth } from '@angular/fire/compat/auth';
+import { HttpClient } from '@angular/common/http';
+
+// Test card numbers
+const TEST_CARDS = {
+  success: '4242424242424242',
+  declinedGeneric: '4000000000000002',
+  declinedInsufficient: '4000000000009995',
+  declinedExpired: '4000000000000069',
+  declinedCVC: '4000000000000127',
+  requires3DSecure: '4000000000003220'
+};
 
 @Component({
   selector: 'app-checkout',
@@ -29,18 +46,25 @@ import { Functions, getFunctions, httpsCallable } from '@angular/fire/functions'
     MatButtonModule,
     MatCheckboxModule,
     MatSelectModule,
+    MatIconModule,
+    MatDialogModule,
     RouterModule
   ],
   templateUrl: './checkout.component.html',
   styleUrls: ['./checkout.component.scss']
 })
-export class CheckoutComponent implements OnInit, OnDestroy {
+export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
+  @ViewChild('cardElement', { static: false }) cardElement!: ElementRef;
+  
+  private card?: StripeCardElement;
+  private stripe?: Stripe;
+  private elements?: StripeElements;
   checkoutForm: FormGroup;
   cartProducts: ShopProduct[] = [];
   monthlyTotal = 0;
   fullTotal = 0;
   isProcessing = false;
-  paymentError: string | null = null;
+  paymentError: string = '';
   currentStep = 1;
   formSubmitted = false;
   private eventsSubscription?: Subscription;
@@ -50,8 +74,12 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     { months: 12, label: '12 Monatsraten' },
     { months: 18, label: '18 Monatsraten' }
   ];
-  private stripe: Stripe | null = null;
-  private readonly STRIPE_TEST_KEY = 'pk_test_51OgPQbHVdYxhGPFPxQGPGPwxZBxZBxZBxZBxZBxZBxZBxZBxZBxZBxZBxZBxZB'; // Ersetze mit deinem Test Key
+  private shouldInitStripe: boolean = false;
+  paymentIntent?: PaymentIntent;
+  stripeSubscription?: StripeSubscription;
+  isSubscription: boolean = false;
+  customerId: string = '';
+  private apiUrl: string;
 
   constructor(
     private fb: FormBuilder,
@@ -60,7 +88,13 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     private paymentService: PaymentService,
     private userService: UserService,
     private router: Router,
-    private functions: Functions
+    private dialog: MatDialog,
+    private functions: Functions,
+    private stripeService: StripeService,
+    private cdr: ChangeDetectorRef,
+    @Inject(PLATFORM_ID) private platformId: Object,
+    private auth: AngularFireAuth,
+    private http: HttpClient
   ) {
     this.checkoutForm = this.fb.group({
       firstName: ['Max', [Validators.required, Validators.minLength(2)]],
@@ -68,7 +102,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
       email: ['david.v@atg-at.net', [Validators.required, Validators.email]],
       street: ['Musterstraße', [Validators.required, Validators.minLength(3)]],
       streetNumber: ['123', [Validators.required]],
-      zipCode: ['1234', [Validators.required, Validators.pattern('^[0-9]{4,5}$')]],
+      zipCode: ['1234', [Validators.required, Validators.pattern('^[0-9]{4}$')]],
       city: ['Wien', [Validators.required, Validators.minLength(2)]],
       country: ['Austria', Validators.required],
       language: ['German', Validators.required],
@@ -77,6 +111,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
       useShippingAsBilling: [true],
       acceptTerms: [false, Validators.requiredTrue],
       newsletter: [false],
+      becomePartner: [false],
       paymentPlan: [0, Validators.required],
       cardholderName: ['Max Mustermann', [Validators.required, Validators.minLength(2)]],
       cardNumber: ['4242 4242 4242 4242', [Validators.required, Validators.pattern('^[0-9]{4}\\s[0-9]{4}\\s[0-9]{4}\\s[0-9]{4}$')]],
@@ -88,22 +123,117 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     this.checkoutForm.get('paymentPlan')?.valueChanges.subscribe(() => {
       this.calculateTotals();
     });
+
+    this.apiUrl = environment.apiUrl;
   }
 
   async ngOnInit() {
-    await this.initializeStripe();
-    this.loadCartProducts();
+    if (isPlatformBrowser(this.platformId)) {
+      await this.loadCartProducts();
+      // Don't initialize Stripe here
+    }
   }
 
-  private async initializeStripe() {
+  ngAfterViewInit() {
+    if (isPlatformBrowser(this.platformId)) {
+      // Don't initialize Stripe here either
+      this.shouldInitStripe = true;
+      this.cdr.detectChanges();
+    }
+  }
+
+  ngAfterViewChecked() {
+    if (this.shouldInitStripe && this.cardElement?.nativeElement && !this.stripe) {
+      this.shouldInitStripe = false;
+      this.initializeStripeAndMount();
+    }
+  }
+
+  private async initializeStripeAndMount() {
     try {
-      this.stripe = await loadStripe(this.STRIPE_TEST_KEY);
-      if (!this.stripe) {
-        throw new Error('Stripe failed to initialize');
+      if (!this.cardElement?.nativeElement) {
+        console.log('Card element container not ready');
+        return;
       }
+
+      if (this.stripe && this.card) {
+        console.log('Stripe already initialized');
+        return;
+      }
+
+      const stripeInstance = await loadStripe(environment.stripePublishableKey);
+      
+      if (!stripeInstance) {
+        throw new Error('Stripe konnte nicht initialisiert werden');
+      }
+
+      this.stripe = stripeInstance;
+      this.elements = this.stripe.elements();
+      
+      if (!this.elements) {
+        throw new Error('Stripe Elements konnten nicht erstellt werden');
+      }
+
+      // Clean up old card instance if it exists
+      if (this.card) {
+        this.card.destroy();
+        this.card = undefined;
+      }
+
+      // Create and mount the new card element
+      this.card = this.elements.create('card', {
+        style: {
+          base: {
+            color: '#ffffff',
+            fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+            fontSmoothing: 'antialiased',
+            fontSize: '16px',
+            '::placeholder': {
+              color: '#aab7c4'
+            },
+            ':-webkit-autofill': {
+              color: '#ffffff'
+            }
+          },
+          invalid: {
+            color: '#fa755a',
+            iconColor: '#fa755a'
+          }
+        },
+        hidePostalCode: true
+      });
+
+      this.card.mount(this.cardElement.nativeElement);
+
+      this.card.on('change', (event) => {
+        if (event.error) {
+          this.paymentError = event.error.message;
+        } else {
+          this.paymentError = '';
+        }
+        this.cdr.detectChanges();
+      });
+
     } catch (error) {
-      console.error('Error initializing Stripe:', error);
-      this.paymentError = 'Failed to initialize payment system. Please try again later.';
+      console.error('Stripe initialization error:', error);
+      this.paymentError = 'Fehler beim Initialisieren des Zahlungssystems. Bitte laden Sie die Seite neu.';
+      this.cdr.detectChanges();
+    }
+  }
+
+  private setCurrentStep(step: number, isPaymentStep: boolean = false) {
+    this.currentStep = step;
+    if (step === 2 && isPaymentStep && isPlatformBrowser(this.platformId)) {
+      // Set flag to initialize Stripe and trigger change detection
+      this.shouldInitStripe = true;
+      this.cdr.detectChanges();
+      
+      // Give the DOM time to update before attempting to mount
+      setTimeout(() => {
+        if (!this.stripe || !this.card) {
+          this.initializeStripeAndMount();
+        }
+      }, 100);
     }
   }
 
@@ -179,113 +309,362 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     return '';
   }
 
-  proceedToPayment() {
+  async proceedToPayment(): Promise<void> {
     this.formSubmitted = true;
-    console.log('Form submitted:', this.checkoutForm.value);
+    this.paymentError = '';
     
-    // Temporär die acceptTerms-Validierung ausschließen
-    const isValid = Object.keys(this.checkoutForm.controls)
-      .filter(key => key !== 'acceptTerms' && 
-                    key !== 'cardholderName' && 
-                    key !== 'cardNumber' && 
-                    key !== 'expiryMonth' && 
-                    key !== 'expiryYear' && 
-                    key !== 'cvv')
-      .every(key => !this.checkoutForm.get(key)?.errors);
-    
-    console.log('Form valid (without payment fields):', isValid);
-    
-    if (isValid) {
-      console.log('Proceeding to payment step');
-      this.currentStep = 2;
-      
-      // Ensure DOM is updated before initializing Stripe
-      setTimeout(() => {
-        this.initializeStripe();
-      }, 100);
-    } else {
-      console.log('Form validation errors:');
-      Object.keys(this.checkoutForm.controls)
+    try {
+      // First validate the customer information form
+      const isValid = Object.keys(this.checkoutForm.controls)
         .filter(key => key !== 'acceptTerms' && 
                       key !== 'cardholderName' && 
-                      key !== 'cardNumber' && 
-                      key !== 'expiryMonth' && 
-                      key !== 'expiryYear' && 
+                      key !== 'paymentPlan' &&
+                      key !== 'newsletter' &&
+                      key !== 'becomePartner' &&
+                      key !== 'cardNumber' &&
+                      key !== 'expiryMonth' &&
+                      key !== 'expiryYear' &&
                       key !== 'cvv')
-        .forEach(key => {
+        .every(key => !this.checkoutForm.get(key)?.errors);
+      
+      if (!isValid) {
+        Object.keys(this.checkoutForm.controls).forEach(key => {
           const control = this.checkoutForm.get(key);
-          if (control?.invalid) {
-            console.log(`${key} errors:`, control.errors);
+          if (control) {
             control.markAsTouched();
           }
         });
+        return;
+      }
+
+      // Move to payment step
+      this.setCurrentStep(2, true);
+      
+      // Wait for Stripe to initialize
+      let attempts = 0;
+      while (!this.stripe || !this.card) {
+        if (attempts >= 50) { // 5 seconds timeout
+          throw new Error('Zeitüberschreitung beim Initialisieren des Zahlungssystems');
+        }
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+      }
+
+      // Create customer first
+      const formValues = this.checkoutForm.value;
+      const fullName = `${formValues.firstName} ${formValues.lastName}`;
+      
+      const customerData = await firstValueFrom(
+        this.stripeService.createCustomer(formValues.email, fullName)
+      );
+
+      if (!customerData) {
+        throw new Error('Kunde konnte nicht erstellt werden');
+      }
+
+      // Don't proceed with payment yet, just store the customer ID
+      this.customerId = customerData.id;
+
+    } catch (error: any) {
+      console.error('Payment error:', error);
+      this.paymentError = error.message || 'Ein unerwarteter Fehler ist aufgetreten.';
+      this.cdr.detectChanges();
     }
   }
 
   editCustomerData() {
-    this.currentStep = 1;
+    this.setCurrentStep(1);
   }
 
   async onSubmit() {
-    if (this.checkoutForm.valid) {
-      this.isProcessing = true;
-      this.paymentError = null;
+    if (!this.checkoutForm.valid || !this.stripe || !this.card || !this.customerId) {
+      return;
+    }
 
-      try {
-        // Generate product key
-        const productKey = this.generateProductKey();
+    this.isProcessing = true;
+    this.paymentError = '';
 
-        // Create user data
-        const userData: UserData = {
-          firstName: this.checkoutForm.get('firstName')?.value,
-          lastName: this.checkoutForm.get('lastName')?.value,
-          email: this.checkoutForm.get('email')?.value,
-          street: this.checkoutForm.get('street')?.value,
-          streetNumber: this.checkoutForm.get('streetNumber')?.value,
-          zipCode: this.checkoutForm.get('zipCode')?.value,
-          city: this.checkoutForm.get('city')?.value,
-          country: this.checkoutForm.get('country')?.value,
-          mobile: this.checkoutForm.get('mobile')?.value,
-          paymentPlan: this.checkoutForm.get('paymentPlan')?.value,
-          purchaseDate: new Date(),
-          productKey: productKey,
-          status: 'pending_activation',
-          keyActivated: false,
-          accountActivated: false
-        };
+    try {
+      const formValues = this.checkoutForm.value;
+      const fullName = `${formValues.firstName} ${formValues.lastName}`;
 
-        // Save product key with user data
-        await this.userService.createUser(userData);
+      // Create payment method
+      const { paymentMethod, error: paymentMethodError } = await this.stripe.createPaymentMethod({
+        type: 'card',
+        card: this.card,
+        billing_details: {
+          name: fullName,
+          email: formValues.email,
+          address: {
+            line1: `${formValues.street} ${formValues.streetNumber}`,
+            postal_code: formValues.zipCode,
+            city: formValues.city,
+            country: this.getCountryCode(formValues.country)
+          }
+        }
+      });
 
-        // Send purchase confirmation email
-        const sendPurchaseConfirmation = httpsCallable(this.functions, 'sendPurchaseConfirmation');
-        await sendPurchaseConfirmation(userData);
-
-        // Clear cart
-        this.cartService.clearCart();
-
-        // Redirect to success page
-        this.router.navigate(['/success']);
-      } catch (error: any) {
-        console.error('Checkout error:', error);
-        this.paymentError = error.message || 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.';
-      } finally {
-        this.isProcessing = false;
+      if (paymentMethodError) {
+        throw new Error(paymentMethodError.message);
       }
+
+      if (!paymentMethod) {
+        throw new Error('Zahlungsmethode konnte nicht erstellt werden');
+      }
+
+      // Process payment with existing customer ID
+      await this.processPaymentAndOrder(this.customerId, paymentMethod.id);
+
+    } catch (error: any) {
+      console.error('Payment error:', error);
+      this.paymentError = error.message || 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.';
+    } finally {
+      this.isProcessing = false;
+      this.cdr.detectChanges();
     }
   }
 
-  private generateProductKey(): string {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    const segments = Array(4).fill(0).map(() => {
-      return Array(4).fill(0).map(() => chars[Math.floor(Math.random() * chars.length)]).join('');
+  private getCountryCode(country: string | undefined): string {
+    const countryMap: { [key: string]: string } = {
+      'Austria': 'AT',
+      'Österreich': 'AT'
+    };
+    return countryMap[country || ''] || 'AT';
+  }
+
+  private async processPaymentAndOrder(customerId: string, paymentMethodId: string) {
+    const selectedPlan = this.checkoutForm.get('paymentPlan')?.value;
+    this.isSubscription = selectedPlan > 0;
+    
+    try {
+      if (this.isSubscription) {
+        // Handle subscription payment
+        const priceId = this.getStripePriceId(selectedPlan);
+        this.stripeSubscription = await firstValueFrom(
+          this.paymentService.createSubscription(
+            priceId,
+            customerId,
+            paymentMethodId
+          )
+        );
+
+        if (this.stripeSubscription.status === 'active') {
+          await this.completeOrder(customerId);
+        } else if (this.stripeSubscription.status === 'incomplete') {
+          // Get the subscription details with payment_intent
+          const subscriptionDetails = await firstValueFrom(
+            this.paymentService.getSubscriptionStatus(this.stripeSubscription.id)
+          );
+          
+          if (subscriptionDetails.clientSecret) {
+            const { error } = await this.stripe!.confirmCardPayment(
+              subscriptionDetails.clientSecret
+            );
+
+            if (error) {
+              throw new Error(error.message);
+            }
+
+            await this.completeOrder(customerId);
+          }
+        }
+      } else {
+        // Handle one-time payment
+        const amount = this.calculatePriceWithVAT(this.monthlyTotal); // Amount in euros
+        this.paymentIntent = await firstValueFrom(
+          this.paymentService.createPaymentIntent(amount, {
+            customer: customerId,
+            payment_method: paymentMethodId,
+            currency: 'eur'
+          })
+        );
+
+        if (!this.paymentIntent?.clientSecret) {
+          throw new Error('Fehler beim Erstellen der Zahlung');
+        }
+
+        // Check if payment requires additional actions
+        if (this.paymentIntent.status === 'requires_action') {
+          const { error } = await this.stripe!.confirmCardPayment(
+            this.paymentIntent.clientSecret
+          );
+
+          if (error) {
+            throw new Error(error.message);
+          }
+        }
+
+        // If we get here, the payment was successful
+        await this.completeOrder(customerId);
+      }
+    } catch (error: any) {
+      console.error('Payment error:', error);
+      this.handlePaymentError(error);
+    }
+  }
+
+  private handlePaymentError(error: any) {
+    let errorMessage = 'Ein Fehler ist aufgetreten.';
+
+    if (error.type === 'card_error') {
+      switch (error.code) {
+        case 'card_declined':
+          errorMessage = 'Die Karte wurde abgelehnt.';
+          break;
+        case 'expired_card':
+          errorMessage = 'Die Karte ist abgelaufen.';
+          break;
+        case 'incorrect_cvc':
+          errorMessage = 'Der Sicherheitscode ist falsch.';
+          break;
+        case 'processing_error':
+          errorMessage = 'Ein Fehler bei der Verarbeitung ist aufgetreten. Bitte versuchen Sie es erneut.';
+          break;
+        case 'insufficient_funds':
+          errorMessage = 'Die Karte hat nicht genügend Guthaben.';
+          break;
+      }
+    }
+
+    this.paymentError = errorMessage;
+    this.isProcessing = false;
+    this.cdr.detectChanges();
+  }
+
+  private async retryFailedPayment() {
+    if (!this.paymentIntent) return;
+
+    try {
+      const updatedPaymentIntent = await firstValueFrom(
+        this.paymentService.retryFailedPayment(this.paymentIntent.id)
+      );
+
+      if (updatedPaymentIntent.status === 'succeeded') {
+        await this.completeOrder(updatedPaymentIntent.id);
+      }
+    } catch (error) {
+      this.handlePaymentError(error);
+    }
+  }
+
+  // Helper method to check subscription status
+  private async checkSubscriptionStatus(subscriptionId: string) {
+    try {
+      const subscription = await firstValueFrom(
+        this.paymentService.getSubscriptionStatus(subscriptionId)
+      );
+
+      if (subscription.status === 'past_due') {
+        // Handle past due subscription (e.g., show warning to user)
+        console.warn('Subscription payment is past due');
+      }
+    } catch (error) {
+      console.error('Error checking subscription status:', error);
+    }
+  }
+
+  private async completeOrder(customerId: string) {
+    try {
+      // Clear cart first
+      this.cartService.clearCart();
+      
+      const formValues = this.checkoutForm.value;
+      const orderId = this.isSubscription ? this.stripeSubscription?.id : this.paymentIntent?.id;
+      
+      // Send purchase confirmation email
+      try {
+        await this.http.post(`${this.apiUrl}/sendPurchaseConfirmation`, {
+          email: formValues.email,
+          firstName: formValues.firstName,
+          lastName: formValues.lastName,
+          productType: this.hasHorizonAcademy() ? 'academy' : 'crypto',
+          isSalesPartner: formValues.becomePartner,
+          orderId: orderId,
+          amount: this.calculatePriceWithVAT(this.fullTotal),
+          paymentPlan: this.checkoutForm.get('paymentPlan')?.value || 0,
+          billingDetails: {
+            street: formValues.street,
+            streetNumber: formValues.streetNumber,
+            zipCode: formValues.zipCode,
+            city: formValues.city,
+            country: formValues.country
+          }
+        }).toPromise();
+        
+      } catch (emailError) {
+        console.error('Error sending purchase confirmation email:', emailError);
+        // Continue with redirection even if email fails
+      }
+      
+      // Redirect to success page
+      const queryParams = `?orderId=${orderId}&type=${this.isSubscription ? 'subscription' : 'payment'}`;
+      this.router.navigate(['/success'], { queryParams: { orderId, type: this.isSubscription ? 'subscription' : 'payment' } });
+      
+    } catch (error: any) {
+      console.error('Error completing order:', error);
+      // Still redirect to success page as payment was successful
+      this.router.navigate(['/success']);
+    }
+  }
+
+  calculatePriceWithVAT(price: number): number {
+    return price * 1.2; // Add 20% VAT
+  }
+
+  openPaymentSchedule() {
+    const selectedPlan = this.checkoutForm.get('paymentPlan')?.value;
+    if (!selectedPlan) return;
+
+    const dialogRef = this.dialog.open(PaymentScheduleDialogComponent, {
+      width: '500px',
+      data: {
+        monthlyAmount: this.calculatePriceWithVAT(this.monthlyTotal),
+        totalAmount: this.calculatePriceWithVAT(this.fullTotal),
+        months: selectedPlan
+      }
     });
-    return segments.join('-');
+  }
+
+  hasHorizonAcademy(): boolean {
+    return this.cartProducts.some(product => product.name === 'Horizon Academy');
   }
 
   ngOnDestroy() {
+    if (this.card) {
+      this.card.destroy();
+    }
     if (this.eventsSubscription) {
       this.eventsSubscription.unsubscribe();
     }
+  }
+
+  private getStripePriceId(months: number): string {
+    // Get the product from cart
+    const product = this.cartProducts[0]; // Assuming only one product in cart at a time
+    
+    if (!product) {
+      console.error('No product found in cart');
+      return '';
+    }
+
+    const isAcademy = product.name.toLowerCase().includes('academy');
+    
+    switch(months) {
+      case 6:
+        return isAcademy ? 'price_1Qh8mUGmKQzZmpXRHn9lgRHq' : 'price_1Qh8mVGmKQzZmpXRsd01cwXP';
+      case 12:
+        return isAcademy ? 'price_1Qh8mUGmKQzZmpXRWXzdLWti' : 'price_1Qh8mVGmKQzZmpXRqcIJ0Lnm';
+      case 18:
+        return isAcademy ? 'price_1Qh8mUGmKQzZmpXRAq2gWoyZ' : 'price_1Qh8mVGmKQzZmpXRchnqbJjG';
+      default:
+        console.error('Invalid payment plan selected');
+        return '';
+    }
+  }
+
+
+
+  goBack() {
+    this.setCurrentStep(1, false);
   }
 } 

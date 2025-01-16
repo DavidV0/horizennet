@@ -1,65 +1,43 @@
-/**
- * Import function triggers from their respective submodules:
- *
- * import { onCall } from "firebase-functions/v2/https";
- * import { onDocumentWritten } from "firebase-functions/v2/firestore";
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
-
-import * as functions from "firebase-functions";
-import express, {Request, Response} from "express";
-import cors from "cors";
-import * as nodemailer from "nodemailer";
-import {Stripe} from "stripe";
-import * as dotenv from "dotenv";
 import * as admin from "firebase-admin";
-import PDFDocument from "pdfkit";
-dotenv.config();
+import * as functions from "firebase-functions";
+import express, { Request, Response } from "express";
+import cors from "cors";
+import { Stripe } from "stripe";
+import * as dotenv from "dotenv";
+import nodemailer from "nodemailer";
 
+dotenv.config();
 admin.initializeApp();
 
-// Initialisiere Express App
 const app = express();
-
-// CORS Middleware
-app.use(cors({
-  origin: [
-    'http://localhost:4200',
-    'https://horizonnet-beta.netlify.app'
-  ],
-  credentials: true
-}));
-
-// Body Parser Middleware für JSON-Anfragen
+app.use(cors({ origin: true }));
 app.use(express.json());
 
-// Raw Body Parser für Stripe Webhooks
-app.use("/webhook", express.raw({type: "application/json"}));
+// Initialize Stripe
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+  apiVersion: '2024-12-18.acacia',
+});
 
-// Initialisiere Stripe mit dem Secret Key
-const stripe = new Stripe(
-    process.env.STRIPE_SECRET_KEY || functions.config().stripe.secret_key,
-    {apiVersion: "2024-12-18.acacia"}
-);
+// Log the key being used (masked)
+console.log('Using Stripe key:', process.env.STRIPE_SECRET_KEY?.substring(0, 8) + '...');
 
 // Nodemailer Transport
 const transporter = nodemailer.createTransport({
   host: "smtp.world4you.com",
   port: 587,
-  secure: false, // STARTTLS
+  secure: false,
   auth: {
     user: process.env.EMAIL_USER || "horizon@atg-at.net",
     pass: process.env.EMAIL_PASSWORD || functions.config().email.password,
   },
   tls: {
-    rejectUnauthorized: false // Accept self-signed certificates
+    rejectUnauthorized: false
   },
-  debug: true, // Enable debug output
-  logger: true // Log information to console
+  debug: true,
+  logger: true
 });
 
-// Verify transporter connection on startup
+// Verify transporter connection
 transporter.verify(function(error, success) {
   if (error) {
     console.error('Transporter verification failed:', error);
@@ -68,13 +46,13 @@ transporter.verify(function(error, success) {
   }
 });
 
-// Konfiguriere die Basis-URL basierend auf der Umgebung
+// Base URL configuration
 const BASE_URL = process.env.NODE_ENV === 'production' 
-  ? "https://horizonnet-beta.netlify.app"
+  ? "https://horizonnet-consulting.at"
   : "http://localhost:4200";
 
 // Contact Form Endpoint
-app.post("/sendContactEmail", async (req: Request, res: Response): Promise<void> => {
+app.post("/api/contact", async (req: Request, res: Response): Promise<void> => {
   const {firstName, lastName, email, message} = req.body;
 
   if (!firstName || !lastName || !email || !message) {
@@ -83,12 +61,10 @@ app.post("/sendContactEmail", async (req: Request, res: Response): Promise<void>
   }
 
   try {
-    // Email an das Büro
     await transporter.sendMail({
       from: "\"HorizonNet\" <horizon@atg-at.net>",
       to: "horizon@atg-at.net",
       subject: `Neue Kontaktanfrage von ${firstName} ${lastName}`,
-      text: message,
       html: `
         <h2>Neue Kontaktanfrage</h2>
         <p><strong>Name:</strong> ${firstName} ${lastName}</p>
@@ -98,19 +74,10 @@ app.post("/sendContactEmail", async (req: Request, res: Response): Promise<void>
       `,
     });
 
-    // Bestätigungs-Email an den Kunden
     await transporter.sendMail({
       from: "\"HorizonNet\" <horizon@atg-at.net>",
       to: email,
       subject: "Vielen Dank für Ihre Nachricht",
-      text: `
-        Hallo ${firstName} ${lastName},
-
-        Vielen Dank für Ihre Nachricht. Wir werden uns in Kürze bei Ihnen melden.
-
-        Beste Grüße,
-        Ihr HorizonNet Team
-      `,
       html: `
         <h2>Vielen Dank für Ihre Nachricht</h2>
         <p>Hallo ${firstName} ${lastName},</p>
@@ -126,74 +93,22 @@ app.post("/sendContactEmail", async (req: Request, res: Response): Promise<void>
   }
 });
 
-// Stripe Payment Intent erstellen
-app.post("/create-payment-intent", async (req: Request, res: Response) => {
-  try {
-    const {amount} = req.body;
-
-    if (!amount) {
-      res.status(400).json({error: "Amount is required"});
-      return;
-    }
-
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100),
-      currency: "eur",
-    });
-
-    res.json({clientSecret: paymentIntent.client_secret});
-  } catch (error) {
-    console.error("Error creating payment intent:", error);
-    res.status(500).json({error: "Error creating payment intent"});
-  }
-});
-
-// Stripe Webhook Handler
-app.post("/webhook", async (req: Request, res: Response): Promise<void> => {
-  const sig = req.headers["stripe-signature"];
-
-  if (!sig) {
-    res.status(400).send("No signature provided");
-    return;
-  }
-
-  try {
-    const event = stripe.webhooks.constructEvent(
-        req.body,
-        sig,
-        process.env.STRIPE_WEBHOOK_SECRET || functions.config().stripe.webhook_secret
-    );
-
-    // Handle verschiedene Event-Typen
-    switch (event.type) {
-      case "payment_intent.succeeded": {
-        const paymentIntent = event.data.object;
-        console.log("PaymentIntent erfolgreich!", paymentIntent);
-        break;
-      }
-      case "payment_intent.payment_failed": {
-        const paymentIntent = event.data.object;
-        console.log("Zahlung fehlgeschlagen!", paymentIntent);
-        break;
-      }
-      default: {
-        console.log(`Unbehandelter Event-Typ ${event.type}`);
-      }
-    }
-
-    res.json({received: true});
-  } catch (err) {
-    console.error("Webhook Error:", err);
-    res.status(400).send("Webhook Error");
-  }
-});
-
 interface PurchaseConfirmationData {
   email: string;
-  productKey: string;
   firstName: string;
   lastName: string;
-  [key: string]: any;
+  orderId: string;
+  amount: number;
+  paymentPlan: number;
+  billingDetails: {
+    street: string;
+    streetNumber: string;
+    zipCode: string;
+    city: string;
+    country: string;
+  };
+  productType?: 'academy' | 'crypto';
+  isSalesPartner?: boolean;
 }
 
 interface ActivationConfirmationData {
@@ -201,81 +116,212 @@ interface ActivationConfirmationData {
   password: string;
   firstName?: string;
   lastName?: string;
+  userId: string;
+  productType: string;
 }
 
-export const sendPurchaseConfirmation = functions.https.onCall(async (request: functions.https.CallableRequest<PurchaseConfirmationData>) => {
-  const {email, productKey, firstName, lastName} = request.data;
+interface EmailAttachment {
+  filename: string;
+  content?: Buffer;
+  path?: string;
+}
 
-  // Generate invoice PDF
-  const invoicePdf = await generateInvoicePdf(request.data);
+// Generate unique product key
+const generateProductKey = async (productType: string): Promise<string> => {
+  const prefix = productType === 'academy' ? 'ACAD' : 'CRYP';
+  const timestamp = Date.now().toString(36);
+  const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+  return `${prefix}-${timestamp}-${random}`;
+};
 
-  // Get all required PDFs from Storage
-  const agbBuffer = await admin.storage().bucket().file("documents/agb.pdf").download();
-  const datenschutzBuffer = await admin.storage().bucket().file("documents/datenschutz.pdf").download();
-  const widerrufsbelehrungBuffer = await admin.storage().bucket().file("documents/widerrufsbelehrung.pdf").download();
+// Store initial product key in Firestore
+const storeInitialProductKey = async (productKey: string, data: PurchaseConfirmationData) => {
+  const productKeyData = {
+    productKey,
+    productType: data.productType || 'crypto',
+    customerEmail: data.email,
+    email: data.email,  // Keep both for compatibility
+    firstName: data.firstName,
+    lastName: data.lastName,
+    street: data.billingDetails.street,
+    streetNumber: data.billingDetails.streetNumber,
+    zipCode: data.billingDetails.zipCode,
+    city: data.billingDetails.city,
+    country: data.billingDetails.country,
+    paymentPlan: data.paymentPlan,
+    purchaseDate: admin.firestore.FieldValue.serverTimestamp(),
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    isActivated: false,
+    isSalesPartner: data.isSalesPartner || false,
+    status: 'active'
+  };
 
+  await admin.firestore().collection('productKeys').doc(productKey).set(productKeyData);
+};
+
+// Send purchase confirmation email
+const sendPurchaseConfirmationHandler = async (req: Request, res: Response) => {
   try {
-    // Send email
-    const info = await transporter.sendMail({
-      from: "\"HorizonNet\" <horizon@atg-at.net>",
-      to: email,
-      subject: "Ihre Bestellung - Produktschlüssel und Dokumente",
+    const data = req.body as PurchaseConfirmationData;
+    
+    // Generate product key first
+    const productKey = await generateProductKey(data.productType || 'crypto');
+    
+    // Store customer data with the product key
+    await storeInitialProductKey(productKey, data);
+    
+    // Get the payment intent to find the invoice
+    const paymentIntent = await stripe.paymentIntents.retrieve(data.orderId);
+    const invoiceId = paymentIntent.metadata.invoice_id;
+    
+    // Get the invoice
+    const invoice = await stripe.invoices.retrieve(invoiceId);
+
+    // Prepare attachments array with invoice URL
+    const attachments: EmailAttachment[] = [];
+
+    // Add invoice URL if available
+    if (invoice.invoice_pdf) {
+      attachments.push({
+        filename: 'rechnung.pdf',
+        path: invoice.invoice_pdf
+      });
+    }
+
+    // Try to get additional attachments from storage
+    try {
+      const bucket = admin.storage().bucket();
+      
+      // Try to get AGB
+      try {
+        const [agbFile] = await bucket.file('documents/agb.pdf').download();
+        attachments.push({
+          filename: 'agb.pdf',
+          content: agbFile
+        });
+      } catch (error) {
+        console.warn('AGB file not found:', error);
+      }
+
+      // Try to get Datenschutz
+      try {
+        const [datenschutzFile] = await bucket.file('documents/datenschutz.pdf').download();
+        attachments.push({
+          filename: 'datenschutz.pdf',
+          content: datenschutzFile
+        });
+      } catch (error) {
+        console.warn('Datenschutz file not found:', error);
+      }
+
+      // Try to get Widerruf
+      try {
+        const [widerrufFile] = await bucket.file('documents/widerrufsbelehrung.pdf').download();
+        attachments.push({
+          filename: 'widerrufsbelehrung.pdf',
+          content: widerrufFile
+        });
+      } catch (error) {
+        console.warn('Widerruf file not found:', error);
+      }
+
+      // Try to get sales partner agreement if applicable
+      if (data.productType === 'academy' && data.isSalesPartner) {
+        try {
+          const [vertragFile] = await bucket.file('documents/vertriebspartnervertrag.pdf').download();
+          attachments.push({
+            filename: 'vertriebspartnervertrag.pdf',
+            content: vertragFile
+          });
+        } catch (error) {
+          console.warn('Vertriebspartnervertrag file not found:', error);
+        }
+      }
+    } catch (error) {
+      console.warn('Error getting attachments from storage:', error);
+    }
+
+    // Send email with all attachments
+    await transporter.sendMail({
+      from: '"HorizonNet" <horizon@atg-at.net>',
+      to: data.email,
+      subject: 'Ihre Bestellung bei HorizonNet',
       html: `
         <h1>Vielen Dank für Ihre Bestellung!</h1>
-        <p>Sehr geehrte(r) ${firstName} ${lastName},</p>
-        <p>Ihr Produktschlüssel lautet: <strong>${productKey}</strong></p>
-        <p>Um Ihren Produktschlüssel einzulösen, klicken Sie bitte auf folgenden Link:</p>
-        <p><a href="${BASE_URL}/activate?key=${productKey}">Produktschlüssel einlösen</a></p>
-        <p>Im Anhang finden Sie:</p>
+        <p>Sehr geehrte(r) ${data.firstName} ${data.lastName},</p>
+        <p>vielen Dank für Ihre Bestellung bei HorizonNet. Im Anhang finden Sie:</p>
         <ul>
           <li>Ihre Rechnung</li>
-          <li>Unsere Allgemeinen Geschäftsbedingungen (AGB)</li>
-          <li>Unsere Datenschutzerklärung</li>
-          <li>Die Widerrufsbelehrung</li>
+          <li>Unsere AGB</li>
+          <li>Datenschutzerklärung</li>
+          <li>Widerrufsbelehrung</li>
+          ${data.productType === 'academy' && data.isSalesPartner ? '<li>Vertriebspartnervertrag (bitte unterschrieben zurücksenden)</li>' : ''}
         </ul>
-        <p>Bitte lesen Sie die beigefügten Dokumente sorgfältig durch.</p>
+        ${invoice.hosted_invoice_url ? `
+        <p>Sie können Ihre Rechnung auch online unter folgendem Link abrufen:</p>
+        <p><a href="${invoice.hosted_invoice_url}">${invoice.hosted_invoice_url}</a></p>
+        ` : ''}
+        <p><strong>Ihr Produktschlüssel: ${productKey}</strong></p>
+        <p>Um Ihren Zugang zu aktivieren, klicken Sie bitte auf folgenden Link:</p>
+        <p><a href="${BASE_URL}/activate?key=${productKey}">Zugang aktivieren</a></p>
         <p>Bei Fragen stehen wir Ihnen gerne zur Verfügung.</p>
-        <p>Mit freundlichen Grüßen,<br>Ihr HorizonNet Team</p>
+        <p>Mit freundlichen Grüßen<br>Ihr HorizonNet Team</p>
       `,
-      attachments: [
-        {
-          filename: "Rechnung.pdf",
-          content: invoicePdf,
-        },
-        {
-          filename: "AGB.pdf",
-          content: agbBuffer[0],
-        },
-        {
-          filename: "Datenschutzerklärung.pdf",
-          content: datenschutzBuffer[0],
-        },
-        {
-          filename: "Widerrufsbelehrung.pdf",
-          content: widerrufsbelehrungBuffer[0],
-        },
-      ],
+      attachments
     });
 
-    console.log('Purchase confirmation email sent:', info);
-    return { data: { success: true } };
-  } catch (error: any) {
+    console.log('Purchase confirmation email sent successfully');
+    res.json({ success: true, productKey });
+  } catch (error) {
     console.error('Error sending purchase confirmation:', error);
-    throw new functions.https.HttpsError('internal', `Failed to send email: ${error.message}`);
+    res.status(500).json({ error: 'Failed to send purchase confirmation' });
   }
-});
+};
 
+// Update product key and send activation email
 export const sendActivationConfirmation = functions.https.onCall(async (request: functions.https.CallableRequest<ActivationConfirmationData>) => {
-  const {email, password} = request.data;
+  const {email, password, firstName, lastName, userId, productType} = request.data;
 
   try {
-    // Send email
-    const info = await transporter.sendMail({
+    // Update the product key with user information
+    const productKeyDoc = await admin.firestore()
+      .collection('productKeys')
+      .where('customerEmail', '==', email)
+      .where('isActivated', '==', false)
+      .where('productType', '==', productType)
+      .limit(1)
+      .get();
+
+    if (productKeyDoc.empty) {
+      throw new Error('No valid product key found for this email and product type');
+    }
+
+    const productKey = productKeyDoc.docs[0].id;
+
+    // Update product key with user information
+    await admin.firestore().collection('productKeys').doc(productKey).update({
+      userId,
+      isActivated: true,
+      activatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    // Update user's document with the product access
+    await admin.firestore().collection('users').doc(userId).update({
+      [`products.${productType}`]: {
+        activated: true,
+        productKey,
+        activatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }
+    });
+
+    // Send activation email with login credentials
+    await transporter.sendMail({
       from: "\"HorizonNet\" <horizon@atg-at.net>",
       to: email,
       subject: "Ihr Account wurde aktiviert",
       html: `
         <h1>Ihr Account wurde erfolgreich aktiviert!</h1>
+        <p>Hallo ${firstName || ''} ${lastName || ''},</p>
         <p>Sie können sich nun mit folgenden Zugangsdaten einloggen:</p>
         <p><strong>E-Mail:</strong> ${email}</p>
         <p><strong>Passwort:</strong> ${password}</p>
@@ -288,80 +334,243 @@ export const sendActivationConfirmation = functions.https.onCall(async (request:
       `
     });
 
-    console.log('Activation confirmation email sent:', info);
-    return { data: { success: true } };
+    console.log('Activation confirmation email sent successfully');
+    return { success: true };
   } catch (error: any) {
     console.error('Error sending activation confirmation:', error);
     throw new functions.https.HttpsError('internal', `Failed to send email: ${error.message}`);
   }
 });
 
-/**
- * Generates a PDF invoice for a purchase
- * @param {PurchaseConfirmationData} data The purchase data
- * @returns {Promise<Buffer>} The generated PDF as a buffer
- */
-async function generateInvoicePdf(data: PurchaseConfirmationData): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    const doc = new PDFDocument();
-    const chunks: Buffer[] = [];
+// Create Customer
+const createCustomer = async (req: Request, res: Response) => {
+  try {
+    const { email, name, payment_method } = req.body;
 
-    doc.on("data", (chunk: Buffer) => chunks.push(chunk));
-    doc.on("end", () => resolve(Buffer.concat(chunks)));
-    doc.on("error", reject);
-
-    // Header
-    doc.fontSize(25).text("Rechnung", {align: "center"});
-    doc.moveDown();
-
-    // Company Information
-    doc.fontSize(12).text("HorizonNet", {align: "left"});
-    doc.text("ATG Consulting GmbH");
-    doc.text("Musterstraße 1");
-    doc.text("1234 Wien");
-    doc.text("Österreich");
-    doc.text("UID: ATU12345678");
-    doc.moveDown();
-
-    // Customer Information
-    doc.text("Rechnungsempfänger:", {underline: true});
-    doc.text(`${data.firstName} ${data.lastName}`);
-    doc.text(`${data.street} ${data.streetNumber}`);
-    doc.text(`${data.zipCode} ${data.city}`);
-    doc.text(`${data.country}`);
-    doc.moveDown();
-
-    // Invoice Details
-    const date = new Date();
-    doc.text("Rechnungsdatum:", {underline: true});
-    doc.text(date.toLocaleDateString("de-AT"));
-    doc.text("Rechnungsnummer:", {underline: true});
-    doc.text(`INV-${date.getFullYear()}${(date.getMonth() + 1).toString().padStart(2, "0")}${date.getDate().toString().padStart(2, "0")}-${Math.random().toString(36).substring(7)}`);
-    doc.moveDown();
-
-    // Product Details
-    doc.text("Produkte:", {underline: true});
-    doc.text("HorizonNet Professional Lizenz");
-    doc.text(`Produktschlüssel: ${data.productKey}`);
-    if (data.paymentPlan > 0) {
-      doc.text(`Zahlungsplan: ${data.paymentPlan} Monatsraten`);
+    if (!email || !name) {
+      res.status(400).json({ error: "Email and name are required" });
+      return;
     }
-    doc.moveDown();
 
-    // Payment Information
-    doc.text("Zahlungsinformationen:", {underline: true});
-    doc.text("Die Zahlung wurde erfolgreich per Kreditkarte durchgeführt.");
-    doc.moveDown();
+    const customerData: any = {
+      email,
+      name,
+    };
 
-    // Footer
-    doc.fontSize(10).text("Vielen Dank für Ihren Einkauf!", {align: "center"});
-    doc.text("Bei Fragen stehen wir Ihnen gerne zur Verfügung.", {align: "center"});
-    doc.text("Mit freundlichen Grüßen,", {align: "center"});
-    doc.text("Ihr HorizonNet Team", {align: "center"});
+    if (payment_method) {
+      customerData.payment_method = payment_method;
+      customerData.invoice_settings = {
+        default_payment_method: payment_method
+      };
+    }
 
-    doc.end();
-  });
-}
+    const customer = await stripe.customers.create(customerData);
 
-// Exportiere die Express-Anwendung als Firebase Cloud Function
+    if (payment_method) {
+      await stripe.paymentMethods.attach(payment_method, {
+        customer: customer.id,
+      });
+    }
+
+    res.json(customer);
+  } catch (error: any) {
+    console.error("Error creating customer:", error);
+    res.status(error.statusCode || 500).json({ 
+      error: "Error creating customer",
+      details: error.message
+    });
+  }
+};
+
+// Get Customer
+const getCustomer = async (req: Request, res: Response) => {
+  try {
+    const { customerId } = req.params;
+    const customer = await stripe.customers.retrieve(customerId);
+    
+    if (customer.deleted) {
+      res.status(404).json({ error: "Customer not found" });
+      return;
+    }
+
+    res.json(customer);
+  } catch (error) {
+    console.error("Error fetching customer:", error);
+    res.status(500).json({ error: "Error fetching customer" });
+  }
+};
+
+// Create Payment Intent
+const createPaymentIntent = async (req: Request, res: Response) => {
+  try {
+    const { amount, currency = "eur", customer, payment_method } = req.body;
+
+    // Create an invoice
+    const invoice = await stripe.invoices.create({
+      customer,
+      auto_advance: true, // Auto-finalize the draft
+      collection_method: 'charge_automatically',
+      pending_invoice_items_behavior: 'include'
+    });
+
+    // Add invoice item directly without storing the result
+    await stripe.invoiceItems.create({
+      customer,
+      amount: Math.round(amount * 100),
+      currency,
+      description: 'HorizonNet Produkt',
+      invoice: invoice.id
+    });
+
+    // Finalize and pay the invoice
+    await stripe.invoices.finalizeInvoice(invoice.id);
+
+    // Create payment intent with the invoice
+    const paymentIntentData: any = {
+      amount: Math.round(amount * 100),
+      currency,
+      customer,
+      payment_method,
+      confirmation_method: 'manual',
+      capture_method: 'automatic',
+      metadata: {
+        invoice_id: invoice.id
+      }
+    };
+
+    const paymentIntent = await stripe.paymentIntents.create(paymentIntentData);
+
+    res.json({
+      clientSecret: paymentIntent.client_secret,
+      id: paymentIntent.id,
+      status: paymentIntent.status,
+      invoice_id: invoice.id
+    });
+  } catch (error) {
+    console.error("Error creating payment intent:", error);
+    res.status(500).json({ error: "Error creating payment intent" });
+  }
+};
+
+// Retry Payment
+const retryPayment = async (req: Request, res: Response) => {
+  try {
+    const { paymentIntentId } = req.params;
+    const { paymentMethodId } = req.body;
+
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+    if (!paymentIntent || paymentIntent.status === 'succeeded') {
+      res.status(400).json({ error: "Payment intent cannot be retried" });
+      return;
+    }
+
+    if (paymentMethodId) {
+      await stripe.paymentIntents.update(paymentIntentId, {
+        payment_method: paymentMethodId
+      });
+    }
+
+    const confirmedIntent = await stripe.paymentIntents.confirm(paymentIntentId);
+
+    res.json({
+      id: confirmedIntent.id,
+      status: confirmedIntent.status,
+      clientSecret: confirmedIntent.client_secret,
+    });
+  } catch (error) {
+    console.error("Error retrying payment:", error);
+    res.status(500).json({ error: "Error retrying payment" });
+  }
+};
+
+// Create Subscription
+const createSubscription = async (req: Request, res: Response) => {
+  try {
+    const { priceId, customerId, paymentMethodId } = req.body;
+
+    // First attach the payment method to the customer
+    await stripe.paymentMethods.attach(paymentMethodId, {
+      customer: customerId,
+    });
+
+    // Set it as the default payment method
+    await stripe.customers.update(customerId, {
+      invoice_settings: {
+        default_payment_method: paymentMethodId,
+      },
+    });
+
+    // Create the subscription
+    const subscription = await stripe.subscriptions.create({
+      customer: customerId,
+      items: [{ price: priceId }],
+      payment_settings: {
+        payment_method_types: ['card'],
+        save_default_payment_method: 'on_subscription'
+      },
+      payment_behavior: 'default_incomplete',
+      expand: ['latest_invoice.payment_intent']
+    });
+
+    const latestInvoice = subscription.latest_invoice as Stripe.Invoice;
+    const paymentIntent = latestInvoice?.payment_intent as Stripe.PaymentIntent;
+
+    res.json({
+      id: subscription.id,
+      status: subscription.status,
+      clientSecret: paymentIntent?.client_secret,
+      currentPeriodEnd: subscription.current_period_end,
+    });
+  } catch (error) {
+    console.error("Error creating subscription:", error);
+    res.status(500).json({ error: "Error creating subscription" });
+  }
+};
+
+// Get Subscription Status
+const getSubscriptionStatus = async (req: Request, res: Response) => {
+  try {
+    const { subscriptionId } = req.params;
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+
+    res.json({
+      id: subscription.id,
+      status: subscription.status,
+      currentPeriodEnd: subscription.current_period_end,
+    });
+  } catch (error) {
+    console.error("Error fetching subscription:", error);
+    res.status(500).json({ error: "Error fetching subscription" });
+  }
+};
+
+// Cancel Subscription
+const cancelSubscription = async (req: Request, res: Response) => {
+  try {
+    const { subscriptionId } = req.params;
+    const subscription = await stripe.subscriptions.cancel(subscriptionId);
+
+    res.json({
+      id: subscription.id,
+      status: subscription.status,
+      currentPeriodEnd: subscription.current_period_end,
+    });
+  } catch (error) {
+    console.error("Error canceling subscription:", error);
+    res.status(500).json({ error: "Error canceling subscription" });
+  }
+};
+
+// Register routes
+app.post("/stripe/customers", createCustomer);
+app.get("/stripe/customers/:customerId", getCustomer);
+app.post("/stripe/payments", createPaymentIntent);
+app.post("/stripe/payments/:paymentIntentId/retry", retryPayment);
+app.post("/stripe/subscriptions", createSubscription);
+app.get("/stripe/subscriptions/:subscriptionId", getSubscriptionStatus);
+app.delete("/stripe/subscriptions/:subscriptionId", cancelSubscription);
+app.post("/sendPurchaseConfirmation", sendPurchaseConfirmationHandler);
+
+// Export the Express app as a Firebase Cloud Function
 export const api = functions.https.onRequest(app);

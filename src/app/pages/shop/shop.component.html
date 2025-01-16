@@ -17,11 +17,11 @@
           <div class="price-container">
             <div class="monthly-price">
               <span class="price-label">ab</span>
-              <span class="current-price">€ {{ (product.price / 18) | number:'1.2-2' }}</span>
+              <span class="current-price">€ {{ calculatePriceWithVAT(product.price / 18) | number:'1.2-2' }}</span>
               <span class="price-label">mtl.</span>
             </div>
             <div class="tax-info">
-              <span>(exkl. MwSt.)</span>
+              <span>(inkl. MwSt.)</span>
             </div>
           </div>
           <button class="cta-button" 

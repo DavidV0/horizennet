@@ -40,4 +40,8 @@ export class ShopComponent implements OnInit {
   isInCart(productId: string): boolean {
     return this.cartService.isInCart(productId);
   }
+
+  calculatePriceWithVAT(price: number): number {
+    return price * 1.2; // Add 20% VAT
+  }
 }

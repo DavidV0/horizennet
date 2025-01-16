@@ -39,7 +39,37 @@ import { MatIconModule } from '@angular/material/icon';
             </mat-error>
           </mat-form-field>
 
-          <div class="checkbox-row">
+          <div class="legal-notice">
+            <h3>Wichtige Hinweise zum Widerrufsrecht für digitale Inhalte</h3>
+            <p>
+              Mit Ihrem Kauf eines Online-Videokurses erwerben Sie Zugang zu digitalen Inhalten. Bitte beachten Sie:
+            </p>
+            <ul>
+              <li>
+                Mit der Einlösung des Produktschlüssels und dem Beginn des Zugriffs auf die Inhalte stimmen Sie ausdrücklich zu, 
+                dass die Bereitstellung vor Ablauf der gesetzlichen Widerrufsfrist beginnt.
+              </li>
+              <li>
+                Sie bestätigen, dass Sie durch diese Zustimmung Ihr Widerrufsrecht unwiderruflich verlieren, da die Inhalte vollständig bereitgestellt werden.
+              </li>
+              <li>
+                Nach Einlösung des Produktschlüssels ist eine Rückgabe oder Rückerstattung ausgeschlossen.
+              </li>
+            </ul>
+            <p>
+              Diese Regelung basiert auf § 18 Abs. 1 Z 11 FAGG und betrifft ausschließlich digitale Inhalte, die nicht auf physischen Datenträgern bereitgestellt werden.
+            </p>
+          </div>
+
+          <div class="consent-checkboxes">
+            <mat-checkbox formControlName="consent1" required color="accent">
+              Ich stimme zu, dass die Bereitstellung der Inhalte vor Ablauf der Widerrufsfrist beginnt.
+            </mat-checkbox>
+
+            <mat-checkbox formControlName="consent2" required color="accent">
+              Mir ist bekannt, dass ich mein Widerrufsrecht mit Beginn der Bereitstellung der Inhalte verliere.
+            </mat-checkbox>
+
             <mat-checkbox formControlName="acceptTerms" required color="accent">
               Ich akzeptiere das Rücktrittsrecht
             </mat-checkbox>
@@ -75,7 +105,7 @@ import { MatIconModule } from '@angular/material/icon';
       padding: 3rem;
       border-radius: 8px;
       text-align: center;
-      max-width: 600px;
+      max-width: 800px;
       width: 100%;
     }
 
@@ -97,15 +127,49 @@ import { MatIconModule } from '@angular/material/icon';
       font-weight: 500;
     }
 
+    .legal-notice {
+      text-align: left;
+      color: var(--color-white);
+      background: rgba(255, 255, 255, 0.1);
+      padding: 2rem;
+      border-radius: 8px;
+      margin: 2rem 0;
+
+      h3 {
+        color: var(--color-accent);
+        margin-bottom: 1rem;
+        font-size: 1.2rem;
+      }
+
+      p {
+        margin-bottom: 1rem;
+        line-height: 1.5;
+      }
+
+      ul {
+        margin: 1rem 0;
+        padding-left: 1.5rem;
+
+        li {
+          margin-bottom: 0.8rem;
+          line-height: 1.5;
+        }
+      }
+    }
+
+    .consent-checkboxes {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin: 2rem 0;
+      text-align: left;
+      color: var(--color-white);
+    }
+
     form {
       display: flex;
       flex-direction: column;
       gap: 1.5rem;
-    }
-
-    .checkbox-row {
-      margin: 0.5rem 0;
-      color: var(--color-white);
     }
 
     .error-message {
@@ -198,7 +262,9 @@ export class ActivateComponent implements OnInit {
     private userService: UserService
   ) {
     this.activateForm = this.fb.group({
-      productKey: ['', [Validators.required, Validators.pattern('^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$')]],
+      productKey: ['', [Validators.required]],
+      consent1: [false, Validators.requiredTrue],
+      consent2: [false, Validators.requiredTrue],
       acceptTerms: [false, Validators.requiredTrue]
     });
   }
@@ -219,10 +285,15 @@ export class ActivateComponent implements OnInit {
 
       try {
         const productKey = this.activateForm.get('productKey')?.value;
-        const acceptTerms = this.activateForm.get('acceptTerms')?.value;
+        const consent = {
+          acceptTerms: this.activateForm.get('acceptTerms')?.value,
+          consent1: this.activateForm.get('consent1')?.value,
+          consent2: this.activateForm.get('consent2')?.value,
+          timestamp: new Date().toISOString()
+        };
 
-        // Attempt to activate the product key
-        const result = await this.userService.activateProductKey(productKey, acceptTerms);
+        // Attempt to activate the product key with consent data
+        const result = await this.userService.activateProductKey(productKey, consent);
         
         if (result) {
           // Redirect to success page

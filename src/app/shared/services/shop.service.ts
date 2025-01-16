@@ -55,11 +55,13 @@ export class ShopService {
 
   async createProduct(product: Omit<ShopProduct, 'id'>, file?: File): Promise<void> {
     try {
-      console.log('Received product data:', product); // Debug-Log
+      console.log('Received product data:', product);
 
-      // Validiere die Eingabedaten
+      // Validate input data
       const name = product.name ? String(product.name).trim() : '';
       const price = product.price ? Number(product.price) : 0;
+      const stripeProductId = product.stripeProductId ? String(product.stripeProductId).trim() : '';
+      const stripePriceIds = product.stripePriceIds;
 
       if (!name) {
         throw new Error('A valid name is required');
@@ -67,18 +69,27 @@ export class ShopService {
       if (isNaN(price) || price <= 0) {
         throw new Error('A valid price greater than 0 is required');
       }
+      if (!stripeProductId) {
+        throw new Error('A valid Stripe Product ID is required');
+      }
+      if (!stripePriceIds || !stripePriceIds.fullPayment || !stripePriceIds.sixMonths || 
+          !stripePriceIds.twelveMonths || !stripePriceIds.eighteenMonths) {
+        throw new Error('All Stripe Price IDs are required');
+      }
 
       const productsRef = collection(this.firestore, this.collectionName);
       const newDoc = doc(productsRef);
       const productId = newDoc.id;
 
-      // Erstelle ein neues Objekt mit den Produktdaten
+      // Create new product data object
       const productData: any = {
         name,
-        price
+        price,
+        stripeProductId,
+        stripePriceIds
       };
       
-      // Füge optionale Felder hinzu
+      // Add optional fields
       if (product.oldPrice) {
         const oldPrice = Number(product.oldPrice);
         if (!isNaN(oldPrice)) {
@@ -95,7 +106,7 @@ export class ShopService {
       if (file) {
         const imagePath = `${this.storagePath}/${productId}/${file.name}`;
         
-        // Warte auf den Upload und die finale URL
+        // Wait for upload and final URL
         const uploadResult = await new Promise<string>((resolve, reject) => {
           const subscription = this.storageService.uploadProductImage(file, imagePath).subscribe({
             next: (progress) => {
@@ -114,7 +125,7 @@ export class ShopService {
         productData.image = uploadResult;
       }
 
-      console.log('Saving product data:', productData); // Debug-Log
+      console.log('Saving product data:', productData);
       await setDoc(newDoc, productData);
     } catch (error) {
       console.error('Error creating product:', error);
@@ -126,15 +137,12 @@ export class ShopService {
     try {
       const docRef = doc(this.firestore, this.collectionName, id);
       
-      // Erstelle ein neues Objekt mit den zu aktualisierenden Daten
+      // Create update data object with only editable fields
       const updateData: any = {};
       
-      // Validiere und füge die Felder hinzu
+      // Only update allowed fields
       if (product.name !== undefined) {
         updateData.name = String(product.name).trim();
-      }
-      if (product.price !== undefined) {
-        updateData.price = Number(product.price);
       }
       if (product.oldPrice !== undefined) {
         updateData.oldPrice = product.oldPrice ? Number(product.oldPrice) : null;
@@ -143,8 +151,9 @@ export class ShopService {
         updateData.tag = product.tag ? String(product.tag).trim() : null;
       }
 
+      // Handle image update if provided
       if (file) {
-        // Lösche altes Bild, wenn vorhanden
+        // Delete old image if exists
         const oldProduct = await this.getProductById(id);
         if (oldProduct?.image && oldProduct.image.includes('firebase')) {
           const oldImagePath = oldProduct.image.split('?')[0].split('/o/')[1].replace(/%2F/g, '/');
@@ -155,10 +164,9 @@ export class ShopService {
           }
         }
 
-        // Lade neues Bild hoch
+        // Upload new image
         const imagePath = `${this.storagePath}/${id}/${file.name}`;
         
-        // Warte auf den Upload und die finale URL
         const uploadResult = await new Promise<string>((resolve, reject) => {
           const subscription = this.storageService.uploadProductImage(file, imagePath).subscribe({
             next: (progress) => {
@@ -175,6 +183,17 @@ export class ShopService {
         });
         
         updateData.image = uploadResult;
+      }
+
+      // Preserve existing Stripe data
+      const existingProduct = await this.getProductById(id);
+      if (existingProduct) {
+        if (!updateData.stripeProductId && existingProduct.stripeProductId) {
+          updateData.stripeProductId = existingProduct.stripeProductId;
+        }
+        if (!updateData.stripePriceIds && existingProduct.stripePriceIds) {
+          updateData.stripePriceIds = existingProduct.stripePriceIds;
+        }
       }
 
       await updateDoc(docRef, updateData);
