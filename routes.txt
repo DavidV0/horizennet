@@ -1,0 +1,17 @@
+/
+/login
+/shop
+/shop/checkout
+/success
+/activate
+/activate/success
+/produkte
+/ueber-uns
+/blog
+/events
+/agb
+/widerruf
+/disclaimer
+/impressum
+/datenschutz
+/faq 

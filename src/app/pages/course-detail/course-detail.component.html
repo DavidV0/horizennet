@@ -28,7 +28,7 @@
         <div class="module-footer">
           <div class="lesson-count">
             <mat-icon>book</mat-icon>
-            <span>{{module.lessons?.length || 0}} Lektionen</span>
+            <span>{{getLessonCount(module)}} Lektionen</span>
           </div>
           <button mat-flat-button color="primary" (click)="startModule(module)" [disabled]="!module.isUnlocked">
             <mat-icon>play_arrow</mat-icon>

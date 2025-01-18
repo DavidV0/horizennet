@@ -63,4 +63,8 @@ export class CourseDetailComponent implements OnInit {
     const courseId = this.route.snapshot.params['id'];
     this.router.navigate(['dashboard', 'courses', courseId, 'modules', module.id]);
   }
+
+  getLessonCount(module: any): number {
+    return module.lessons ? module.lessons.length : 0;
+  }
 } 

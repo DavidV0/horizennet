@@ -18,35 +18,44 @@ export const routes: Routes = [
     path: 'dashboard',
     loadComponent: () => import('./pages/dashboard/dashboard.component').then(m => m.DashboardComponent),
     canActivate: [authGuard],
+    data: { ssr: false },
     children: [
       {
         path: 'profile',
-        loadComponent: () => import('./pages/profile/profile.component').then(m => m.ProfileComponent)
+        loadComponent: () => import('./pages/profile/profile.component').then(m => m.ProfileComponent),
+        data: { ssr: false }
       },
       {
         path: 'courses',
+        data: { ssr: false },
         children: [
           {
             path: '',
-            loadComponent: () => import('./pages/courses/courses.component').then(m => m.CoursesComponent)
+            loadComponent: () => import('./pages/courses/courses.component').then(m => m.CoursesComponent),
+            data: { ssr: false }
           },
           {
             path: ':id',
+            data: { ssr: false },
             children: [
               {
                 path: '',
-                loadComponent: () => import('./pages/course-detail/course-detail.component').then(m => m.CourseDetailComponent)
+                loadComponent: () => import('./pages/course-detail/course-detail.component').then(m => m.CourseDetailComponent),
+                data: { ssr: false }
               },
               {
                 path: 'modules/:moduleId',
+                data: { ssr: false },
                 children: [
                   {
                     path: '',
-                    loadComponent: () => import('./pages/course-detail/module-detail/module-detail.component').then(m => m.ModuleDetailComponent)
+                    loadComponent: () => import('./pages/course-detail/module-detail/module-detail.component').then(m => m.ModuleDetailComponent),
+                    data: { ssr: false }
                   },
                   {
                     path: 'lessons/:lessonId',
-                    loadComponent: () => import('./pages/course-detail/lesson-detail/lesson-detail.component').then(m => m.LessonDetailComponent)
+                    loadComponent: () => import('./pages/course-detail/lesson-detail/lesson-detail.component').then(m => m.LessonDetailComponent),
+                    data: { ssr: false }
                   }
                 ]
               }
@@ -56,7 +65,8 @@ export const routes: Routes = [
       },
       {
         path: 'support',
-        loadComponent: () => import('./pages/support/support.component').then(m => m.SupportComponent)
+        loadComponent: () => import('./pages/support/support.component').then(m => m.SupportComponent),
+        data: { ssr: false }
       }
     ]
   },
