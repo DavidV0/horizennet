@@ -1,0 +1,42 @@
+<div class="dialog-container">
+  <h2 mat-dialog-title>{{ data?.module ? 'Modul bearbeiten' : 'Neues Modul' }}</h2>
+
+  <form [formGroup]="moduleForm" (ngSubmit)="onSubmit()">
+    <div class="form-content">
+      <div class="section">
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Titel</mat-label>
+            <input matInput formControlName="title" required>
+            <mat-error *ngIf="moduleForm.get('title')?.hasError('required')">
+              Titel ist erforderlich
+            </mat-error>
+            <mat-error *ngIf="moduleForm.get('title')?.hasError('minlength')">
+              Titel muss mindestens 3 Zeichen lang sein
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Beschreibung</mat-label>
+            <textarea matInput formControlName="description" rows="4" required></textarea>
+            <mat-error *ngIf="moduleForm.get('description')?.hasError('required')">
+              Beschreibung ist erforderlich
+            </mat-error>
+            <mat-error *ngIf="moduleForm.get('description')?.hasError('minlength')">
+              Beschreibung muss mindestens 10 Zeichen lang sein
+            </mat-error>
+          </mat-form-field>
+        </div>
+      </div>
+    </div>
+
+    <div class="dialog-actions">
+      <button type="button" mat-button (click)="dialogRef.close()">Abbrechen</button>
+      <button type="submit" mat-flat-button color="accent" [disabled]="!moduleForm.valid">
+        {{ data?.module ? 'Speichern' : 'Erstellen' }}
+      </button>
+    </div>
+  </form>
+</div> 

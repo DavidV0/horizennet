@@ -1,0 +1,50 @@
+<div class="courses-container">
+  <div class="courses-header">
+    <h1>Kurse</h1>
+    <p>Entdecke unsere Kurse und starte deine Lernreise</p>
+  </div>
+
+  <!-- Loading Spinner -->
+  <div class="loading-container" *ngIf="isLoading">
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  </div>
+
+  <ng-container *ngIf="courses$ | async as courses">
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="!isLoading && courses.length === 0">
+      <mat-icon>school</mat-icon>
+      <h2>Keine Kurse verfügbar</h2>
+      <p>Besuche unseren Shop, um die neuesten Kurse zu entdecken.</p>
+      <button mat-flat-button color="accent" routerLink="/shop">
+        <mat-icon>shopping_cart</mat-icon>
+        Zum Shop
+      </button>
+    </div>
+
+    <!-- Courses Grid -->
+    <div class="courses-grid" *ngIf="!isLoading && courses.length > 0">
+      <mat-card class="course-card" *ngFor="let course of courses">
+        <img [src]="course.image" [alt]="course.title" class="course-image">
+        
+        <mat-card-content>
+          <h2>{{course.title}}</h2>
+          <p class="subtitle" *ngIf="course.subtitle">{{course.subtitle}}</p>
+          <p class="description">{{course.description}}</p>
+          
+          <!-- Module List -->
+          <div class="modules-info">
+            <mat-icon>folder</mat-icon>
+            <span>{{course.modules?.length || 0}} Module</span>
+          </div>
+        </mat-card-content>
+
+        <mat-card-actions>
+          <button mat-flat-button color="primary" [routerLink]="['/dashboard/courses', course.id]">
+            <mat-icon>play_arrow</mat-icon>
+            Jetzt starten
+          </button>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+  </ng-container>
+</div> 

@@ -39,4 +39,8 @@ export class AuthService {
   isLoggedIn(): Observable<any> {
     return this.user$;
   }
+
+  getCurrentUserId(): string | null {
+    return this.auth.currentUser?.uid || null;
+  }
 } 

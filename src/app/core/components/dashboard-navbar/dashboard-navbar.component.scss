@@ -1,0 +1,220 @@
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--navbar-height);
+  background-color: rgba(0, 0, 0, 0.8);
+  color: var(--color-white);
+  z-index: 1000;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+  &.scrolled {
+    height: var(--navbar-height-scrolled);
+    backdrop-filter: blur(15px);
+  }
+}
+
+.navbar-container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-lg);
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.navbar-brand {
+  text-decoration: none;
+  position: relative;
+  z-index: 1001;
+  
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 24px;
+    font-weight: 700;
+    position: relative;
+    
+    img {
+      width: 32px;
+      height: auto;
+      object-fit: contain;
+      display: block;
+      transition: transform 0.3s ease;
+    }
+    
+    .text-white {
+      color: var(--color-white);
+    }
+    
+    .text-accent {
+      color: var(--color-accent);
+    }
+  }
+}
+
+.mobile-menu-btn {
+  display: none;
+  background: transparent;
+  border: none;
+  color: var(--color-white);
+  padding: 8px;
+  cursor: pointer;
+  z-index: 1001;
+
+  mat-icon {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+  }
+}
+
+.nav-links {
+  display: flex;
+  gap: var(--spacing-md);
+  margin: 0 var(--spacing-xl);
+  align-items: center;
+  
+  .nav-link {
+    text-decoration: none;
+    color: var(--color-white);
+    font-weight: var(--font-weight-medium);
+    padding: 8px 16px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    position: relative;
+    opacity: 0.8;
+    
+    &:hover, &.active {
+      opacity: 1;
+      background: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  .mobile-only {
+    display: none;
+  }
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.logout-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  color: var(--color-accent);
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: 1px solid var(--color-accent) !important;
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+
+  &:hover {
+    background: var(--color-accent);
+    border-color: var(--color-white);
+    color: var(--color-white);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 992px) {
+  .mobile-menu-btn {
+    display: block;
+  }
+
+  .nav-links {
+    position: fixed;
+    top: var(--navbar-height);
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(10px);
+    margin: 0;
+    padding: var(--spacing-lg);
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-sm);
+    transform: translateY(-100%);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+    &.mobile-open {
+      transform: translateY(0);
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .nav-link {
+      padding: var(--spacing-md);
+      text-align: center;
+      font-size: 1.1rem;
+      border-radius: 8px;
+
+      &:hover, &.active {
+        background: rgba(255, 255, 255, 0.1);
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .navbar-container {
+    padding: 0 var(--spacing-md);
+  }
+  
+  .navbar-brand .logo {
+    font-size: 20px;
+    
+    img {
+      width: 28px;
+    }
+  }
+  
+  .nav-links {
+    top: var(--navbar-height-scrolled);
+    
+    .nav-link {
+      padding: var(--spacing-md) var(--spacing-sm);
+      font-size: 1rem;
+    }
+
+    .mobile-only {
+      display: flex;
+      width: 100%;
+      justify-content: center;
+      margin-top: var(--spacing-md);
+      font-size: 1rem;
+    }
+  }
+
+  .nav-right {
+    .desktop-only {
+      display: none;
+    }
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-only {
+    display: none !important;
+  }
+} 

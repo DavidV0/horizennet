@@ -1,0 +1,129 @@
+<div class="dialog-container">
+  <h2 mat-dialog-title>{{ isEditMode ? 'Kurs bearbeiten' : 'Neuer Kurs' }}</h2>
+
+  <form [formGroup]="courseForm" (ngSubmit)="onSubmit()">
+    <div class="form-content">
+      <!-- Basic Information -->
+      <div class="section">
+        <h3>Grundinformationen</h3>
+        
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Titel</mat-label>
+            <input matInput formControlName="title" required>
+            <mat-error *ngIf="courseForm.get('title')?.hasError('required')">
+              Titel ist erforderlich
+            </mat-error>
+            <mat-error *ngIf="courseForm.get('title')?.hasError('minlength')">
+              Titel muss mindestens 3 Zeichen lang sein
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Untertitel</mat-label>
+            <input matInput formControlName="subtitle">
+          </mat-form-field>
+        </div>
+
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Beschreibung</mat-label>
+            <textarea matInput formControlName="description" rows="4" required></textarea>
+            <mat-error *ngIf="courseForm.get('description')?.hasError('required')">
+              Beschreibung ist erforderlich
+            </mat-error>
+            <mat-error *ngIf="courseForm.get('description')?.hasError('minlength')">
+              Beschreibung muss mindestens 10 Zeichen lang sein
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <div class="form-row">
+          <div class="image-upload">
+            <div class="upload-container" (click)="fileInput.click()">
+              <input #fileInput type="file" accept="image/*" (change)="onFileSelected($event)" style="display: none">
+              <div class="preview-container" [class.has-image]="imagePreview">
+                <img *ngIf="imagePreview" [src]="imagePreview" alt="Kursvorschau">
+                <div *ngIf="!imagePreview" class="upload-placeholder">
+                  <mat-icon>cloud_upload</mat-icon>
+                  <span>Klicken Sie hier, um ein Kursbild hochzuladen</span>
+                </div>
+              </div>
+            </div>
+            <mat-progress-bar *ngIf="uploadProgress > 0" mode="determinate" [value]="uploadProgress"></mat-progress-bar>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modules Section -->
+      <div class="section">
+        <div class="section-header">
+          <h3>Module</h3>
+          <button type="button" mat-flat-button color="accent" (click)="openModuleDialog()">
+            <mat-icon>add</mat-icon>
+            Modul hinzufügen
+          </button>
+        </div>
+
+        <mat-accordion class="modules-list">
+          <mat-expansion-panel *ngFor="let module of modules">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                {{ module.title }}
+              </mat-panel-title>
+              <mat-panel-description>
+                {{ module.lessons?.length || 0 }} Lektionen
+              </mat-panel-description>
+            </mat-expansion-panel-header>
+
+            <div class="module-content">
+              <div class="module-actions">
+                <button type="button" mat-icon-button color="primary" (click)="openModuleDialog(module)" matTooltip="Modul bearbeiten">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button type="button" mat-icon-button color="warn" (click)="deleteModule(module.id)" matTooltip="Modul löschen">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+
+              <div class="lessons-list">
+                <div class="lessons-header">
+                  <h4>Lektionen</h4>
+                  <button type="button" mat-button color="accent" (click)="openLessonDialog(module.id)">
+                    <mat-icon>add</mat-icon>
+                    Lektion hinzufügen
+                  </button>
+                </div>
+
+                <mat-list>
+                  <mat-list-item *ngFor="let lesson of module.lessons">
+                    <mat-icon matListItemIcon>play_circle_outline</mat-icon>
+                    <div matListItemTitle>{{ lesson.title }}</div>
+                    <div matListItemLine>{{ lesson.duration }} Minuten</div>
+                    <div class="lesson-actions">
+                      <button type="button" mat-icon-button color="primary" (click)="openLessonDialog(module.id, lesson)" matTooltip="Lektion bearbeiten">
+                        <mat-icon>edit</mat-icon>
+                      </button>
+                      <button type="button" mat-icon-button color="warn" (click)="deleteLesson(module.id, lesson.id)" matTooltip="Lektion löschen">
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    </div>
+                  </mat-list-item>
+                </mat-list>
+              </div>
+            </div>
+          </mat-expansion-panel>
+        </mat-accordion>
+      </div>
+    </div>
+
+    <div class="dialog-actions">
+      <button type="button" mat-button (click)="dialogRef.close()">Abbrechen</button>
+      <button type="submit" mat-flat-button color="accent" [disabled]="!courseForm.valid || uploadProgress > 0">
+        {{ isEditMode ? 'Speichern' : 'Erstellen' }}
+      </button>
+    </div>
+  </form>
+</div> 

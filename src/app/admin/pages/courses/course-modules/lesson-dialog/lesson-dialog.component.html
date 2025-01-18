@@ -1,0 +1,69 @@
+<div class="dialog-container">
+  <h2 mat-dialog-title>{{ isEditMode ? 'Lektion bearbeiten' : 'Neue Lektion' }}</h2>
+
+  <form [formGroup]="lessonForm" (ngSubmit)="onSubmit()">
+    <mat-dialog-content>
+      <mat-form-field appearance="outline">
+        <mat-label>Titel</mat-label>
+        <input matInput formControlName="title" required>
+        <mat-error *ngIf="lessonForm.get('title')?.hasError('required')">
+          Titel ist erforderlich
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Beschreibung</mat-label>
+        <textarea matInput formControlName="description" required rows="4"></textarea>
+        <mat-error *ngIf="lessonForm.get('description')?.hasError('required')">
+          Beschreibung ist erforderlich
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Dauer (in Minuten)</mat-label>
+        <input matInput type="number" formControlName="duration" required min="1">
+        <mat-error *ngIf="lessonForm.get('duration')?.hasError('required')">
+          Dauer ist erforderlich
+        </mat-error>
+        <mat-error *ngIf="lessonForm.get('duration')?.hasError('min')">
+          Dauer muss mindestens 1 Minute betragen
+        </mat-error>
+      </mat-form-field>
+
+      <!-- Video Upload Section -->
+      <div class="video-upload-section">
+        <input #videoInput type="file" accept="video/*" (change)="onVideoSelected($event)" hidden>
+        
+        <div class="upload-area" *ngIf="!videoPreview" (click)="triggerVideoInput()">
+          <mat-icon>cloud_upload</mat-icon>
+          <p>Video hochladen</p>
+          <span class="hint">Klicken oder Video hierher ziehen</span>
+        </div>
+
+        <div class="video-preview" *ngIf="videoPreview">
+          <div class="video-info">
+            <mat-icon>video_library</mat-icon>
+            <span class="video-name">{{ videoName }}</span>
+          </div>
+          <div class="video-actions">
+            <button type="button" mat-icon-button (click)="triggerVideoInput()" matTooltip="Video ändern">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button type="button" mat-icon-button (click)="removeVideo()" matTooltip="Video entfernen">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        </div>
+
+        <mat-progress-bar *ngIf="uploadProgress > 0" mode="determinate" [value]="uploadProgress"></mat-progress-bar>
+      </div>
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button mat-button type="button" (click)="onCancel()">Abbrechen</button>
+      <button mat-flat-button color="primary" type="submit" [disabled]="!lessonForm.valid">
+        {{ isEditMode ? 'Speichern' : 'Erstellen' }}
+      </button>
+    </mat-dialog-actions>
+  </form>
+</div> 

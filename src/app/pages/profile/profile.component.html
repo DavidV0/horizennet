@@ -1,0 +1,215 @@
+<div class="profile-container">
+  <div class="profile-header">
+    <h1>Mein Profil</h1>
+    <p class="subtitle">Verwalten Sie hier Ihre persönlichen Daten und Einstellungen</p>
+  </div>
+
+  <div class="profile-grid">
+    <!-- Persönliche Informationen -->
+    <mat-card class="profile-section">
+      <mat-card-content>
+        <div class="section-header">
+          <mat-icon>person</mat-icon>
+          <h2>Persönliche Informationen</h2>
+        </div>
+
+        <form [formGroup]="profileForm" (ngSubmit)="updateProfile()">
+          <div class="form-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Vorname</mat-label>
+              <input matInput formControlName="firstName" placeholder="Vorname">
+              <mat-error *ngIf="profileForm.get('firstName')?.hasError('required')">
+                <mat-icon>error</mat-icon>
+                Vorname ist erforderlich
+              </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Nachname</mat-label>
+              <input matInput formControlName="lastName" placeholder="Nachname">
+              <mat-error *ngIf="profileForm.get('lastName')?.hasError('required')">
+                Nachname ist erforderlich
+              </mat-error>
+            </mat-form-field>
+          </div>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline">
+              <mat-label>E-Mail</mat-label>
+              <input matInput formControlName="email" placeholder="E-Mail" type="email">
+              <mat-error *ngIf="profileForm.get('email')?.hasError('required')">
+                E-Mail ist erforderlich
+              </mat-error>
+              <mat-error *ngIf="profileForm.get('email')?.hasError('email')">
+                Bitte geben Sie eine gültige E-Mail-Adresse ein
+              </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Telefon</mat-label>
+              <input matInput formControlName="phone" placeholder="Telefon">
+            </mat-form-field>
+          </div>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Straße</mat-label>
+              <input matInput formControlName="street" placeholder="Straße">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Hausnummer</mat-label>
+              <input matInput formControlName="streetNumber" placeholder="Hausnummer">
+            </mat-form-field>
+          </div>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline">
+              <mat-label>PLZ</mat-label>
+              <input matInput formControlName="zipCode" placeholder="PLZ">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Stadt</mat-label>
+              <input matInput formControlName="city" placeholder="Stadt">
+            </mat-form-field>
+          </div>
+
+          <div class="form-actions">
+            <div class="success-message" *ngIf="showProfileSuccess">
+              <mat-icon>check_circle</mat-icon>
+              Profil erfolgreich aktualisiert
+            </div>
+            <button mat-flat-button color="primary" type="submit" [disabled]="!profileForm.valid || !profileForm.dirty">
+              <mat-icon>save</mat-icon>
+              Änderungen speichern
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Passwort ändern -->
+    <mat-card class="profile-section">
+      <mat-card-content>
+        <div class="section-header">
+          <mat-icon>lock</mat-icon>
+          <h2>Passwort ändern</h2>
+        </div>
+
+        <form [formGroup]="passwordForm" (ngSubmit)="updatePassword()">
+          <mat-form-field appearance="outline">
+            <mat-label>Aktuelles Passwort</mat-label>
+            <input [type]="getPasswordFieldType('currentPassword')" matInput formControlName="currentPassword" placeholder="Aktuelles Passwort">
+            <mat-icon matSuffix (click)="togglePasswordVisibility('currentPassword')" class="password-toggle">
+              {{showPassword.currentPassword ? 'visibility_off' : 'visibility'}}
+            </mat-icon>
+            <mat-error *ngIf="passwordForm.get('currentPassword')?.hasError('required')">
+              <mat-icon>error</mat-icon>
+              Aktuelles Passwort ist erforderlich
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Neues Passwort</mat-label>
+            <input [type]="getPasswordFieldType('newPassword')" matInput formControlName="newPassword" placeholder="Neues Passwort">
+            <mat-icon matSuffix (click)="togglePasswordVisibility('newPassword')" class="password-toggle">
+              {{showPassword.newPassword ? 'visibility_off' : 'visibility'}}
+            </mat-icon>
+            <mat-error *ngIf="passwordForm.get('newPassword')?.hasError('required')">
+              <mat-icon>error</mat-icon>
+              Neues Passwort ist erforderlich
+            </mat-error>
+            <mat-error *ngIf="passwordForm.get('newPassword')?.hasError('minlength')">
+              <mat-icon>error</mat-icon>
+              Passwort muss mindestens 8 Zeichen lang sein
+            </mat-error>
+            <mat-error *ngIf="passwordForm.get('newPassword')?.hasError('pattern')">
+              <mat-icon>error</mat-icon>
+              Passwort muss Groß- und Kleinbuchstaben, Zahlen und Sonderzeichen enthalten
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Passwort bestätigen</mat-label>
+            <input [type]="getPasswordFieldType('confirmPassword')" matInput formControlName="confirmPassword" placeholder="Passwort bestätigen">
+            <mat-icon matSuffix (click)="togglePasswordVisibility('confirmPassword')" class="password-toggle">
+              {{showPassword.confirmPassword ? 'visibility_off' : 'visibility'}}
+            </mat-icon>
+            <mat-error *ngIf="passwordForm.get('confirmPassword')?.hasError('required')">
+              <mat-icon>error</mat-icon>
+              Passwortbestätigung ist erforderlich
+            </mat-error>
+            <mat-error *ngIf="passwordForm.hasError('passwordMismatch')">
+              <mat-icon>error</mat-icon>
+              Passwörter stimmen nicht überein
+            </mat-error>
+          </mat-form-field>
+
+          <div class="form-actions">
+            <div class="error-message" *ngIf="passwordError">
+              <mat-icon>error</mat-icon>
+              {{passwordError}}
+            </div>
+            <div class="success-message" *ngIf="showPasswordSuccess">
+              <mat-icon>check_circle</mat-icon>
+              Passwort erfolgreich geändert
+            </div>
+            <button mat-flat-button color="primary" type="submit" [disabled]="!passwordForm.valid">
+              <mat-icon>lock_reset</mat-icon>
+              Passwort ändern
+            </button>
+          </div>
+
+          <div class="forgot-password">
+            <div class="error-message" *ngIf="resetPasswordError">
+              <mat-icon>error</mat-icon>
+              {{resetPasswordError}}
+            </div>
+            <div class="success-message" *ngIf="resetPasswordSuccess">
+              <mat-icon>check_circle</mat-icon>
+              Eine E-Mail zum Zurücksetzen des Passworts wurde an Ihre E-Mail-Adresse gesendet.
+            </div>
+            <a href="javascript:void(0)" (click)="resetPassword()">
+              <mat-icon>help_outline</mat-icon>
+              Passwort vergessen?
+            </a>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Account Status -->
+    <mat-card class="profile-section status-section">
+      <mat-card-content>
+        <div class="section-header">
+          <mat-icon>verified</mat-icon>
+          <h2>Account Status</h2>
+        </div>
+
+        <div class="status-info">
+          <div class="status-item">
+            <span class="label">Status</span>
+            <span class="value status-badge" [class.active]="userData?.status === 'active'">
+              {{userData?.status === 'active' ? 'Aktiv' : 'Inaktiv'}}
+            </span>
+          </div>
+
+          <div class="status-item">
+            <span class="label">Mitglied seit</span>
+            <span class="value">
+              {{(userData?.purchaseDate | date:'dd.MM.yyyy') ?? 'Nicht verfügbar'}}
+            </span>
+          </div>
+
+          <div class="status-item">
+            <span class="label">Lizenzschlüssel</span>
+            <span class="value license-key">
+              {{userData?.productKey || 'Nicht verfügbar'}}
+            </span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div> 

@@ -17,7 +17,48 @@ export const routes: Routes = [
   {
     path: 'dashboard',
     loadComponent: () => import('./pages/dashboard/dashboard.component').then(m => m.DashboardComponent),
-    canActivate: [authGuard]
+    canActivate: [authGuard],
+    children: [
+      {
+        path: 'profile',
+        loadComponent: () => import('./pages/profile/profile.component').then(m => m.ProfileComponent)
+      },
+      {
+        path: 'courses',
+        children: [
+          {
+            path: '',
+            loadComponent: () => import('./pages/courses/courses.component').then(m => m.CoursesComponent)
+          },
+          {
+            path: ':id',
+            children: [
+              {
+                path: '',
+                loadComponent: () => import('./pages/course-detail/course-detail.component').then(m => m.CourseDetailComponent)
+              },
+              {
+                path: 'modules/:moduleId',
+                children: [
+                  {
+                    path: '',
+                    loadComponent: () => import('./pages/course-detail/module-detail/module-detail.component').then(m => m.ModuleDetailComponent)
+                  },
+                  {
+                    path: 'lessons/:lessonId',
+                    loadComponent: () => import('./pages/course-detail/lesson-detail/lesson-detail.component').then(m => m.LessonDetailComponent)
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        path: 'support',
+        loadComponent: () => import('./pages/support/support.component').then(m => m.SupportComponent)
+      }
+    ]
   },
   {
     path: 'shop',

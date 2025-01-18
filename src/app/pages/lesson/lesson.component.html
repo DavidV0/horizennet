@@ -1,0 +1,74 @@
+<div class="lesson-container" *ngIf="(lesson$ | async) as lesson">
+  <!-- Video Player -->
+  <div class="video-container">
+    <vg-player (onPlayerReady)="onPlayerReady($event)" (onVideoEnded)="onVideoEnded()">
+      <vg-overlay-play></vg-overlay-play>
+      <vg-buffering></vg-buffering>
+
+      <vg-controls>
+        <vg-play-pause></vg-play-pause>
+        <vg-playback-button></vg-playback-button>
+        <vg-time-display vgProperty="current"></vg-time-display>
+        <vg-scrub-bar>
+          <vg-scrub-bar-current-time></vg-scrub-bar-current-time>
+          <vg-scrub-bar-buffering-time></vg-scrub-bar-buffering-time>
+        </vg-scrub-bar>
+        <vg-time-display vgProperty="total"></vg-time-display>
+        <vg-mute></vg-mute>
+        <vg-volume></vg-volume>
+        <vg-fullscreen></vg-fullscreen>
+      </vg-controls>
+
+      <video [vgMedia]="$any(media)" #media preload="auto" crossorigin>
+        <source [src]="lesson.videoUrl" type="video/mp4">
+      </video>
+    </vg-player>
+  </div>
+
+  <!-- Lesson Content -->
+  <div class="lesson-content">
+    <div class="lesson-header">
+      <h1>{{lesson.title}}</h1>
+      <div class="lesson-navigation" *ngIf="navigation$ | async as nav">
+        <button mat-icon-button (click)="goToPreviousLesson()" [disabled]="!nav.hasPreviousLesson">
+          <mat-icon>arrow_back</mat-icon>
+        </button>
+        <button mat-icon-button (click)="goToNextLesson()" [disabled]="!nav.hasNextLesson">
+          <mat-icon>arrow_forward</mat-icon>
+        </button>
+      </div>
+    </div>
+
+    <mat-tab-group [(selectedIndex)]="selectedTabIndex" animationDuration="0ms">
+      <!-- Beschreibung Tab -->
+      <mat-tab label="Beschreibung">
+        <div class="tab-content description">
+          <p>{{lesson.description}}</p>
+        </div>
+      </mat-tab>
+
+      <!-- Materialien Tab -->
+      <mat-tab label="Materialien" *ngIf="lesson.files?.length">
+        <div class="tab-content materials">
+          <mat-card *ngFor="let file of lesson.files" class="file-card" (click)="downloadFile(file)">
+            <mat-icon [ngSwitch]="file.type">
+              <ng-container *ngSwitchCase="'pdf'">picture_as_pdf</ng-container>
+              <ng-container *ngSwitchCase="'zip'">folder_zip</ng-container>
+              <ng-container *ngSwitchDefault>attachment</ng-container>
+            </mat-icon>
+            <span class="file-name">{{file.name}}</span>
+            <mat-icon class="download-icon">download</mat-icon>
+          </mat-card>
+        </div>
+      </mat-tab>
+
+      <!-- Quiz Tab -->
+      <mat-tab label="Quiz" *ngIf="lesson.quiz">
+        <div class="tab-content quiz">
+          <!-- TODO: Quiz-Komponente hier einfügen -->
+          <p>Quiz wird bald verfügbar sein</p>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  </div>
+</div> 

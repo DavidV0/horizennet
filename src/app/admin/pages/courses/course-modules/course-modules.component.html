@@ -1,0 +1,72 @@
+<div class="admin-content">
+  <div class="admin-header">
+    <div class="header-title">
+      <h1>Module verwalten</h1>
+      <p>Verwalten Sie die Module und Lektionen des Kurses</p>
+    </div>
+    <button mat-flat-button color="primary" (click)="addModule()">
+      <mat-icon>add</mat-icon>
+      Neues Modul
+    </button>
+  </div>
+
+  <ng-container *ngIf="course$ | async as course">
+    <mat-card>
+      <mat-card-content>
+        <mat-accordion>
+          <!-- Module -->
+          <mat-expansion-panel *ngFor="let module of course.modules">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                {{module.title}}
+              </mat-panel-title>
+              <mat-panel-description>
+                {{module.lessons.length}} Lektionen
+              </mat-panel-description>
+            </mat-expansion-panel-header>
+
+            <!-- Modul Aktionen -->
+            <div class="module-actions">
+              <button mat-button color="primary" (click)="editModule(module)">
+                <mat-icon>edit</mat-icon>
+                Modul bearbeiten
+              </button>
+              <button mat-button color="warn" (click)="deleteModule(module)">
+                <mat-icon>delete</mat-icon>
+                Modul löschen
+              </button>
+              <button mat-flat-button color="primary" (click)="addLesson(module)">
+                <mat-icon>add</mat-icon>
+                Neue Lektion
+              </button>
+            </div>
+
+            <!-- Lektionen -->
+            <mat-list>
+              <mat-list-item *ngFor="let lesson of module.lessons">
+                <mat-icon matListItemIcon>play_circle</mat-icon>
+                <div matListItemTitle>{{lesson.title}}</div>
+                <div matListItemLine>{{lesson.description}}</div>
+                <div class="lesson-actions">
+                  <button mat-icon-button [matMenuTriggerFor]="lessonMenu">
+                    <mat-icon>more_vert</mat-icon>
+                  </button>
+                  <mat-menu #lessonMenu="matMenu">
+                    <button mat-menu-item (click)="editLesson(module, lesson)">
+                      <mat-icon>edit</mat-icon>
+                      <span>Bearbeiten</span>
+                    </button>
+                    <button mat-menu-item (click)="deleteLesson(module, lesson)">
+                      <mat-icon>delete</mat-icon>
+                      <span>Löschen</span>
+                    </button>
+                  </mat-menu>
+                </div>
+              </mat-list-item>
+            </mat-list>
+          </mat-expansion-panel>
+        </mat-accordion>
+      </mat-card-content>
+    </mat-card>
+  </ng-container>
+</div> 

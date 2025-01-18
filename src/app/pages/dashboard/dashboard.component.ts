@@ -1,145 +1,58 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../shared/services/auth.service';
+import { CourseService } from '../../shared/services/course.service';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
-import { take } from 'rxjs/operators';
+import { take, filter, switchMap, map } from 'rxjs/operators';
+import { DashboardNavbarComponent } from '../../core/components/dashboard-navbar/dashboard-navbar.component';
+import { Course } from '../../shared/models/course.model';
+import { Observable } from 'rxjs';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, MatButtonModule, MatIconModule, MatCardModule, MatDividerModule],
-  template: `
-    <div class="dashboard-container">
-      <div class="dashboard-content">
-        <header class="dashboard-header">
-          <h1>Willkommen, {{userData?.firstName || 'Kunde'}}</h1>
-          <button mat-raised-button color="warn" (click)="logout()">
-            <mat-icon>logout</mat-icon>
-            Ausloggen
-          </button>
-        </header>
-
-        <div class="dashboard-grid">
-          <!-- Persönliche Informationen -->
-          <mat-card>
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>person</mat-icon>
-                Persönliche Informationen
-              </mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <p><strong>Name:</strong> {{userData?.firstName}} {{userData?.lastName}}</p>
-              <p><strong>E-Mail:</strong> {{userData?.email}}</p>
-              <p><strong>Adresse:</strong> {{userData?.street}} {{userData?.streetNumber}}</p>
-              <p><strong>PLZ/Ort:</strong> {{userData?.zipCode}} {{userData?.city}}</p>
-              <p><strong>Land:</strong> {{userData?.country}}</p>
-            </mat-card-content>
-          </mat-card>
-
-          <!-- Lizenzinformationen -->
-          <mat-card>
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>vpn_key</mat-icon>
-                Lizenzinformationen
-              </mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <p><strong>Produktschlüssel:</strong> {{userData?.productKey}}</p>
-              <p><strong>Status:</strong> {{userData?.status}}</p>
-              <p><strong>Gekauft am:</strong> {{userData?.purchaseDate?.toDate() | date:'dd.MM.yyyy'}}</p>
-              <p><strong>Zahlungsplan:</strong> {{userData?.paymentPlan}} Monatsraten</p>
-            </mat-card-content>
-          </mat-card>
-        </div>
-      </div>
-    </div>
-  `,
-  styles: [`
-    .dashboard-container {
-      min-height: 100vh;
-      padding: 2rem;
-      background-color: var(--color-primary);
-      margin-top: 8vh;
-    }
-
-    .dashboard-content {
-      background-color: var(--color-secondary);
-      padding: 2rem;
-      border-radius: 8px;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-
-    .dashboard-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 2rem;
-    }
-
-    h1 {
-      color: var(--color-white);
-      margin: 0;
-      font-size: 2rem;
-    }
-
-    .dashboard-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 2rem;
-    }
-
-    mat-card {
-      background-color: var(--color-primary);
-      color: var(--color-white);
-    }
-
-    mat-card-header {
-      margin-bottom: 1rem;
-    }
-
-    mat-card-title {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      color: var(--color-accent);
-    }
-
-    mat-card-content {
-      p {
-        margin: 0.5rem 0;
-      }
-    }
-
-    button {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    ::ng-deep {
-      .mat-mdc-card {
-        --mdc-elevated-card-container-color: var(--color-primary);
-      }
-    }
-  `]
+  imports: [
+    CommonModule, 
+    RouterModule,
+    MatButtonModule, 
+    MatIconModule, 
+    MatCardModule, 
+    MatDividerModule,
+    MatProgressSpinnerModule,
+    DashboardNavbarComponent
+  ],
+  templateUrl: './dashboard.component.html',
+  styleUrls: ['./dashboard.component.scss']
 })
 export class DashboardComponent implements OnInit {
   userData: any;
+  isChildRoute = false;
+  courses$!: Observable<Course[]>;
+  isLoading = true;
 
   constructor(
     private authService: AuthService,
-    private firestore: AngularFirestore
-  ) {}
+    private courseService: CourseService,
+    private firestore: AngularFirestore,
+    private router: Router
+  ) {
+    this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd)
+    ).subscribe(() => {
+      const currentUrl = this.router.url;
+      this.isChildRoute = currentUrl !== '/dashboard';
+    });
+  }
 
   ngOnInit() {
     this.loadUserData();
+    this.loadCourses();
   }
 
   async loadUserData() {
@@ -152,7 +65,36 @@ export class DashboardComponent implements OnInit {
     }
   }
 
-  async logout() {
-    await this.authService.logout();
+  loadCourses() {
+    this.courses$ = this.courseService.getCourses('USER').pipe(
+      map(courses => courses.filter(course => course.isActive)),
+      map(courses => {
+        this.isLoading = false;
+        return courses;
+      })
+    );
+  }
+
+  getModuleCount(course: Course): number {
+    return course.modules.length;
+  }
+
+  getLessonCount(course: Course): number {
+    return course.modules.reduce((total, module) => total + module.lessons.length, 0);
+  }
+
+  getCourseProgress(course: Course): number {
+    const totalLessons = this.getLessonCount(course);
+    if (totalLessons === 0) return 0;
+
+    const completedLessons = course.modules.reduce((total, module) => {
+      return total + module.lessons.filter(lesson => lesson.completed).length;
+    }, 0);
+
+    return Math.round((completedLessons / totalLessons) * 100);
+  }
+
+  continueCourse(courseId: string) {
+    this.router.navigate(['/dashboard/courses', courseId]);
   }
 }

@@ -1,0 +1,41 @@
+<div class="course-detail-container" *ngIf="course$ | async as course">
+  <div class="course-header">
+    <h1>{{course.title}}</h1>
+    <p class="subtitle" *ngIf="course.subtitle">{{course.subtitle}}</p>
+    <p class="description">{{course.description}}</p>
+  </div>
+
+  <div class="modules-grid">
+    <div class="module-card" *ngFor="let module of course.modules; let i = index">
+      <div class="module-image">
+        <img [src]="module.image || 'assets/images/module-placeholder.jpg'" [alt]="module.title">
+        <div class="module-overlay">
+          <h2>Modul {{i + 1}}</h2>
+        </div>
+      </div>
+      
+      <div class="module-content">
+        <h3>{{module.title}}</h3>
+        <p class="module-description">{{module.description}}</p>
+        
+        <div class="progress-info">
+          <div class="progress-bar">
+            <div class="progress" [style.width.%]="calculateModuleProgress(module)"></div>
+          </div>
+          <span class="progress-text">{{calculateModuleProgress(module)}}% GESCHAFFT</span>
+        </div>
+
+        <div class="module-footer">
+          <div class="lesson-count">
+            <mat-icon>book</mat-icon>
+            <span>{{module.lessons?.length || 0}} Lektionen</span>
+          </div>
+          <button mat-flat-button color="primary" (click)="startModule(module)" [disabled]="!module.isUnlocked">
+            <mat-icon>play_arrow</mat-icon>
+            Jetzt starten
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div> 

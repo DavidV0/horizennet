@@ -34,9 +34,10 @@ export class AppComponent implements OnInit {
     // Loading-Screen-Logik
     this.router.events.subscribe(event => {
       if (event instanceof NavigationStart) {
-        // Only show loading screen for non-admin routes
+        // Only show loading screen for non-admin and non-dashboard routes
         const isAdminNavigation = event.url.startsWith('/admin');
-        if (!isAdminNavigation) {
+        const isDashboardNavigation = event.url.startsWith('/dashboard');
+        if (!isAdminNavigation && !isDashboardNavigation) {
           this.loadingService.show();
           setTimeout(() => {
             this.loadingService.hide();

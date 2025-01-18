@@ -10,6 +10,7 @@ import { adminGuard } from './guards/admin.guard';
 import { LoginComponent } from './pages/login/login.component';
 import { DashboardHomeComponent } from './components/dashboard-home/dashboard-home.component';
 import { FaqsComponent } from './pages/faqs/faqs.component';
+import { CoursesComponent } from './pages/courses/courses.component';
 
 const routes: Routes = [
   {
@@ -28,7 +29,8 @@ const routes: Routes = [
       { path: 'shop', component: AdminShopComponent },
       { path: 'products', component: ProductsComponent },
       { path: 'faqs', component: FaqsComponent },
-      { path: 'create-admin', component: CreateAdminComponent }
+      { path: 'create-admin', component: CreateAdminComponent },
+      { path: 'courses', component: CoursesComponent }
     ]
   }
 ];

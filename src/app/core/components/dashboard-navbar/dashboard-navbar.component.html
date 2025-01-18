@@ -1,0 +1,44 @@
+<nav class="navbar" [class.scrolled]="isScrolled">
+  <div class="navbar-container">
+    <a class="navbar-brand" routerLink="/dashboard">
+      <span class="logo">
+        <span class="text-white">HORIZON</span>
+        <span class="text-accent">NET.</span>
+        <img src="assets/HorizonNet_tHwL.png" alt="HorizonNet Logo">
+      </span>
+    </a>
+
+    <!-- Navigation Links -->
+    <div class="nav-links" [class.mobile-open]="isMobileMenuOpen">
+      <ng-container *ngFor="let item of navItems">
+        <a 
+          class="nav-link hover-effect" 
+          [routerLink]="item.path"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{exact: item.path === '/dashboard'}"
+        >
+          {{item.label}}
+        </a>
+      </ng-container>
+
+      <!-- Logout button for mobile menu -->
+      <button class="logout-button hover-effect mobile-only" (click)="logout()">
+        <mat-icon>logout</mat-icon>
+        <span>Logout</span>
+      </button>
+    </div>
+
+    <div class="nav-right">
+      <!-- Logout button for desktop/tablet -->
+      <button class="logout-button hover-effect desktop-only" (click)="logout()">
+        <mat-icon>logout</mat-icon>
+        <span>Logout</span>
+      </button>
+
+      <!-- Mobile Menu Button -->
+      <button class="mobile-menu-btn" (click)="toggleMobileMenu()">
+        <mat-icon>{{ isMobileMenuOpen ? 'close' : 'menu' }}</mat-icon>
+      </button>
+    </div>
+  </div>
+</nav> 

@@ -86,4 +86,33 @@ export class StorageService {
     const randomString = Math.random().toString(36).substring(2, 15);
     return `${timestamp}-${randomString}.${extension}`;
   }
+
+  async uploadVideo(file: File, onProgress: (progress: number) => void): Promise<string> {
+    const timestamp = new Date().getTime();
+    const filePath = `videos/${timestamp}_${file.name}`;
+    const storageRef = ref(this.storage, filePath);
+    const uploadTask = uploadBytesResumable(storageRef, file);
+
+    return new Promise((resolve, reject) => {
+      uploadTask.on('state_changed',
+        (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          onProgress(progress);
+        },
+        (error) => {
+          console.error('Upload error:', error);
+          reject(error);
+        },
+        async () => {
+          try {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            resolve(downloadURL);
+          } catch (error) {
+            console.error('Error getting download URL:', error);
+            reject(error);
+          }
+        }
+      );
+    });
+  }
 } 

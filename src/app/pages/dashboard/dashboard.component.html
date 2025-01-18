@@ -1,16 +1,140 @@
-<div class="page-container">
-  <section class="dashboard-section">
-    <h1>Dashboard</h1>
-    <p class="section-subtitle">Willkommen in Ihrem persönlichen Bereich.</p>
-    <div class="dashboard-grid">
-      <mat-card class="dashboard-card hover-effect">
-        <mat-card-header>
-          <mat-card-title>Übersicht</mat-card-title>
-        </mat-card-header>
+<app-dashboard-navbar></app-dashboard-navbar>
+
+<!-- Router Outlet für Child-Routen -->
+<router-outlet *ngIf="isChildRoute"></router-outlet>
+
+<!-- Dashboard Content -->
+<div class="dashboard-container" *ngIf="!isChildRoute">
+  <!-- Welcome Section -->
+  <header class="welcome-section">
+    <div class="welcome-content">
+      <h1>Willkommen zurück, {{userData?.firstName || 'Kunde'}}! 👋</h1>
+      <p class="welcome-message">Entdecken Sie Ihre persönliche Lernumgebung</p>
+    </div>
+  </header>
+
+  <div class="dashboard-grid">
+    <!-- Left Column: User Profile -->
+    <div class="dashboard-column profile-section">
+      <mat-card class="profile-card">
         <mat-card-content>
-          <!-- Dashboard-Content wird hier später dynamisch eingefügt -->
+          <div class="profile-header">
+            <div class="profile-avatar">
+              <mat-icon class="avatar-icon">account_circle</mat-icon>
+            </div>
+            <div class="profile-info">
+              <h2>{{userData?.firstName}} {{userData?.lastName}}</h2>
+              <p class="email">{{userData?.email}}</p>
+            </div>
+          </div>
+          
+          <div class="profile-details">
+            <div class="detail-item">
+              <mat-icon>location_on</mat-icon>
+              <div class="detail-content">
+                <p>{{userData?.street}} {{userData?.streetNumber}}</p>
+                <p>{{userData?.zipCode}} {{userData?.city}}</p>
+                <p>{{userData?.country}}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="membership-info">
+            <h3>Mitgliedschaft</h3>
+            <div class="detail-item">
+              <mat-icon>verified</mat-icon>
+              <div class="detail-content">
+                <p class="value status-active">{{userData?.status}}</p>
+              </div>
+            </div>
+            <div class="detail-item">
+              <mat-icon>calendar_today</mat-icon>
+              <div class="detail-content">
+                <p class="label">Aktiviert am</p>
+                <p class="value">{{userData?.purchaseDate?.toDate() | date:'dd.MM.yyyy'}}</p>
+              </div>
+            </div>
+          </div>
+
+          <button mat-flat-button color="primary" class="edit-profile-btn" routerLink="/dashboard/profile">
+            <mat-icon>edit</mat-icon>
+            Profil bearbeiten
+          </button>
         </mat-card-content>
       </mat-card>
     </div>
-  </section>
+
+    <!-- Middle Column: Courses -->
+    <div class="dashboard-column courses-section">
+      <h2 class="section-title">Meine Kurse</h2>
+      
+      <!-- Loading State -->
+      <div class="loading-container" *ngIf="isLoading">
+        <mat-spinner diameter="40"></mat-spinner>
+      </div>
+
+      <!-- Empty State -->
+      <div class="empty-state" *ngIf="!(courses$ | async)?.length && !isLoading">
+        <mat-icon>school</mat-icon>
+        <h3>Keine Kurse gefunden</h3>
+        <p>Sie haben noch keine Kurse aktiviert.</p>
+        <button mat-flat-button color="accent" routerLink="/shop">
+          <mat-icon>shopping_cart</mat-icon>
+          Zum Shop
+        </button>
+      </div>
+
+      <!-- Courses Grid -->
+      <div class="courses-grid" *ngIf="(courses$ | async)?.length">
+        <mat-card class="course-card" *ngFor="let course of courses$ | async">
+          <img [src]="course.image" [alt]="course.title" class="course-image">
+          <mat-card-content>
+            <div class="course-header">
+              <h3>{{course.title}}</h3>
+              <div class="course-stats">
+                <span class="stat">
+                  <mat-icon>folder</mat-icon>
+                  {{getModuleCount(course)}} Module
+                </span>
+                <span class="stat">
+                  <mat-icon>school</mat-icon>
+                  {{getLessonCount(course)}} Lektionen
+                </span>
+              </div>
+            </div>
+            <div class="course-progress">
+              <div class="progress-bar">
+                <div class="progress" [style.width.%]="getCourseProgress(course)"></div>
+              </div>
+              <span class="progress-text">{{getCourseProgress(course)}}% abgeschlossen</span>
+            </div>
+            <button mat-flat-button color="accent" class="continue-btn" (click)="continueCourse(course.id)">
+              <mat-icon>play_arrow</mat-icon>
+              {{getCourseProgress(course) > 0 ? 'Weiterschauen' : 'Jetzt starten'}}
+            </button>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </div>
+
+    <!-- Right Column: Quick Actions -->
+    <div class="dashboard-column actions-section">
+      <h2 class="section-title">Schnellzugriff</h2>
+      <div class="action-buttons">
+        <button mat-stroked-button class="action-btn" routerLink="/dashboard/courses">
+          <mat-icon>school</mat-icon>
+          Alle Kurse
+        </button>
+        <button mat-stroked-button class="action-btn" routerLink="/dashboard/profile">
+          <mat-icon>person</mat-icon>
+          Mein Profil
+        </button>
+        <button mat-stroked-button class="action-btn" routerLink="/dashboard/support">
+          <mat-icon>help</mat-icon>
+          Support
+        </button>
+      
+      </div>
+    </div>
+  </div>
 </div>
