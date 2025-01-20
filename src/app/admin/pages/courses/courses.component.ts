@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule, Router } from '@angular/router';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -17,6 +18,7 @@ import { ConfirmDialogComponent } from '../../components/confirm-dialog/confirm-
   standalone: true,
   imports: [
     CommonModule,
+    RouterModule,
     MatTableModule,
     MatButtonModule,
     MatIconModule,
@@ -34,7 +36,8 @@ export class CoursesComponent implements OnInit {
 
   constructor(
     private courseService: CourseService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private router: Router
   ) {}
 
   ngOnInit() {
@@ -109,5 +112,9 @@ export class CoursesComponent implements OnInit {
     this.courseService.updateCourse(course.id, updatedCourse).then(() => {
       this.loadCourses();
     });
+  }
+
+  manageCourseModules(course: Course) {
+    this.router.navigate(['admin', 'courses', course.id, 'modules']);
   }
 } 

@@ -1,291 +1,195 @@
-.dialog-container {
-  background-color: #1a1a1a;
-  color: white;
-  display: flex;
-  flex-direction: column;
+:host {
+  display: block;
   height: 100%;
-  
-  h2 {
-    color: white;
-    margin: 0;
-    padding: 24px;
-    font-size: 24px;
+}
+
+.dialog-container {
+  padding: 24px;
+}
+
+.form-content {
+  padding: 24px 0;
+}
+
+.section {
+  margin-bottom: 32px;
+
+  h3 {
+    margin: 0 0 16px;
+    font-size: 18px;
     font-weight: 500;
-    background-color: #2a2a2a;
-    border-bottom: 1px solid #3a3a3a;
+  }
+}
+
+.form-row {
+  margin-bottom: 16px;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.image-upload {
+  .upload-container {
+    cursor: pointer;
+    border: 2px dashed rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.5);
+    }
   }
 
-  form {
+  .preview-container {
+    position: relative;
+    width: 100%;
+    height: 200px;
     display: flex;
-    flex-direction: column;
-    flex: 1;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
     overflow: hidden;
-  }
 
-  .form-content {
-    flex: 1;
-    overflow-y: auto;
-    padding: 24px;
-
-    .section {
-      background-color: #2a2a2a;
-      border-radius: 8px;
-      padding: 24px;
-      margin-bottom: 24px;
-
-      &:last-child {
-        margin-bottom: 0;
-      }
-
-      h3 {
-        color: #ffd700;
-        margin: 0 0 20px;
-        font-size: 18px;
-        font-weight: 500;
-      }
-
-      .section-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-
-        button {
-          background: linear-gradient(45deg, #ffd700, #ffed4a);
-          color: #1a1a1a;
-          border: none;
-          padding: 0 24px;
-          height: 36px;
-          border-radius: 18px;
-          font-weight: 500;
-          
-          &:hover {
-            background: linear-gradient(45deg, #ffed4a, #ffd700);
-          }
-
-          mat-icon {
-            margin-right: 8px;
-          }
-        }
-      }
+    &.has-image {
+      background: none;
     }
 
-    .form-row {
-      margin-bottom: 20px;
-
-      &:last-child {
-        margin-bottom: 0;
-      }
-
-      mat-form-field {
-        width: 100%;
-
-        ::ng-deep {
-          .mat-mdc-form-field-flex {
-            background-color: #3a3a3a;
-          }
-
-          .mat-mdc-text-field-wrapper {
-            background-color: #3a3a3a;
-          }
-
-          .mdc-text-field--outlined:not(.mdc-text-field--disabled) .mdc-notched-outline__leading,
-          .mdc-text-field--outlined:not(.mdc-text-field--disabled) .mdc-notched-outline__notch,
-          .mdc-text-field--outlined:not(.mdc-text-field--disabled) .mdc-notched-outline__trailing {
-            border-color: #4a4a4a;
-          }
-
-          .mat-mdc-form-field-label {
-            color: #999;
-          }
-
-          .mdc-text-field:not(.mdc-text-field--disabled) .mdc-text-field__input {
-            color: white;
-          }
-        }
-      }
+    img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
     }
 
-    .image-upload {
-      .upload-container {
-        cursor: pointer;
-        border: 2px dashed #4a4a4a;
-        border-radius: 8px;
-        transition: all 0.3s ease;
+    .upload-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      color: rgba(255, 255, 255, 0.7);
 
-        &:hover {
-          border-color: #ffd700;
-          background-color: rgba(255, 215, 0, 0.05);
-        }
-
-        .preview-container {
-          min-height: 200px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 20px;
-
-          &.has-image {
-            min-height: auto;
-          }
-
-          img {
-            max-width: 100%;
-            max-height: 300px;
-            border-radius: 4px;
-          }
-
-          .upload-placeholder {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
-
-            mat-icon {
-              font-size: 48px;
-              width: 48px;
-              height: 48px;
-              color: #666;
-            }
-
-            span {
-              color: #999;
-              font-size: 14px;
-            }
-          }
-        }
-      }
-
-      mat-progress-bar {
-        margin-top: 12px;
-
-        ::ng-deep .mdc-linear-progress__bar-inner {
-          border-color: #ffd700;
-        }
-      }
-    }
-
-    .modules-list {
-      mat-expansion-panel {
-        background-color: #3a3a3a;
-        color: white;
-        margin-bottom: 12px;
-
-        &:last-child {
-          margin-bottom: 0;
-        }
-
-        ::ng-deep {
-          .mat-expansion-panel-header {
-            background-color: #3a3a3a;
-            
-            &:hover {
-              background-color: #4a4a4a;
-            }
-          }
-
-          .mat-expansion-panel-header-title {
-            color: white;
-          }
-
-          .mat-expansion-panel-header-description {
-            color: #999;
-          }
-
-          .mat-expansion-indicator::after {
-            color: #999;
-          }
-        }
-
-        .module-content {
-          padding-top: 16px;
-
-          .module-actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 8px;
-            margin-bottom: 16px;
-          }
-
-          .lessons-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-
-            h4 {
-              margin: 0;
-              color: #ffd700;
-              font-size: 16px;
-              font-weight: 500;
-            }
-
-            button {
-              color: #ffd700;
-
-              mat-icon {
-                margin-right: 8px;
-              }
-            }
-          }
-
-          mat-list {
-            padding: 0;
-
-            mat-list-item {
-              border-radius: 4px;
-              margin-bottom: 8px;
-              background-color: #2a2a2a;
-
-              &:hover {
-                background-color: #4a4a4a;
-              }
-
-              ::ng-deep {
-                .mdc-list-item__primary-text {
-                  color: white;
-                }
-
-                .mdc-list-item__secondary-text {
-                  color: #999;
-                }
-
-                .mat-mdc-list-item-icon {
-                  color: #ffd700;
-                }
-              }
-
-              .lesson-actions {
-                display: flex;
-                gap: 8px;
-              }
-            }
-          }
-        }
+      mat-icon {
+        font-size: 48px;
+        width: 48px;
+        height: 48px;
       }
     }
   }
+}
 
-  .dialog-actions {
-    padding: 16px 24px;
-    background-color: #2a2a2a;
-    border-top: 1px solid #3a3a3a;
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+
+  h3 {
+    margin: 0;
+  }
+}
+
+.modules-list {
+  mat-expansion-panel {
+    background: #2a2a2a;
+    margin-bottom: 8px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.module-content {
+  padding: 16px 0;
+}
+
+.module-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.lessons-list {
+  .lessons-header {
     display: flex;
-    justify-content: flex-end;
-    gap: 12px;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
 
-    button[color="accent"] {
-      background: linear-gradient(45deg, #ffd700, #ffed4a);
-      color: #1a1a1a;
+    h4 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 500;
+    }
+  }
 
-      &:hover {
-        background: linear-gradient(45deg, #ffed4a, #ffd700);
+  mat-list {
+    padding: 0;
+  }
+
+  mat-list-item {
+    background: rgba(255, 255, 255, 0.05);
+    margin-bottom: 8px;
+    border-radius: 4px;
+    height: auto !important;
+    padding: 8px !important;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+
+      .lesson-actions {
+        opacity: 1;
       }
+    }
 
-      &:disabled {
-        background: #4a4a4a;
-        color: #999;
-      }
+    .mdc-list-item__content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .lesson-actions {
+      display: flex;
+      gap: 8px;
+      margin-left: auto;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+  }
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+@media (max-width: 768px) {
+  .dialog-container {
+    padding: 16px;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+
+    button {
+      width: 100%;
+    }
+  }
+
+  .module-actions {
+    flex-direction: column;
+
+    button {
+      width: 100%;
     }
   }
 } 

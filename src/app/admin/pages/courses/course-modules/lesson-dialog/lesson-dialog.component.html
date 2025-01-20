@@ -1,68 +1,153 @@
 <div class="dialog-container">
-  <h2 mat-dialog-title>{{ isEditMode ? 'Lektion bearbeiten' : 'Neue Lektion' }}</h2>
-
+  <h2>{{ data.lesson ? 'Lektion bearbeiten' : 'Neue Lektion' }}</h2>
   <form [formGroup]="lessonForm" (ngSubmit)="onSubmit()">
     <mat-dialog-content>
-      <mat-form-field appearance="outline">
-        <mat-label>Titel</mat-label>
-        <input matInput formControlName="title" required>
-        <mat-error *ngIf="lessonForm.get('title')?.hasError('required')">
-          Titel ist erforderlich
-        </mat-error>
-      </mat-form-field>
+      <mat-tab-group>
+        <!-- Basis Info Tab -->
+        <mat-tab label="Basis Info">
+          <div class="section">
+            <mat-form-field appearance="fill">
+              <mat-label>Titel</mat-label>
+              <input matInput formControlName="title" required>
+              <mat-error *ngIf="lessonForm.get('title')?.hasError('required')">Titel ist erforderlich</mat-error>
+            </mat-form-field>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Beschreibung</mat-label>
-        <textarea matInput formControlName="description" required rows="4"></textarea>
-        <mat-error *ngIf="lessonForm.get('description')?.hasError('required')">
-          Beschreibung ist erforderlich
-        </mat-error>
-      </mat-form-field>
+            <mat-form-field appearance="fill">
+              <mat-label>Beschreibung</mat-label>
+              <textarea matInput formControlName="description" rows="4"></textarea>
+            </mat-form-field>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Dauer (in Minuten)</mat-label>
-        <input matInput type="number" formControlName="duration" required min="1">
-        <mat-error *ngIf="lessonForm.get('duration')?.hasError('required')">
-          Dauer ist erforderlich
-        </mat-error>
-        <mat-error *ngIf="lessonForm.get('duration')?.hasError('min')">
-          Dauer muss mindestens 1 Minute betragen
-        </mat-error>
-      </mat-form-field>
-
-      <!-- Video Upload Section -->
-      <div class="video-upload-section">
-        <input #videoInput type="file" accept="video/*" (change)="onVideoSelected($event)" hidden>
-        
-        <div class="upload-area" *ngIf="!videoPreview" (click)="triggerVideoInput()">
-          <mat-icon>cloud_upload</mat-icon>
-          <p>Video hochladen</p>
-          <span class="hint">Klicken oder Video hierher ziehen</span>
-        </div>
-
-        <div class="video-preview" *ngIf="videoPreview">
-          <div class="video-info">
-            <mat-icon>video_library</mat-icon>
-            <span class="video-name">{{ videoName }}</span>
+            <mat-form-field appearance="fill">
+              <mat-label>Dauer (Minuten)</mat-label>
+              <input matInput type="number" formControlName="duration" min="1" required>
+              <mat-error *ngIf="lessonForm.get('duration')?.hasError('required')">Dauer ist erforderlich</mat-error>
+              <mat-error *ngIf="lessonForm.get('duration')?.hasError('min')">Dauer muss mindestens 1 Minute sein</mat-error>
+            </mat-form-field>
           </div>
-          <div class="video-actions">
-            <button type="button" mat-icon-button (click)="triggerVideoInput()" matTooltip="Video ändern">
-              <mat-icon>edit</mat-icon>
-            </button>
-            <button type="button" mat-icon-button (click)="removeVideo()" matTooltip="Video entfernen">
-              <mat-icon>delete</mat-icon>
-            </button>
-          </div>
-        </div>
+        </mat-tab>
 
-        <mat-progress-bar *ngIf="uploadProgress > 0" mode="determinate" [value]="uploadProgress"></mat-progress-bar>
-      </div>
+        <!-- Video Tab -->
+        <mat-tab label="Video (Optional)">
+          <div class="video-upload-section">
+            <h4>Video</h4>
+            <ng-container *ngIf="!videoUrl && !uploadProgress">
+              <div class="upload-area" (click)="triggerVideoInput()">
+                <mat-icon>cloud_upload</mat-icon>
+                <p>Klicken zum Video hochladen</p>
+                <span class="hint">Unterstützte Formate: MP4, WebM (max 500MB)</span>
+                <input #videoInput type="file" hidden accept="video/*" (change)="onVideoSelected($event)">
+              </div>
+            </ng-container>
+
+            <div *ngIf="videoUrl" class="video-preview">
+              <div class="video-info">
+                <mat-icon>video_library</mat-icon>
+                <span class="video-name">{{ getVideoFileName() }}</span>
+              </div>
+              <div class="video-actions">
+                <button mat-icon-button color="warn" type="button" (click)="removeVideo()">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+            </div>
+
+            <mat-progress-bar *ngIf="uploadProgress > 0" mode="determinate" [value]="uploadProgress"></mat-progress-bar>
+            <p *ngIf="uploadProgress > 0" class="upload-status">Upload läuft: {{ uploadProgress }}%</p>
+          </div>
+        </mat-tab>
+
+        <!-- Dateien Tab -->
+        <mat-tab label="Dateien (Optional)">
+          <div class="files-section">
+            <h4>Zusätzliche Dateien</h4>
+            <div class="upload-container" (click)="triggerFileInput()">
+              <mat-icon>attach_file</mat-icon>
+              <p>Klicken zum Dateien hochladen</p>
+              <span class="hint">PDF, DOC, DOCX, etc. (max 50MB pro Datei)</span>
+              <input #fileInput type="file" hidden multiple (change)="onFilesSelected($event)">
+            </div>
+
+            <div class="files-list" formArrayName="files">
+              <div *ngFor="let file of files.controls; let i = index" class="file-item">
+                <div class="file-info">
+                  <mat-icon>insert_drive_file</mat-icon>
+                  <span class="file-name">{{ getFileName(i) }}</span>
+                </div>
+                <button mat-icon-button color="warn" type="button" (click)="removeFile(i)">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+            </div>
+          </div>
+        </mat-tab>
+
+        <!-- Quiz Tab -->
+        <mat-tab label="Quiz (Optional)">
+          <div class="quiz-section">
+            <h4>Quiz Fragen</h4>
+            <div formGroupName="quiz">
+              <mat-form-field appearance="fill" class="quiz-title">
+                <mat-label>Quiz Titel</mat-label>
+                <input matInput formControlName="title">
+              </mat-form-field>
+
+              <div formArrayName="questions">
+                <mat-accordion>
+                  <mat-expansion-panel *ngFor="let question of questions.controls; let i = index" [formGroupName]="i">
+                    <mat-expansion-panel-header>
+                      <mat-panel-title>
+                        Frage {{ i + 1 }}
+                      </mat-panel-title>
+                    </mat-expansion-panel-header>
+
+                    <mat-form-field appearance="fill">
+                      <mat-label>Frage Text</mat-label>
+                      <textarea matInput formControlName="text" rows="2"></textarea>
+                    </mat-form-field>
+
+                    <div formArrayName="options">
+                      <div *ngFor="let option of getOptionsForQuestion(i).controls; let j = index" class="option-container">
+                        <mat-checkbox [checked]="isCorrectAnswer(i, j)" 
+                                    (change)="toggleCorrectAnswer(i, j)">
+                          Richtig
+                        </mat-checkbox>
+                        <mat-form-field appearance="fill">
+                          <mat-label>Option {{ j + 1 }}</mat-label>
+                          <input matInput [formControlName]="j">
+                        </mat-form-field>
+                        <button mat-icon-button color="warn" type="button" (click)="removeOption(i, j)"
+                                [disabled]="getOptionsForQuestion(i).length <= 2">
+                          <mat-icon>remove_circle</mat-icon>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div class="question-actions">
+                      <button mat-button type="button" (click)="addOption(i)" 
+                              [disabled]="getOptionsForQuestion(i).length >= 6">
+                        <mat-icon>add</mat-icon> Option hinzufügen
+                      </button>
+                      <button mat-button color="warn" type="button" (click)="removeQuestion(i)">
+                        <mat-icon>delete</mat-icon> Frage entfernen
+                      </button>
+                    </div>
+                  </mat-expansion-panel>
+                </mat-accordion>
+
+                <button mat-button type="button" (click)="addQuestion()" class="add-question-btn">
+                  <mat-icon>add</mat-icon> Frage hinzufügen
+                </button>
+              </div>
+            </div>
+          </div>
+        </mat-tab>
+      </mat-tab-group>
     </mat-dialog-content>
 
-    <mat-dialog-actions align="end">
-      <button mat-button type="button" (click)="onCancel()">Abbrechen</button>
-      <button mat-flat-button color="primary" type="submit" [disabled]="!lessonForm.valid">
-        {{ isEditMode ? 'Speichern' : 'Erstellen' }}
+    <mat-dialog-actions>
+      <button mat-button type="button" [mat-dialog-close]>Abbrechen</button>
+      <button mat-button color="primary" type="submit" [disabled]="!lessonForm.valid || uploadProgress > 0">
+        {{ data.lesson ? 'Änderungen speichern' : 'Lektion hinzufügen' }}
       </button>
     </mat-dialog-actions>
   </form>

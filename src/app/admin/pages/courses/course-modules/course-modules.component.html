@@ -42,28 +42,25 @@
             </div>
 
             <!-- Lektionen -->
-            <mat-list>
-              <mat-list-item *ngFor="let lesson of module.lessons">
-                <mat-icon matListItemIcon>play_circle</mat-icon>
-                <div matListItemTitle>{{lesson.title}}</div>
-                <div matListItemLine>{{lesson.description}}</div>
-                <div class="lesson-actions">
-                  <button mat-icon-button [matMenuTriggerFor]="lessonMenu">
-                    <mat-icon>more_vert</mat-icon>
-                  </button>
-                  <mat-menu #lessonMenu="matMenu">
-                    <button mat-menu-item (click)="editLesson(module, lesson)">
+            <div class="lessons-list">
+              <div class="lesson-item" *ngFor="let lesson of module.lessons">
+                <div class="lesson-content">
+                  <mat-icon>play_circle</mat-icon>
+                  <div class="lesson-info">
+                    <div class="lesson-title">{{lesson.title}}</div>
+                    <div class="lesson-duration">{{lesson.duration}} Minuten</div>
+                  </div>
+                  <div class="lesson-actions">
+                    <button mat-icon-button color="primary" (click)="editLesson(module, lesson)" matTooltip="Lektion bearbeiten">
                       <mat-icon>edit</mat-icon>
-                      <span>Bearbeiten</span>
                     </button>
-                    <button mat-menu-item (click)="deleteLesson(module, lesson)">
+                    <button mat-icon-button color="warn" (click)="deleteLesson(module, lesson)" matTooltip="Lektion löschen">
                       <mat-icon>delete</mat-icon>
-                      <span>Löschen</span>
                     </button>
-                  </mat-menu>
+                  </div>
                 </div>
-              </mat-list-item>
-            </mat-list>
+              </div>
+            </div>
           </mat-expansion-panel>
         </mat-accordion>
       </mat-card-content>
