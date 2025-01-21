@@ -2,6 +2,8 @@ import { Injectable } from '@angular/core';
 import { Storage, ref, uploadBytes, getDownloadURL, deleteObject, uploadBytesResumable } from '@angular/fire/storage';
 import { Auth } from '@angular/fire/auth';
 import { Observable, Subject } from 'rxjs';
+import { AngularFireStorage } from '@angular/fire/compat/storage';
+import { finalize } from 'rxjs/operators';
 
 export interface UploadProgress {
   progress: number;
@@ -14,7 +16,8 @@ export interface UploadProgress {
 export class StorageService {
   constructor(
     private storage: Storage,
-    private auth: Auth
+    private auth: Auth,
+    private angularFireStorage: AngularFireStorage
   ) {}
 
   uploadProductImage(file: File, path: string): Observable<UploadProgress> {
@@ -114,5 +117,33 @@ export class StorageService {
         }
       );
     });
+  }
+
+  async uploadFile(path: string, file: File): Promise<string> {
+    const ref = this.angularFireStorage.ref(path);
+    const task = ref.put(file);
+
+    return new Promise((resolve, reject) => {
+      task.snapshotChanges().pipe(
+        finalize(async () => {
+          try {
+            const url = await ref.getDownloadURL().toPromise();
+            resolve(url);
+          } catch (error) {
+            reject(error);
+          }
+        })
+      ).subscribe({
+        error: (error) => reject(error)
+      });
+    });
+  }
+
+  deleteFile(path: string): Promise<void> {
+    return this.angularFireStorage.ref(path).delete().toPromise();
+  }
+
+  getDownloadURL(path: string): Observable<string> {
+    return this.angularFireStorage.ref(path).getDownloadURL();
   }
 } 

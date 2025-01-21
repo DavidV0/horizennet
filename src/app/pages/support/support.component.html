@@ -1,0 +1,66 @@
+<div class="chat-container">
+  <div class="chat-header">
+    <h1>Support Chat</h1>
+    <p>Unser Support-Team ist für Sie da</p>
+  </div>
+
+  <div class="messages-container" #scrollContainer>
+    <div class="message" *ngFor="let message of messages" 
+         [class.own-message]="message.senderId !== 'support'">
+      <div class="message-content">
+        <div class="message-header">
+          <span class="sender-name">
+            {{message.senderId === 'support' ? 'Support' : message.senderName}}
+          </span>
+          <span class="timestamp">{{message.timestamp | date:'HH:mm'}}</span>
+        </div>
+        <div class="message-bubble">
+          <div class="message-text">{{message.text}}</div>
+          <div class="files" *ngIf="message.files?.length">
+            <div class="file" *ngFor="let file of message.files" (click)="downloadFile(file)">
+              <mat-icon>{{getFileIcon(file.type)}}</mat-icon>
+              <span class="file-name">{{file.name}}</span>
+            </div>
+          </div>
+        </div>
+        <div class="message-status" *ngIf="message.senderId === currentUserId">
+          <mat-icon [class.read]="message.status === 'read'">
+            {{getStatusIcon(message.status)}}
+          </mat-icon>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="input-container">
+    <input #fileInput type="file" multiple hidden (change)="onFilesSelected($event)"
+           accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.xls,.xlsx,.mp4,.mov">
+    
+    <!-- Dateivorschau -->
+    <div class="file-preview" *ngIf="selectedFilePreview">
+      <div class="file-info">
+        <mat-icon>{{selectedFilePreview.icon}}</mat-icon>
+        <span class="file-name">{{selectedFilePreview.name}}</span>
+      </div>
+      <button mat-icon-button (click)="removeSelectedFile()">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    <button mat-icon-button (click)="fileInput.click()">
+      <mat-icon>attach_file</mat-icon>
+    </button>
+    
+    <mat-form-field appearance="outline">
+      <input matInput 
+             [(ngModel)]="newMessage" 
+             placeholder="Schreiben Sie eine Nachricht..."
+             (keyup.enter)="sendMessage()">
+    </mat-form-field>
+
+    <button mat-icon-button (click)="sendMessage()" 
+            [disabled]="!newMessage?.trim() && !selectedFiles.length">
+      <mat-icon>send</mat-icon>
+    </button>
+  </div>
+</div> 

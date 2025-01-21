@@ -3,6 +3,14 @@ import { Auth, signInWithEmailAndPassword, signOut, user } from '@angular/fire/a
 import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 
+interface User {
+  uid: string;
+  email: string | null;
+  firstName?: string;
+  lastName?: string;
+  // ... andere Felder
+}
+
 @Injectable({
   providedIn: 'root'
 })

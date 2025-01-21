@@ -1,1 +1,37 @@
-{"functions":{"source":"functions"},"emulators":{"functions":{"port":5002},"ui":{"port":4242},"hub":{"port":4245},"logging":{"port":4246}}}
+{
+  "functions": {
+    "source": "functions"
+  },
+  "emulators": {
+    "functions": {
+      "port": 5002
+    },
+    "ui": {
+      "port": 4242
+    },
+    "hub": {
+      "port": 4245
+    },
+    "logging": {
+      "port": 4246
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "hosting": {
+    "public": "dist/horizennet",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}

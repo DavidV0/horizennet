@@ -11,6 +11,8 @@ import { LoginComponent } from './pages/login/login.component';
 import { DashboardHomeComponent } from './components/dashboard-home/dashboard-home.component';
 import { FaqsComponent } from './pages/faqs/faqs.component';
 import { CoursesComponent } from './pages/courses/courses.component';
+import { ChatListComponent } from './pages/support/chat-list/chat-list.component';
+import { ChatDetailComponent } from './pages/support/chat-detail/chat-detail.component';
 
 const routes: Routes = [
   {
@@ -30,7 +32,9 @@ const routes: Routes = [
       { path: 'products', component: ProductsComponent },
       { path: 'faqs', component: FaqsComponent },
       { path: 'create-admin', component: CreateAdminComponent },
-      { path: 'courses', component: CoursesComponent }
+      { path: 'courses', component: CoursesComponent },
+      { path: 'support', component: ChatListComponent },
+      { path: 'support/:id', component: ChatDetailComponent }
     ]
   }
 ];
