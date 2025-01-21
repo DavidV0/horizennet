@@ -399,70 +399,61 @@
         margin-bottom: var(--spacing-md);
 
         .progress-bar {
-          height: 6px;
+          height: 4px;
           background: #2a2a2a;
-          border-radius: 3px;
-          overflow: hidden;
+          border-radius: 2px;
           margin-bottom: var(--spacing-xs);
+          overflow: hidden;
 
           .progress {
             height: 100%;
-            background: linear-gradient(45deg, var(--color-accent), var(--color-accent-light));
-            border-radius: 3px;
+            background: linear-gradient(45deg, #ffd700, #ffed4a);
+            border-radius: 2px;
             transition: width 0.3s ease;
           }
         }
 
         .progress-text {
-          font-size: 0.9rem;
-          color: var(--color-text-secondary);
+          color: #ffd700;
+          font-size: 0.8rem;
+          font-weight: 500;
         }
       }
 
-      .continue-btn {
-        background: linear-gradient(45deg, #ffd700, #ffed4a) !important;
-        color: #1a1a1a !important;
-        font-weight: 500;
-        padding: 8px 24px !important;
-        border-radius: 8px !important;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-xs);
-
-        &:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(255, 215, 0, 0.3);
-          background: linear-gradient(45deg, #ffed4a, #ffd700) !important;
-        }
-
-        mat-icon {
-          margin-right: var(--spacing-xs);
-          font-size: 20px;
-          width: 20px;
-          height: 20px;
-        }
-
-        .mdc-button__label {
+      mat-card-actions {
+        button {
+          background: linear-gradient(45deg, #ffd700, #ffed4a) !important;
+          color: #1a1a1a !important;
+          font-weight: 500;
+          padding: 8px 24px !important;
+          border-radius: 8px !important;
+          transition: all 0.3s ease;
+          box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
           display: flex;
           align-items: center;
           gap: var(--spacing-xs);
+          width: 100%;
+
+          &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 215, 0, 0.3);
+            background: linear-gradient(45deg, #ffed4a, #ffd700) !important;
+          }
+
+          mat-icon {
+            color: #1a1a1a !important;
+          }
+
+          // Entferne Material Design Ripple-Effekt
+          .mat-mdc-button-persistent-ripple {
+            display: none;
+          }
+
+          .mat-mdc-button-touch-target {
+            display: none;
+          }
         }
       }
-    }
-  }
-}
-
-// Überschreibe Material Styles
-::ng-deep {
-  .continue-btn {
-    .mat-mdc-button-persistent-ripple {
-      display: none;
-    }
-
-    .mat-mdc-button-touch-target {
-      display: none;
     }
   }
 }

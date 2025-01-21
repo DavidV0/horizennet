@@ -297,38 +297,29 @@ export class LessonDialogComponent implements OnInit {
     return parts[parts.length - 1];
   }
 
-  onSubmit() {
-    if (this.lessonForm.valid && this.uploadProgress === 0) {
+  onSubmit(): void {
+    if (this.lessonForm.valid) {
       const formValue = this.lessonForm.value;
       
-      // Debug-Log
-      console.log('Quiz Form Value:', formValue.quiz);
-      
-      const lesson: Lesson = {
+      const lessonData: Partial<Lesson> = {
         id: this.data.lesson?.id || crypto.randomUUID(),
         title: formValue.title,
-        description: formValue.description || '',
+        description: formValue.description,
         duration: formValue.duration,
-        type: 'video',
+        type: formValue.type,
+        videoUrl: formValue.videoUrl,
         content: formValue.content || '',
-        videoUrl: this.videoUrl || '',
-        files: formValue.files?.length > 0 ? formValue.files : undefined,
-        completed: this.data.lesson?.completed || false,
-        // Prüfe ob es tatsächlich Quiz-Fragen gibt
-        quiz: formValue.quiz?.questions?.length > 0 ? {
-          title: formValue.quiz.title || 'Quiz',
-          questions: formValue.quiz.questions.map((q: QuizFormValue['questions'][0]) => ({
-            text: q.text,
-            options: q.options,
-            correctAnswers: q.correctAnswers || []
-          }))
-        } : undefined
+        files: formValue.files || []
       };
 
-      // Debug-Log
-      console.log('Processed Lesson with Quiz:', lesson);
-      
-      this.dialogRef.close(lesson);
+      if (formValue.type === 'quiz') {
+        lessonData.quiz = {
+          title: formValue.quizTitle || '',
+          questions: formValue.questions || []
+        };
+      }
+
+      this.dialogRef.close(lessonData);
     }
   }
 

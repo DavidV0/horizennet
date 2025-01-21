@@ -1,12 +1,6 @@
-<div class="module-detail">
-  <!-- Modul-Details hier -->
-  <router-outlet></router-outlet>
-</div>
-
 <div class="module-detail-container" *ngIf="module$ | async as module">
   <div class="module-header">
     <div class="module-image">
-      <img [src]="module.image || 'assets/images/module-placeholder.jpg'" [alt]="module.title">
       <div class="module-overlay">
         <h2>Modul {{moduleIndex + 1}}</h2>
       </div>
@@ -33,48 +27,26 @@
         <span>Nächste Lektion beginnen</span>
         <mat-icon>chevron_right</mat-icon>
       </button>
-      <span class="next-lesson-title">
-        {{nextLesson()?.title}} ({{nextLesson()?.duration}})
-      </span>
+      <span class="next-lesson-title">{{nextLesson()?.title}} ({{nextLesson()?.duration}})</span>
     </div>
 
     <div class="lessons-list">
-      <div class="lesson-item" 
-           *ngFor="let lesson of module.lessons; let i = index"
-           [class.completed]="getLessonProgress(module.id, lesson.id) | async">
-        <div class="lesson-status">
-          <mat-icon *ngIf="getLessonProgress(module.id, lesson.id) | async" 
-                   class="completed">
-            check_circle
-          </mat-icon>
-          <mat-icon *ngIf="!(getLessonProgress(module.id, lesson.id) | async)" 
-                   class="pending">
-            play_circle_outline
-          </mat-icon>
-        </div>
+      <div class="lesson-item" *ngFor="let lesson of module.lessons; let i = index">
         <div class="lesson-content">
           <div class="lesson-info">
             <mat-icon>{{lesson.type === 'video' ? 'play_circle' : 'article'}}</mat-icon>
-            <span class="lesson-title">
-              {{lesson.title}} 
-              <span class="duration">({{lesson.duration}})</span>
-            </span>
+            <span class="lesson-title">{{lesson.title}} <span class="duration">({{lesson.duration}})</span></span>
           </div>
-          <button mat-flat-button 
-                  (click)="startLesson(lesson)"
-                  [disabled]="!(canAccessLesson(module.id, i) | async)">
-            <mat-icon>play_arrow</mat-icon>
-            Lektion starten
-          </button>
+          <div class="lesson-actions">
+            <mat-icon class="status-icon" [class.completed]="lesson.completed">
+              {{lesson.completed ? 'check_circle' : 'radio_button_unchecked'}}
+            </mat-icon>
+            <button mat-flat-button (click)="startLesson(lesson)" [disabled]="!canAccessLesson(i)">
+              {{lesson.completed ? 'Wiederholen' : 'Starten'}}
+            </button>
+          </div>
         </div>
       </div>
     </div>
-
-    <button mat-flat-button 
-            (click)="startModule(module)"
-            *ngIf="!module.lessons?.length">
-      <mat-icon>play_arrow</mat-icon>
-      Modul starten
-    </button>
   </div>
 </div> 

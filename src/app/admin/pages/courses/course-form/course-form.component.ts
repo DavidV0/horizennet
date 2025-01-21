@@ -15,6 +15,7 @@ import { Course, Module, Lesson } from '../../../../shared/models/course.model';
 import { ModuleDialogComponent } from '../course-modules/module-dialog/module-dialog.component';
 import { LessonDialogComponent } from '../course-modules/lesson-dialog/lesson-dialog.component';
 import { ConfirmDialogComponent } from '../../../components/confirm-dialog/confirm-dialog.component';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-course-form',
@@ -47,7 +48,8 @@ export class CourseFormComponent implements OnInit {
     private courseService: CourseService,
     private dialog: MatDialog,
     public dialogRef: MatDialogRef<CourseFormComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: { mode: 'create' | 'edit', course?: Course }
+    @Inject(MAT_DIALOG_DATA) public data: { mode: 'create' | 'edit', course?: Course },
+    private router: Router
   ) {
     this.isEditMode = data.mode === 'edit';
     this.courseForm = this.fb.group({
@@ -190,9 +192,6 @@ export class CourseFormComponent implements OnInit {
         const formValue = this.courseForm.value;
         const imageFile = this.courseForm.get('image')?.value;
         
-        // Debug-Log vor dem Speichern
-        console.log('Course to save:', formValue);
-        
         // Basis-Daten vorbereiten
         const courseData: Partial<Course> = {
           title: formValue.title || '',
@@ -235,9 +234,6 @@ export class CourseFormComponent implements OnInit {
           updatedAt: new Date()
         };
 
-        // Debug-Log nach der Transformation
-        console.log('Transformed course:', courseData);
-
         if (this.isEditMode && this.data.course) {
           // Update existierenden Kurs
           await this.courseService.updateCourse(
@@ -252,6 +248,27 @@ export class CourseFormComponent implements OnInit {
           const newCourse = await this.courseService.createCourse(courseData, imageFile);
           this.dialogRef.close(newCourse);
         }
+      } catch (error) {
+        console.error('Error saving course:', error);
+      }
+    }
+  }
+
+  async saveCourse() {
+    if (this.courseForm.valid) {
+      const courseData = this.courseForm.value;
+
+      try {
+        const transformedCourse = {
+          ...courseData,
+          modules: this.modules,
+          isActive: false,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+
+        await this.courseService.createCourse(transformedCourse);
+        this.router.navigate(['/admin/courses']);
       } catch (error) {
         console.error('Error saving course:', error);
       }

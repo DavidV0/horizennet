@@ -13,48 +13,4 @@
     <mat-icon>play_arrow</mat-icon>
     <span>Jetzt starten</span>
   </button>
-</div>
-
-<div class="course-actions">
-  <!-- Neuer Weitermachen Button -->
-  <button mat-flat-button 
-          *ngIf="hasProgress$ | async"
-          (click)="continueLearning()"
-          class="continue-button">
-    <mat-icon>arrow_forward</mat-icon>
-    <span>Weitermachen</span>
-  </button>
-</div>
-
-<div class="course-container" *ngIf="course">
-  <!-- Kurs Aktionen -->
-  <div class="course-actions">
-    <!-- Start Button -->
-    <button mat-flat-button 
-            class="start-button"
-            (click)="startModule()"
-            *ngIf="!(hasProgress$ | async)">
-      <mat-icon>play_arrow</mat-icon>
-      <span>Jetzt starten</span>
-    </button>
-
-    <!-- Weitermachen Button -->
-    <button mat-flat-button 
-            *ngIf="hasProgress$ | async"
-            (click)="continueLearning()"
-            class="continue-button">
-      <mat-icon>arrow_forward</mat-icon>
-      <span>Weitermachen</span>
-    </button>
-  </div>
-
-  <!-- Navigation Buttons -->
-  <div class="navigation-buttons" *ngIf="hasNextLesson()">
-    <button mat-flat-button 
-            (click)="navigateToNextLesson()"
-            class="next-lesson-button">
-      <span>Nächste Lektion</span>
-      <mat-icon>arrow_forward</mat-icon>
-    </button>
-  </div>
 </div> 

@@ -13,8 +13,6 @@ import { take, filter, switchMap, map } from 'rxjs/operators';
 import { DashboardNavbarComponent } from '../../core/components/dashboard-navbar/dashboard-navbar.component';
 import { Course } from '../../shared/models/course.model';
 import { Observable } from 'rxjs';
-import { ProgressService } from '../../shared/services/progress.service';
-import { CourseProgress } from '../../shared/models/progress.model';
 
 @Component({
   selector: 'app-dashboard',
@@ -37,16 +35,13 @@ export class DashboardComponent implements OnInit {
   isChildRoute = false;
   courses$!: Observable<Course[]>;
   isLoading = true;
-  coursesProgress$: Observable<{[courseId: string]: CourseProgress}>;
 
   constructor(
     private authService: AuthService,
     private courseService: CourseService,
     private firestore: AngularFirestore,
-    private router: Router,
-    private progressService: ProgressService
+    private router: Router
   ) {
-    this.coursesProgress$ = this.progressService.getAllCoursesProgress();
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
     ).subscribe(() => {
@@ -103,19 +98,14 @@ export class DashboardComponent implements OnInit {
     this.router.navigate(['/dashboard/courses', courseId]);
   }
 
-  startCourse(course: Course) {
+  startCourse(course: any) {
     if (course && course.id) {
       if (course.modules && course.modules.length > 0) {
         const firstModule = course.modules[0];
-        this.router.navigate(['/dashboard', 'courses', course.id, 'modules', firstModule.id]);
+        this.router.navigate(['/dashboard/courses', course.id, 'modules', firstModule.id]);
       } else {
-        this.router.navigate(['/dashboard', 'courses', course.id]);
+        this.router.navigate(['/dashboard/courses', course.id]);
       }
     }
-  }
-
-  // Fortschritt für einen Kurs anzeigen
-  getProgress(courseId: string) {
-    return this.progressService.getCourseProgress(courseId);
   }
 }

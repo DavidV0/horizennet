@@ -1,113 +1,88 @@
-.course-container {
-  .course-actions {
-    display: flex;
-    gap: var(--spacing-md);
-    margin-top: var(--spacing-lg);
-
-    button {
-      display: flex;
-      align-items: center;
-      gap: var(--spacing-xs);
-      padding: var(--spacing-sm) var(--spacing-md);
-      
-      mat-icon {
-        margin: 0;
-      }
-    }
-
-    .start-button {
-      background: linear-gradient(45deg, #ffd700, #ffed4a) !important;
-      color: #1a1a1a !important;
-      font-weight: 500;
-      padding: 8px 24px !important;
-      border-radius: 8px !important;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
-
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(255, 215, 0, 0.3);
-        background: linear-gradient(45deg, #ffed4a, #ffd700) !important;
-      }
-
-      mat-icon {
-        color: #1a1a1a !important;
-      }
-    }
-
-    .continue-button {
-      background: linear-gradient(45deg, #4CAF50, #45a049) !important;
-      color: white !important;
-      font-weight: 500;
-      padding: 8px 24px !important;
-      border-radius: 8px !important;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 15px rgba(76, 175, 80, 0.2);
-      
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(76, 175, 80, 0.3);
-        background: linear-gradient(45deg, #45a049, #4CAF50) !important;
-      }
-
-      mat-icon {
-        color: white !important;
-      }
-    }
-  }
-
-  .navigation-buttons {
-    display: flex;
-    justify-content: flex-end;
-    padding: var(--spacing-lg);
-    margin-top: var(--spacing-xl);
-    border-top: 1px solid #3a3a3a;
-
-    .next-lesson-button {
-      background: linear-gradient(45deg, #ffd700, #ffed4a) !important;
-      color: #1a1a1a !important;
-      font-weight: 500;
-      padding: 8px 24px !important;
-      border-radius: 8px !important;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
-      display: flex;
-      align-items: center;
-      gap: var(--spacing-xs);
-
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(255, 215, 0, 0.3);
-        background: linear-gradient(45deg, #ffed4a, #ffd700) !important;
-      }
-
-      mat-icon {
-        color: #1a1a1a !important;
-        margin-left: var(--spacing-xs);
-      }
-    }
-  }
+.navigation-buttons {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--spacing-lg);
+  margin-top: var(--spacing-xl);
+  border-top: 1px solid #3a3a3a;
 }
 
-// Entferne Material Design Ripple-Effekt für alle Buttons
-::ng-deep .mat-mdc-button-persistent-ripple {
-  display: none !important;
-}
-
-::ng-deep .mat-mdc-button-touch-target {
-  display: none !important;
+.next-lesson-button {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  
+  mat-icon {
+    margin-left: var(--spacing-sm);
+  }
 }
 
 @media (max-width: 768px) {
-  .course-container {
-    .course-actions, .navigation-buttons {
-      flex-direction: column;
-      padding: var(--spacing-md);
-      
-      button {
-        width: 100%;
-        justify-content: center;
-      }
+  .navigation-buttons {
+    padding: var(--spacing-md);
+  }
+  
+  .next-lesson-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.continue-btn {
+  background: linear-gradient(45deg, #ffd700, #ffed4a) !important;
+  color: #1a1a1a !important;
+  font-weight: 500;
+  padding: 8px 24px !important;
+  border-radius: 8px !important;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 215, 0, 0.3);
+    background: linear-gradient(45deg, #ffed4a, #ffd700) !important;
+  }
+
+  mat-icon {
+    margin-right: var(--spacing-xs);
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.module-card {
+  button {
+    background: linear-gradient(45deg, #ffd700, #ffed4a) !important;
+    color: #1a1a1a !important;
+    font-weight: 500;
+    padding: 8px 24px !important;
+    border-radius: 8px !important;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 215, 0, 0.3);
+      background: linear-gradient(45deg, #ffed4a, #ffd700) !important;
+    }
+
+    mat-icon {
+      color: #1a1a1a !important;
+    }
+
+    .mat-mdc-button-persistent-ripple {
+      display: none;
+    }
+
+    .mat-mdc-button-touch-target {
+      display: none;
     }
   }
 } 

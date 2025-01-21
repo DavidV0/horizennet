@@ -1,9 +1,4 @@
-<div class="dashboard-layout">
-  <app-dashboard-navbar></app-dashboard-navbar>
-  <div class="dashboard-content">
-    <router-outlet></router-outlet>
-  </div>
-</div>
+<app-dashboard-navbar></app-dashboard-navbar>
 
 <!-- Router Outlet für Child-Routen -->
 <router-outlet *ngIf="isChildRoute"></router-outlet>
@@ -109,9 +104,9 @@
             </div>
             <div class="course-progress">
               <div class="progress-bar">
-                <div class="progress" [style.width.%]="(getProgress(course.id) | async) || 0"></div>
+                <div class="progress" [style.width.%]="getCourseProgress(course)"></div>
               </div>
-              <span class="progress-text">{{(getProgress(course.id) | async) || 0}}% abgeschlossen</span>
+              <span class="progress-text">{{getCourseProgress(course)}}% abgeschlossen</span>
             </div>
             <button mat-flat-button 
                     color="accent" 

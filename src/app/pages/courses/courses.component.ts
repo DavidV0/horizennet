@@ -10,6 +10,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { CourseService } from '../../shared/services/course.service';
 import { Course } from '../../shared/models/course.model';
 import { Observable, tap, catchError, of } from 'rxjs';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-courses',
@@ -31,7 +32,7 @@ export class CoursesComponent implements OnInit {
   courses$!: Observable<Course[]>;
   isLoading = true;
 
-  constructor(private courseService: CourseService) {}
+  constructor(private courseService: CourseService, private router: Router) {}
 
   ngOnInit() {
     this.courses$ = this.courseService.getCourses('USER').pipe(
@@ -45,5 +46,9 @@ export class CoursesComponent implements OnInit {
         return of([]);
       })
     );
+  }
+
+  startCourse(courseId: string) {
+    this.router.navigate(['/dashboard/courses', courseId]);
   }
 } 

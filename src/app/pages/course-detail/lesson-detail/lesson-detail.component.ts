@@ -5,10 +5,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CourseService } from '../../../shared/services/course.service';
-import { Observable, switchMap, map, BehaviorSubject, take, combineLatest, catchError, EMPTY } from 'rxjs';
+import { Observable, switchMap, map, BehaviorSubject, take, combineLatest } from 'rxjs';
 import { Course, Module, Lesson, Question } from '../../../shared/models/course.model';
 import { SafePipe } from '../../../shared/pipes/safe.pipe';
-import { ProgressService } from '../../../shared/services/progress.service';
+import { AngularFirestore } from '@angular/fire/compat/firestore';
+import { AuthService } from '../../../shared/services/auth.service';
 
 interface QuizResult {
   totalQuestions: number;
@@ -32,7 +33,6 @@ interface QuizResult {
 })
 export class LessonDetailComponent implements OnInit {
   lesson$!: Observable<Lesson>;
-  lessonProgress$!: Observable<boolean>;
   selectedAnswers: { [key: number]: number[] } = {};
   quizSubmitted = false;
   quizResult: QuizResult | null = null;
@@ -42,46 +42,33 @@ export class LessonDetailComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private courseService: CourseService,
-    private progressService: ProgressService
+    private firestore: AngularFirestore,
+    private authService: AuthService
   ) {}
 
   ngOnInit() {
-    // Parameter direkt aus der Route holen
-    const courseId = this.route.snapshot.paramMap.get('courseId');
-    const moduleId = this.route.snapshot.paramMap.get('moduleId');
-    const lessonId = this.route.snapshot.paramMap.get('lessonId');
-
-    console.log('Route parameters:', { courseId, moduleId, lessonId });
-
-    if (courseId && moduleId && lessonId) {
-      // Fortschritt laden
-      this.lessonProgress$ = this.progressService.getCourseProgress(courseId).pipe(
-        map(progress => {
-          if (!progress?.modules || !progress.modules[moduleId]?.lessons) return false;
-          return progress.modules[moduleId].lessons[lessonId]?.completed || false;
-        })
-      );
-
-      // Lektion laden
-      this.lesson$ = this.courseService.getCourse(courseId).pipe(
-        map(course => {
-          if (!course) throw new Error('Course not found');
-          
-          const module = course.modules.find(m => m.id === moduleId);
-          if (!module) throw new Error('Module not found');
-          
-          this.currentModule$.next(module);
-          
-          const lesson = module.lessons.find(l => l.id === lessonId);
-          if (!lesson) throw new Error('Lesson not found');
-          
-          return lesson;
-        })
-      );
-    } else {
-      console.error('Missing required parameters:', { courseId, moduleId, lessonId });
-      this.router.navigate(['/dashboard/courses']);
-    }
+    this.lesson$ = combineLatest([
+      this.route.parent!.parent!.params,
+      this.route.params
+    ]).pipe(
+      switchMap(([parentParams, routeParams]) => {
+        return this.courseService.getCourse(parentParams['id']).pipe(
+          map(course => {
+            const moduleId = routeParams['moduleId'];
+            const lessonId = routeParams['lessonId'];
+            
+            const module = course.modules.find(m => m.id === moduleId);
+            if (!module) throw new Error('Module not found');
+            
+            this.currentModule$.next(module);
+            const lesson = module.lessons.find(l => l.id === lessonId);
+            if (!lesson) throw new Error('Lesson not found');
+            
+            return lesson;
+          })
+        );
+      })
+    );
   }
 
   getFileIcon(type: string): string {
@@ -109,8 +96,6 @@ export class LessonDetailComponent implements OnInit {
     } else {
       answers.splice(index, 1);
     }
-
-    console.log('Selected answers after update:', this.selectedAnswers);
   }
 
   isAnswerSelected(questionIndex: number, answerIndex: number): boolean {
@@ -126,18 +111,6 @@ export class LessonDetailComponent implements OnInit {
     return question.correctAnswers.length === 1 ? 'Falsch' : 'Falsch';
   }
 
-  private getRouteParams(): { courseId: string, moduleId: string, lessonId: string } | null {
-    const courseId = this.route.snapshot.paramMap.get('courseId');
-    const moduleId = this.route.snapshot.paramMap.get('moduleId');
-    const lessonId = this.route.snapshot.paramMap.get('lessonId');
-
-    if (!courseId || !moduleId || !lessonId) {
-      return null;
-    }
-
-    return { courseId, moduleId, lessonId };
-  }
-
   submitQuiz() {
     this.lesson$.pipe(take(1)).subscribe(lesson => {
       if (!lesson.quiz) return;
@@ -149,12 +122,10 @@ export class LessonDetailComponent implements OnInit {
         wrongIndices: []
       };
 
-      let allCorrect = true;
-
       lesson.quiz.questions.forEach((question, index) => {
         const selected = this.selectedAnswers[index] || [];
         const correct = question.correctAnswers || [];
-        
+
         const isCorrect = 
           selected.length === correct.length &&
           selected.every(answer => correct.includes(answer));
@@ -164,22 +135,14 @@ export class LessonDetailComponent implements OnInit {
           result.correctIndices.push(index);
         } else {
           result.wrongIndices.push(index);
-          allCorrect = false;
         }
       });
 
-      if (allCorrect) {
-        const params = this.getRouteParams();
-        if (params) {
-          this.progressService.saveLessonProgress(params.courseId, params.moduleId, params.lessonId, true)
-            .subscribe(() => {
-              this.quizResult = result;
-              this.quizSubmitted = true;
-            });
-        }
-      } else {
-        this.quizResult = result;
-        this.quizSubmitted = true;
+      this.quizResult = result;
+      this.quizSubmitted = true;
+
+      if (this.quizResult.correctCount === this.quizResult.totalQuestions) {
+        this.onQuizCompleted();
       }
     });
   }
@@ -191,38 +154,19 @@ export class LessonDetailComponent implements OnInit {
   }
 
   nextLesson() {
-    const params = this.getRouteParams();
-    if (!params) {
-      console.error('Missing required route parameters');
-      return;
-    }
-
-    this.lesson$.pipe(take(1)).subscribe({
-      next: currentLesson => {
-        const module = this.currentModule$.getValue();
-        if (!module) {
-          console.error('No current module found');
-          return;
-        }
+    const courseId = this.route.parent!.parent!.snapshot.params['id'];
+    const moduleId = this.route.snapshot.params['moduleId'];
+    
+    this.lesson$.pipe(take(1)).subscribe(currentLesson => {
+      const module = this.currentModule$.getValue();
+      if (!module) return;
+      
+      const currentIndex = module.lessons.findIndex(lesson => lesson.id === currentLesson.id);
+      if (currentIndex < module.lessons.length - 1) {
+        this.resetQuiz();
         
-        const currentIndex = module.lessons.findIndex(lesson => lesson.id === currentLesson.id);
-        if (currentIndex < module.lessons.length - 1) {
-          this.resetQuiz();
-          
-          const nextLesson = module.lessons[currentIndex + 1];
-          this.router.navigate([
-            '/dashboard',
-            'courses',
-            params.courseId,
-            'modules',
-            params.moduleId,
-            'lessons',
-            nextLesson.id
-          ]);
-        }
-      },
-      error: (error) => {
-        console.error('Error navigating to next lesson:', error);
+        const nextLesson = module.lessons[currentIndex + 1];
+        this.router.navigate(['dashboard', 'courses', courseId, 'modules', moduleId, 'lessons', nextLesson.id]);
       }
     });
   }
@@ -243,26 +187,16 @@ export class LessonDetailComponent implements OnInit {
     const module = this.currentModule$.getValue();
     if (!module) return false;
     
-    const lessonId = this.route.snapshot.paramMap.get('lessonId');
-    if (!lessonId) return false;
+    const currentLessonId = this.route.snapshot.params['lessonId'];
+    const currentIndex = module.lessons.findIndex(lesson => lesson.id === currentLessonId);
     
-    const currentIndex = module.lessons.findIndex(lesson => lesson.id === lessonId);
     return currentIndex < module.lessons.length - 1;
   }
 
   backToModule() {
-    const courseId = this.route.snapshot.paramMap.get('courseId');
-    const moduleId = this.route.snapshot.paramMap.get('moduleId');
-    
-    if (courseId && moduleId) {
-      this.router.navigate([
-        '/dashboard',
-        'courses',
-        courseId,
-        'modules',
-        moduleId
-      ]);
-    }
+    const courseId = this.route.parent!.parent!.snapshot.params['id'];
+    const moduleId = this.route.snapshot.params['moduleId'];
+    this.router.navigate(['dashboard', 'courses', courseId, 'modules', moduleId]);
   }
 
   downloadFile(file: { url: string, name: string }) {
@@ -286,25 +220,63 @@ export class LessonDetailComponent implements OnInit {
       });
   }
 
-  completeLesson() {
-    const params = this.getRouteParams();
-    if (!params) {
-      console.error('Missing required route parameters');
+  async onVideoCompleted() {
+    try {
+      await this.completeLesson();
+    } catch (error) {
+      console.error('Error completing lesson:', error);
+    }
+  }
+
+  async completeLesson() {
+    const user = await this.authService.user$.pipe(take(1)).toPromise();
+    if (!user) {
       return;
     }
 
-    console.log('Marking lesson as complete:', params);
-    this.progressService.saveLessonProgress(params.courseId, params.moduleId, params.lessonId, true)
-      .subscribe({
-        next: () => {
-          console.log('Lesson marked as complete');
-          if (this.hasNextLesson()) {
-            this.nextLesson();
-          }
-        },
-        error: (error) => {
-          console.error('Error marking lesson as complete:', error);
-        }
-      });
+    const courseId = this.route.parent!.parent!.snapshot.params['id'];
+    const moduleId = this.route.parent!.snapshot.params['moduleId'];
+    const lessonId = this.route.snapshot.params['lessonId'];
+
+    // Hole den Kurs direkt
+    const courseRef = this.firestore.collection('courses').doc(courseId);
+    const courseDoc = await courseRef.get().toPromise();
+
+    if (!courseDoc?.exists) {
+      return;
+    }
+
+    const courseData = courseDoc.data() as Course;
+    const modules = courseData.modules || [];
+
+    // Finde das richtige Modul
+    const moduleIndex = modules.findIndex(m => m.id === moduleId);
+    if (moduleIndex === -1) {
+      return;
+    }
+
+    // Finde die richtige Lektion
+    const lessonIndex = modules[moduleIndex].lessons.findIndex(l => l.id === lessonId);
+    if (lessonIndex === -1) {
+      return;
+    }
+
+    // Update die Lektion
+    modules[moduleIndex].lessons[lessonIndex] = {
+      ...modules[moduleIndex].lessons[lessonIndex],
+      completed: true,
+      completedAt: new Date(),
+      completedBy: user.uid,
+      completionType: 'video'
+    } as Lesson;
+
+    // Update den gesamten Kurs
+    await courseRef.update({
+      modules: modules
+    });
+  }
+
+  async onQuizCompleted() {
+    await this.completeLesson();
   }
 } 

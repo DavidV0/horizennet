@@ -73,18 +73,27 @@
     }
 
     .next-lesson {
-      background: rgba(255, 215, 0, 0.1);
-      border: 1px solid rgba(255, 215, 0, 0.3);
-      border-radius: 8px;
-      padding: var(--spacing-md);
-      margin-bottom: var(--spacing-lg);
       display: flex;
       align-items: center;
       gap: var(--spacing-md);
+      margin-bottom: var(--spacing-xl);
+      padding-bottom: var(--spacing-lg);
+      border-bottom: 1px solid #3a3a3a;
+
+      button {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        padding: var(--spacing-sm) var(--spacing-md);
+        
+        mat-icon {
+          margin: 0;
+        }
+      }
 
       .next-lesson-title {
-        color: #ffd700;
-        font-weight: 500;
+        color: var(--color-text-secondary);
+        font-size: 1rem;
       }
     }
 
@@ -106,56 +115,73 @@
           transform: translateX(4px);
         }
 
-        &.completed {
-          background: rgba(255, 215, 0, 0.1);
-          border-color: rgba(255, 215, 0, 0.3);
-        }
-
         .lesson-status {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 40px;
-
           mat-icon {
+            font-size: 24px;
+            width: 24px;
+            height: 24px;
+
             &.completed {
-              color: #ffd700;
+              color: #4CAF50;
             }
 
             &.pending {
-              color: #666;
+              color: var(--color-accent);
             }
           }
         }
 
-        .lesson-info {
+        .lesson-content {
           flex: 1;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+
+          .lesson-info {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+
+            mat-icon {
+              color: var(--color-accent);
+            }
+
+            .lesson-title {
+              color: white;
+              font-size: 1rem;
+
+              .duration {
+                color: var(--color-text-secondary);
+                font-size: 0.9rem;
+                margin-left: var(--spacing-xs);
+              }
+            }
+          }
+
+          button {
+            min-width: 100px;
+
+            &[disabled] {
+              opacity: 0.7;
+              cursor: not-allowed;
+            }
+          }
+        }
+
+        .lesson-actions {
           display: flex;
           align-items: center;
           gap: var(--spacing-sm);
 
-          mat-icon {
-            color: #ffd700;
-          }
-
-          .lesson-title {
-            color: white;
-            font-size: 1rem;
-
-            .duration {
-              color: var(--color-text-secondary);
-              font-size: 0.9rem;
-              margin-left: var(--spacing-xs);
+          .status-icon {
+            font-size: 20px;
+            width: 20px;
+            height: 20px;
+            color: #666;
+            
+            &.completed {
+              color: #4CAF50;  // Grün für abgeschlossene Lektionen
             }
-          }
-        }
-
-        button {
-          min-width: 100px;
-
-          &[disabled] {
-            opacity: 0.7;
-            cursor: not-allowed;
           }
         }
       }
@@ -253,5 +279,32 @@
 
   .mat-mdc-button-touch-target {
     display: none;
+  }
+}
+
+.module-card {
+  .progress-info {
+    margin-bottom: var(--spacing-lg);
+
+    .progress-bar {
+      height: 4px;
+      background: #2a2a2a;
+      border-radius: 2px;
+      margin-bottom: var(--spacing-xs);
+      overflow: hidden;
+
+      .progress {
+        height: 100%;
+        background: linear-gradient(45deg, #ffd700, #ffed4a);
+        border-radius: 2px;
+        transition: width 0.3s ease;
+      }
+    }
+
+    .progress-text {
+      color: #ffd700;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
   }
 } 

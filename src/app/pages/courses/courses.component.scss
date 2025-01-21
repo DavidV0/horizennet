@@ -127,10 +127,34 @@
         border-top: 1px solid #3a3a3a;
 
         button {
+          background: linear-gradient(45deg, #ffd700, #ffed4a) !important;
+          color: #1a1a1a !important;
+          font-weight: 500;
+          padding: 8px 24px !important;
+          border-radius: 8px !important;
+          transition: all 0.3s ease;
+          box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
+          display: flex;
+          align-items: center;
+          gap: var(--spacing-xs);
           width: 100%;
 
+          &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 215, 0, 0.3);
+            background: linear-gradient(45deg, #ffed4a, #ffd700) !important;
+          }
+
           mat-icon {
-            margin-right: var(--spacing-sm);
+            color: #1a1a1a !important;
+          }
+
+          .mat-mdc-button-persistent-ripple {
+            display: none;
+          }
+
+          .mat-mdc-button-touch-target {
+            display: none;
           }
         }
       }

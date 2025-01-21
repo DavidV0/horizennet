@@ -7,7 +7,8 @@
         controlsList="nodownload" 
         preload="metadata"
         class="video-player"
-        [src]="lesson.videoUrl | safe">
+        [src]="lesson.videoUrl | safe"
+        (ended)="onVideoCompleted()">
         <p>Ihr Browser unterstützt das Video-Tag nicht.</p>
       </video>
     </div>

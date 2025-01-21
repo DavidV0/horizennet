@@ -23,18 +23,17 @@ export interface Module {
 export interface Lesson {
   id: string;
   title: string;
-  description: string;
-  duration: string;
+  description?: string;
   type: 'video' | 'article';
   videoUrl?: string;
+  duration?: string;
   content?: string;
-  completed: boolean;
-  files?: {
-    name: string;
-    url: string;
-    type: string;
-  }[];
+  files?: Array<{ url: string; name: string; type: string }>;
   quiz?: Quiz;
+  completed?: boolean;
+  completedAt?: Date;
+  completedBy?: string;
+  completionType?: 'video' | 'quiz';
 }
 
 export interface File {

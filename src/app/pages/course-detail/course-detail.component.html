@@ -8,7 +8,6 @@
   <div class="modules-grid">
     <div class="module-card" *ngFor="let module of course.modules; let i = index">
       <div class="module-image">
-        <img [src]="module.image || 'assets/images/module-placeholder.jpg'" [alt]="module.title">
         <div class="module-overlay">
           <h2>Modul {{i + 1}}</h2>
         </div>
@@ -18,15 +17,13 @@
         <h3>{{module.title}}</h3>
         <p class="module-description">{{module.description}}</p>
         
+        
+
         <div class="progress-info">
           <div class="progress-bar">
-            <div class="progress" 
-                 [style.width.%]="calculateModuleProgress(module.id) | async">
-            </div>
+            <div class="progress" [style.width.%]="calculateModuleProgress(module)"></div>
           </div>
-          <span class="progress-text">
-            {{calculateModuleProgress(module.id) | async}}% GESCHAFFT
-          </span>
+          <span class="progress-text">{{calculateModuleProgress(module)}}% GESCHAFFT</span>
         </div>
 
         <div class="module-footer">
@@ -34,19 +31,12 @@
             <mat-icon>book</mat-icon>
             <span>{{getLessonCount(module)}} Lektionen</span>
           </div>
-          <button mat-flat-button 
-                  (click)="startModule(module)" 
-                  [disabled]="!module.isUnlocked">
+          <button mat-flat-button (click)="startModule(module)" [disabled]="!module.isUnlocked">
             <mat-icon>play_arrow</mat-icon>
-            {{(calculateModuleProgress(module.id) | async) === 100 ? 'Wiederholen' : 'Jetzt starten'}}
+            Jetzt starten
           </button>
         </div>
       </div>
     </div>
   </div>
-</div>
-
-<div class="course-detail">
-  <!-- Kurs-Details hier -->
-  <router-outlet></router-outlet>
 </div> 

@@ -3,11 +3,6 @@ import { HomeComponent } from './pages/home/home.component';
 import { ShopComponent } from './pages/shop/shop.component';
 import { CheckoutComponent } from './pages/shop/checkout/checkout.component';
 import { authGuard } from './shared/guards/auth.guard';
-import { DashboardComponent } from './pages/dashboard/dashboard.component';
-import { CourseDetailComponent } from './pages/course-detail/course-detail.component';
-import { ModuleDetailComponent } from './pages/course-detail/module-detail/module-detail.component';
-import { LessonDetailComponent } from './pages/course-detail/lesson-detail/lesson-detail.component';
-import { CoursesComponent } from './pages/courses/courses.component';
 
 export const routes: Routes = [
   {
@@ -21,7 +16,7 @@ export const routes: Routes = [
   },
   {
     path: 'dashboard',
-    component: DashboardComponent,
+    loadComponent: () => import('./pages/dashboard/dashboard.component').then(m => m.DashboardComponent),
     canActivate: [authGuard],
     data: { ssr: false },
     children: [
@@ -32,26 +27,39 @@ export const routes: Routes = [
       },
       {
         path: 'courses',
+        data: { ssr: false },
         children: [
           {
             path: '',
-            component: CoursesComponent,
+            loadComponent: () => import('./pages/courses/courses.component').then(m => m.CoursesComponent),
             data: { ssr: false }
           },
           {
-            path: ':courseId',
-            component: CourseDetailComponent,
-            data: { ssr: false }
-          },
-          {
-            path: ':courseId/modules/:moduleId',
-            component: ModuleDetailComponent,
-            data: { ssr: false }
-          },
-          {
-            path: ':courseId/modules/:moduleId/lessons/:lessonId',
-            component: LessonDetailComponent,
-            data: { ssr: false }
+            path: ':id',
+            data: { ssr: false },
+            children: [
+              {
+                path: '',
+                loadComponent: () => import('./pages/course-detail/course-detail.component').then(m => m.CourseDetailComponent),
+                data: { ssr: false }
+              },
+              {
+                path: 'modules/:moduleId',
+                data: { ssr: false },
+                children: [
+                  {
+                    path: '',
+                    loadComponent: () => import('./pages/course-detail/module-detail/module-detail.component').then(m => m.ModuleDetailComponent),
+                    data: { ssr: false }
+                  },
+                  {
+                    path: 'lessons/:lessonId',
+                    loadComponent: () => import('./pages/course-detail/lesson-detail/lesson-detail.component').then(m => m.LessonDetailComponent),
+                    data: { ssr: false }
+                  }
+                ]
+              }
+            ]
           }
         ]
       },

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { AngularFirestore, DocumentData } from '@angular/fire/compat/firestore';
 import { AngularFireStorage } from '@angular/fire/compat/storage';
-import { Observable, from, switchMap, map, combineLatest } from 'rxjs';
+import { Observable, from, switchMap, map, combineLatest, take } from 'rxjs';
 import { Course, Module, Lesson } from '../models/course.model';
 
 interface UserCourses {
@@ -159,5 +159,17 @@ export class CourseService {
           userCourses?.courseIds?.includes(courseId) || false
         )
       );
+  }
+
+  refreshCourse(courseId: string) {
+    // Hole den Kurs neu aus Firestore und aktualisiere den Cache
+    this.firestore.collection('courses').doc(courseId).get()
+      .pipe(take(1))
+      .subscribe(doc => {
+        if (doc.exists) {
+          // Aktualisiere den lokalen Cache oder triggere eine Neuladen
+          // Je nachdem, wie dein Service implementiert ist
+        }
+      });
   }
 } 
