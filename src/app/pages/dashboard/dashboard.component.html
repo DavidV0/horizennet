@@ -1,4 +1,9 @@
-<app-dashboard-navbar></app-dashboard-navbar>
+<div class="dashboard-layout">
+  <app-dashboard-navbar></app-dashboard-navbar>
+  <div class="dashboard-content">
+    <router-outlet></router-outlet>
+  </div>
+</div>
 
 <!-- Router Outlet für Child-Routen -->
 <router-outlet *ngIf="isChildRoute"></router-outlet>
@@ -56,7 +61,7 @@
             </div>
           </div>
 
-          <button mat-flat-button color="primary" class="edit-profile-btn" routerLink="/dashboard/profile">
+          <button mat-flat-button class="edit-profile-btn">
             <mat-icon>edit</mat-icon>
             Profil bearbeiten
           </button>
@@ -78,7 +83,7 @@
         <mat-icon>school</mat-icon>
         <h3>Keine Kurse gefunden</h3>
         <p>Sie haben noch keine Kurse aktiviert.</p>
-        <button mat-flat-button color="accent" routerLink="/shop">
+        <button mat-flat-button class="empty-state-btn">
           <mat-icon>shopping_cart</mat-icon>
           Zum Shop
         </button>
@@ -104,13 +109,16 @@
             </div>
             <div class="course-progress">
               <div class="progress-bar">
-                <div class="progress" [style.width.%]="getCourseProgress(course)"></div>
+                <div class="progress" [style.width.%]="(getProgress(course.id) | async) || 0"></div>
               </div>
-              <span class="progress-text">{{getCourseProgress(course)}}% abgeschlossen</span>
+              <span class="progress-text">{{(getProgress(course.id) | async) || 0}}% abgeschlossen</span>
             </div>
-            <button mat-flat-button color="accent" class="continue-btn" (click)="continueCourse(course.id)">
+            <button mat-flat-button 
+                    color="accent" 
+                    class="continue-btn"
+                    (click)="startCourse(course)">
               <mat-icon>play_arrow</mat-icon>
-              {{getCourseProgress(course) > 0 ? 'Weiterschauen' : 'Jetzt starten'}}
+              <span>Jetzt starten</span>
             </button>
           </mat-card-content>
         </mat-card>
@@ -121,7 +129,7 @@
     <div class="dashboard-column actions-section">
       <h2 class="section-title">Schnellzugriff</h2>
       <div class="action-buttons">
-        <button mat-stroked-button class="action-btn" routerLink="/dashboard/courses">
+        <button mat-flat-button class="action-btn">
           <mat-icon>school</mat-icon>
           Alle Kurse
         </button>

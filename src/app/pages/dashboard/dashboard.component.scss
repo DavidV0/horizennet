@@ -316,23 +316,28 @@
     }
 
     button {
-      background: linear-gradient(45deg, var(--color-accent), var(--color-accent-light));
-      padding: var(--spacing-md) var(--spacing-xl);
-      border-radius: 8px;
+      background: linear-gradient(45deg, #ffd700, #ffed4a) !important;
+      color: #1a1a1a !important;
+      font-weight: 500;
+      padding: 8px 24px !important;
+      border-radius: 8px !important;
       transition: all 0.3s ease;
-      box-shadow: 0 4px 15px rgba(var(--color-accent-rgb), 0.2);
+      box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-xs);
 
       &:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(var(--color-accent-rgb), 0.3);
-        background: linear-gradient(45deg, var(--color-accent-light), var(--color-accent));
+        box-shadow: 0 6px 20px rgba(255, 215, 0, 0.3);
+        background: linear-gradient(45deg, #ffed4a, #ffd700) !important;
       }
 
       mat-icon {
         font-size: 20px;
         width: 20px;
         height: 20px;
-        margin: 0 var(--spacing-xs) 0 0;
+        margin: 0;
       }
     }
   }
@@ -415,30 +420,49 @@
       }
 
       .continue-btn {
-        width: 100%;
+        background: linear-gradient(45deg, #ffd700, #ffed4a) !important;
+        color: #1a1a1a !important;
+        font-weight: 500;
+        padding: 8px 24px !important;
+        border-radius: 8px !important;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
         display: flex;
         align-items: center;
-        justify-content: center;
         gap: var(--spacing-xs);
-        padding: var(--spacing-md);
-        font-weight: 500;
-        background: linear-gradient(45deg, var(--color-accent), var(--color-accent-light));
-        border-radius: 8px;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(var(--color-accent-rgb), 0.2);
 
         &:hover {
           transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(var(--color-accent-rgb), 0.3);
-          background: linear-gradient(45deg, var(--color-accent-light), var(--color-accent));
+          box-shadow: 0 6px 20px rgba(255, 215, 0, 0.3);
+          background: linear-gradient(45deg, #ffed4a, #ffd700) !important;
         }
 
         mat-icon {
+          margin-right: var(--spacing-xs);
           font-size: 20px;
           width: 20px;
           height: 20px;
         }
+
+        .mdc-button__label {
+          display: flex;
+          align-items: center;
+          gap: var(--spacing-xs);
+        }
       }
+    }
+  }
+}
+
+// Überschreibe Material Styles
+::ng-deep {
+  .continue-btn {
+    .mat-mdc-button-persistent-ripple {
+      display: none;
+    }
+
+    .mat-mdc-button-touch-target {
+      display: none;
     }
   }
 }
@@ -465,10 +489,8 @@
       font-size: 1.05rem;
 
       &:hover {
-        background: linear-gradient(135deg, 
-          rgba(var(--color-primary-rgb), 0.15) 0%,
-          rgba(var(--color-accent-rgb), 0.15) 100%);
-        border-color: rgba(var(--color-accent-rgb), 0.2);
+        background: linear-gradient(45deg, #ffd700, #ffed4a) !important;
+        border-color: rgba(255, 255, 255, 0.2);
         color: var(--color-accent);
         transform: translateX(4px);
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);

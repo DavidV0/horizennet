@@ -219,47 +219,41 @@ mat-dialog-actions {
   }
 
   .quiz-section {
-    .question-container {
-      margin-bottom: 16px;
+    padding: var(--spacing-lg);
+
+    .quiz-title {
+      width: 100%;
+      margin-bottom: var(--spacing-lg);
     }
 
-    mat-expansion-panel {
-      background-color: #2a2a2a;
-      margin-bottom: 8px;
-
-      &:last-child {
-        margin-bottom: 0;
-      }
-
-      .mat-expansion-panel-header {
-        background-color: #2a2a2a;
-      }
-
-      .mat-expansion-panel-body {
-        padding: 16px;
-      }
+    mat-accordion {
+      margin-bottom: var(--spacing-lg);
     }
 
     .option-container {
       display: flex;
       align-items: center;
-      gap: 16px;
-      margin-bottom: 8px;
+      gap: var(--spacing-md);
+      margin-bottom: var(--spacing-sm);
 
       mat-form-field {
         flex: 1;
-        margin-bottom: 0;
       }
 
       mat-checkbox {
-        margin-right: 16px;
+        margin-right: var(--spacing-sm);
       }
     }
 
     .question-actions {
-      margin-top: 16px;
       display: flex;
-      justify-content: flex-end;
+      gap: var(--spacing-md);
+      margin-top: var(--spacing-md);
+    }
+
+    .add-question-btn {
+      margin-top: var(--spacing-md);
+      width: 100%;
     }
   }
 

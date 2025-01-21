@@ -126,4 +126,14 @@ mat-dialog-actions {
       }
     }
   }
+}
+
+.action-buttons {
+  opacity: 1;
+  visibility: visible;
+  transition: none;
+}
+
+.module-item:hover .action-buttons {
+  // Entferne diese Regel, falls vorhanden
 } 

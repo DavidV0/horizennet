@@ -110,6 +110,7 @@
   display: flex;
   gap: 8px;
   margin-bottom: 16px;
+  justify-content: flex-end;
 }
 
 .lessons-list {
@@ -139,10 +140,13 @@
 
     &:hover {
       background: rgba(255, 255, 255, 0.1);
+    }
 
-      .lesson-actions {
-        opacity: 1;
-      }
+    .lesson-actions {
+      display: flex;
+      gap: 8px;
+      margin-left: auto;
+      opacity: 1;
     }
 
     .mdc-list-item__content {
@@ -150,14 +154,6 @@
       align-items: center;
       justify-content: space-between;
       width: 100%;
-    }
-
-    .lesson-actions {
-      display: flex;
-      gap: 8px;
-      margin-left: auto;
-      opacity: 0;
-      transition: opacity 0.2s ease;
     }
   }
 }
@@ -168,6 +164,21 @@
   gap: 8px;
   padding-top: 24px;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.action-buttons {
+  opacity: 1;
+  visibility: visible;
+  display: flex;
+  gap: 8px;
+}
+
+.lesson-item,
+.module-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
 }
 
 @media (max-width: 768px) {
@@ -186,10 +197,11 @@
   }
 
   .module-actions {
-    flex-direction: column;
+    flex-direction: row;
+    justify-content: flex-end;
 
     button {
-      width: 100%;
+      width: auto;
     }
   }
 } 

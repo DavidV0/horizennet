@@ -20,9 +20,13 @@
         
         <div class="progress-info">
           <div class="progress-bar">
-            <div class="progress" [style.width.%]="calculateModuleProgress(module)"></div>
+            <div class="progress" 
+                 [style.width.%]="calculateModuleProgress(module.id) | async">
+            </div>
           </div>
-          <span class="progress-text">{{calculateModuleProgress(module)}}% GESCHAFFT</span>
+          <span class="progress-text">
+            {{calculateModuleProgress(module.id) | async}}% GESCHAFFT
+          </span>
         </div>
 
         <div class="module-footer">
@@ -30,12 +34,19 @@
             <mat-icon>book</mat-icon>
             <span>{{getLessonCount(module)}} Lektionen</span>
           </div>
-          <button mat-flat-button color="primary" (click)="startModule(module)" [disabled]="!module.isUnlocked">
+          <button mat-flat-button 
+                  (click)="startModule(module)" 
+                  [disabled]="!module.isUnlocked">
             <mat-icon>play_arrow</mat-icon>
-            Jetzt starten
+            {{(calculateModuleProgress(module.id) | async) === 100 ? 'Wiederholen' : 'Jetzt starten'}}
           </button>
         </div>
       </div>
     </div>
   </div>
+</div>
+
+<div class="course-detail">
+  <!-- Kurs-Details hier -->
+  <router-outlet></router-outlet>
 </div> 

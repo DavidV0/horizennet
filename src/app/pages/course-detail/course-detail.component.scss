@@ -105,16 +105,25 @@
 
             .progress {
               height: 100%;
-              background: #ff4b4b;
+              background: linear-gradient(45deg, #ffd700, #ffed4a);
               border-radius: 2px;
               transition: width 0.3s ease;
             }
           }
 
           .progress-text {
-            color: #ff4b4b;
+            color: #ffd700;
             font-size: 0.8rem;
             font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+
+            mat-icon {
+              font-size: 16px;
+              width: 16px;
+              height: 16px;
+            }
           }
         }
 
@@ -145,13 +154,40 @@
           }
 
           button {
+            background: linear-gradient(45deg, #ffd700, #ffed4a) !important;
+            color: #1a1a1a !important;
+            font-weight: 500;
+            padding: 8px 24px !important;
+            border-radius: 8px !important;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+
+            &:hover:not([disabled]) {
+              transform: translateY(-2px);
+              box-shadow: 0 6px 20px rgba(255, 215, 0, 0.3);
+              background: linear-gradient(45deg, #ffed4a, #ffd700) !important;
+            }
+
             &[disabled] {
               opacity: 0.7;
-              cursor: not-allowed;
+              background: #4a4a4a !important;
+              color: #999 !important;
             }
 
             mat-icon {
-              margin-right: var(--spacing-xs);
+              color: #1a1a1a !important;
+              margin-right: 0 !important;
+            }
+
+            .mat-mdc-button-persistent-ripple {
+              display: none;
+            }
+
+            .mat-mdc-button-touch-target {
+              display: none;
             }
           }
         }

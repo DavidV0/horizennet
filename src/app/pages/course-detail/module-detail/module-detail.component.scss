@@ -73,27 +73,18 @@
     }
 
     .next-lesson {
+      background: rgba(255, 215, 0, 0.1);
+      border: 1px solid rgba(255, 215, 0, 0.3);
+      border-radius: 8px;
+      padding: var(--spacing-md);
+      margin-bottom: var(--spacing-lg);
       display: flex;
       align-items: center;
       gap: var(--spacing-md);
-      margin-bottom: var(--spacing-xl);
-      padding-bottom: var(--spacing-lg);
-      border-bottom: 1px solid #3a3a3a;
-
-      button {
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-xs);
-        padding: var(--spacing-sm) var(--spacing-md);
-        
-        mat-icon {
-          margin: 0;
-        }
-      }
 
       .next-lesson-title {
-        color: var(--color-text-secondary);
-        font-size: 1rem;
+        color: #ffd700;
+        font-weight: 500;
       }
     }
 
@@ -115,58 +106,95 @@
           transform: translateX(4px);
         }
 
-        .lesson-status {
-          mat-icon {
-            font-size: 24px;
-            width: 24px;
-            height: 24px;
+        &.completed {
+          background: rgba(255, 215, 0, 0.1);
+          border-color: rgba(255, 215, 0, 0.3);
+        }
 
+        .lesson-status {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 40px;
+
+          mat-icon {
             &.completed {
-              color: #4CAF50;
+              color: #ffd700;
             }
 
             &.pending {
-              color: var(--color-accent);
+              color: #666;
             }
           }
         }
 
-        .lesson-content {
+        .lesson-info {
           flex: 1;
           display: flex;
-          justify-content: space-between;
           align-items: center;
+          gap: var(--spacing-sm);
 
-          .lesson-info {
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-sm);
-
-            mat-icon {
-              color: var(--color-accent);
-            }
-
-            .lesson-title {
-              color: white;
-              font-size: 1rem;
-
-              .duration {
-                color: var(--color-text-secondary);
-                font-size: 0.9rem;
-                margin-left: var(--spacing-xs);
-              }
-            }
+          mat-icon {
+            color: #ffd700;
           }
 
-          button {
-            min-width: 100px;
+          .lesson-title {
+            color: white;
+            font-size: 1rem;
 
-            &[disabled] {
-              opacity: 0.7;
-              cursor: not-allowed;
+            .duration {
+              color: var(--color-text-secondary);
+              font-size: 0.9rem;
+              margin-left: var(--spacing-xs);
             }
           }
         }
+
+        button {
+          min-width: 100px;
+
+          &[disabled] {
+            opacity: 0.7;
+            cursor: not-allowed;
+          }
+        }
+      }
+    }
+  }
+
+  // Styling für den Navigation-Bereich
+  .navigation-buttons {
+    margin-bottom: var(--spacing-xl);
+    
+    button {
+      background: linear-gradient(45deg, #ffd700, #ffed4a) !important;
+      color: #1a1a1a !important;
+      font-weight: 500;
+      padding: 8px 24px !important;
+      border-radius: 8px !important;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(255, 215, 0, 0.3);
+        background: linear-gradient(45deg, #ffed4a, #ffd700) !important;
+      }
+
+      mat-icon {
+        color: #1a1a1a !important;
+      }
+
+      // Entferne Material Design Ripple-Effekt
+      .mat-mdc-button-persistent-ripple {
+        display: none;
+      }
+
+      .mat-mdc-button-touch-target {
+        display: none;
       }
     }
   }
@@ -185,5 +213,45 @@
         width: 100%;
       }
     }
+  }
+}
+
+// Gemeinsamer Button-Stil
+.next-lesson button,
+.lesson-content button {
+  background: linear-gradient(45deg, #ffd700, #ffed4a) !important;
+  color: #1a1a1a !important;
+  font-weight: 500;
+  padding: 8px 24px !important;
+  border-radius: 8px !important;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+
+  &:hover:not([disabled]) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 215, 0, 0.3);
+    background: linear-gradient(45deg, #ffed4a, #ffd700) !important;
+  }
+
+  &[disabled] {
+    opacity: 0.7;
+    background: #4a4a4a !important;
+    color: #999 !important;
+  }
+
+  mat-icon {
+    color: #1a1a1a !important;
+  }
+
+  // Entferne Material Design Ripple-Effekt
+  .mat-mdc-button-persistent-ripple {
+    display: none;
+  }
+
+  .mat-mdc-button-touch-target {
+    display: none;
   }
 } 

@@ -34,14 +34,7 @@ export interface Lesson {
     url: string;
     type: string;
   }[];
-  quiz?: {
-    title: string;
-    questions: {
-      text: string;
-      options: string[];
-      correctAnswer: number;
-    }[];
-  };
+  quiz?: Quiz;
 }
 
 export interface File {
@@ -51,18 +44,14 @@ export interface File {
   type: string;
 }
 
-export interface Quiz {
-  id: string;
-  title: string;
-  questions: Question[];
-  completed?: boolean;
-  score?: number;
-}
-
 export interface Question {
-  id: string;
   text: string;
   options: string[];
-  correctAnswer: number;
+  correctAnswers: number[];
   explanation?: string;
+}
+
+export interface Quiz {
+  title: string;
+  questions: Question[];
 } 

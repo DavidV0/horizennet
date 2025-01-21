@@ -109,13 +109,14 @@
                       <div *ngFor="let option of getOptionsForQuestion(i).controls; let j = index" class="option-container">
                         <mat-checkbox [checked]="isCorrectAnswer(i, j)" 
                                     (change)="toggleCorrectAnswer(i, j)">
-                          Richtig
+                          Richtige Antwort
                         </mat-checkbox>
                         <mat-form-field appearance="fill">
                           <mat-label>Option {{ j + 1 }}</mat-label>
                           <input matInput [formControlName]="j">
                         </mat-form-field>
-                        <button mat-icon-button color="warn" type="button" (click)="removeOption(i, j)"
+                        <button mat-icon-button color="warn" type="button" 
+                                (click)="removeOption(i, j)"
                                 [disabled]="getOptionsForQuestion(i).length <= 2">
                           <mat-icon>remove_circle</mat-icon>
                         </button>
@@ -123,7 +124,8 @@
                     </div>
 
                     <div class="question-actions">
-                      <button mat-button type="button" (click)="addOption(i)" 
+                      <button mat-button type="button" 
+                              (click)="addOption(i)" 
                               [disabled]="getOptionsForQuestion(i).length >= 6">
                         <mat-icon>add</mat-icon> Option hinzufügen
                       </button>

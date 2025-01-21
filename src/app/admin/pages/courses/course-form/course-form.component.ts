@@ -187,47 +187,71 @@ export class CourseFormComponent implements OnInit {
   async onSubmit() {
     if (this.courseForm.valid) {
       try {
-        const formValues = this.courseForm.value;
+        const formValue = this.courseForm.value;
         const imageFile = this.courseForm.get('image')?.value;
         
-        // Basis-Daten ohne Image
-        const baseData: Partial<Course> = {
-          title: formValues.title,
-          subtitle: formValues.subtitle || '',
-          description: formValues.description,
-          modules: this.modules,
-          isActive: this.data.course?.isActive ?? false,
+        // Debug-Log vor dem Speichern
+        console.log('Course to save:', formValue);
+        
+        // Basis-Daten vorbereiten
+        const courseData: Partial<Course> = {
+          title: formValue.title || '',
+          subtitle: formValue.subtitle || '',
+          description: formValue.description || '',
+          modules: this.modules.map(module => ({
+            id: module.id,
+            title: module.title,
+            description: module.description,
+            order: module.order,
+            lessons: module.lessons.map(lesson => {
+              const mappedLesson: Lesson = {
+                id: lesson.id,
+                title: lesson.title,
+                description: lesson.description,
+                duration: lesson.duration,
+                type: lesson.type,
+                videoUrl: lesson.videoUrl || '',
+                content: lesson.content || '',
+                completed: lesson.completed,
+                files: lesson.files || []
+              };
+
+              // Quiz nur hinzufügen, wenn es existiert und Fragen hat
+              if (lesson.quiz && Array.isArray(lesson.quiz.questions) && lesson.quiz.questions.length > 0) {
+                mappedLesson.quiz = {
+                  title: lesson.quiz.title || 'Quiz',
+                  questions: lesson.quiz.questions.map(q => ({
+                    text: q.text,
+                    options: q.options,
+                    correctAnswers: q.correctAnswers
+                  }))
+                };
+              }
+
+              return mappedLesson;
+            })
+          })),
+          isActive: formValue.isActive || false,
           updatedAt: new Date()
         };
 
-        if (!this.isEditMode) {
-          baseData.createdAt = new Date();
-        }
-        
+        // Debug-Log nach der Transformation
+        console.log('Transformed course:', courseData);
+
         if (this.isEditMode && this.data.course) {
-          if (imageFile) {
-            // Update mit neuem Bild
-            await this.courseService.updateCourse(
-              this.data.course.id,
-              baseData,
-              imageFile
-            );
-          } else {
-            // Update ohne Bild-Änderung
-            if (this.data.course.image) {
-              baseData.image = this.data.course.image;
-            }
-            await this.courseService.updateCourse(
-              this.data.course.id,
-              baseData
-            );
-          }
+          // Update existierenden Kurs
+          await this.courseService.updateCourse(
+            this.data.course.id,
+            courseData,
+            imageFile
+          );
+          this.dialogRef.close({ ...this.data.course, ...courseData });
         } else {
-          // Neuer Kurs
-          await this.courseService.createCourse(baseData, imageFile);
+          // Erstelle neuen Kurs
+          courseData.createdAt = new Date();
+          const newCourse = await this.courseService.createCourse(courseData, imageFile);
+          this.dialogRef.close(newCourse);
         }
-        
-        this.dialogRef.close(true);
       } catch (error) {
         console.error('Error saving course:', error);
       }

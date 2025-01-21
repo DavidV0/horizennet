@@ -42,6 +42,7 @@ interface DialogData {
     }
 
     mat-dialog-actions {
+      color: var(--color-text-secondary);
       padding: 0;
       margin: 0;
       min-height: unset;

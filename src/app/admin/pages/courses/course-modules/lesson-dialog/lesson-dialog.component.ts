@@ -32,6 +32,21 @@ interface LegacyQuestion {
   correctAnswer: number;
 }
 
+interface QuestionForm {
+  text: string;
+  options: string[];
+  correctAnswers: number[];
+}
+
+interface QuizFormValue {
+  title: string;
+  questions: {
+    text: string;
+    options: string[];
+    correctAnswers: number[];
+  }[];
+}
+
 @Component({
   selector: 'app-lesson-dialog',
   standalone: true,
@@ -129,7 +144,7 @@ export class LessonDialogComponent implements OnInit {
   }
 
   get questions() {
-    return (this.lessonForm.get('quiz') as FormGroup).get('questions') as FormArray;
+    return this.lessonForm.get('quiz')?.get('questions') as FormArray;
   }
 
   addExistingFile(file: LessonFile) {
@@ -150,16 +165,19 @@ export class LessonDialogComponent implements OnInit {
     this.questions.push(questionGroup);
   }
 
-  addQuestion() {
-    const question = this.fb.group({
+  createQuestion(): FormGroup {
+    return this.fb.group({
       text: ['', Validators.required],
       options: this.fb.array([
         this.fb.control(''),
         this.fb.control('')
       ]),
-      correctAnswers: [[0]]
+      correctAnswers: [[]]
     });
-    this.questions.push(question);
+  }
+
+  addQuestion() {
+    this.questions.push(this.createQuestion());
   }
 
   removeQuestion(index: number) {
@@ -167,7 +185,7 @@ export class LessonDialogComponent implements OnInit {
   }
 
   getOptionsForQuestion(questionIndex: number): FormArray {
-    return (this.questions.at(questionIndex) as FormGroup).get('options') as FormArray;
+    return this.questions.at(questionIndex).get('options') as FormArray;
   }
 
   triggerVideoInput() {
@@ -282,6 +300,10 @@ export class LessonDialogComponent implements OnInit {
   onSubmit() {
     if (this.lessonForm.valid && this.uploadProgress === 0) {
       const formValue = this.lessonForm.value;
+      
+      // Debug-Log
+      console.log('Quiz Form Value:', formValue.quiz);
+      
       const lesson: Lesson = {
         id: this.data.lesson?.id || crypto.randomUUID(),
         title: formValue.title,
@@ -292,16 +314,20 @@ export class LessonDialogComponent implements OnInit {
         videoUrl: this.videoUrl || '',
         files: formValue.files?.length > 0 ? formValue.files : undefined,
         completed: this.data.lesson?.completed || false,
-        quiz: formValue.quiz.questions.length > 0 ? {
-          title: formValue.quiz.title || '',
-          questions: formValue.quiz.questions.map((q: QuizQuestion) => ({
+        // Prüfe ob es tatsächlich Quiz-Fragen gibt
+        quiz: formValue.quiz?.questions?.length > 0 ? {
+          title: formValue.quiz.title || 'Quiz',
+          questions: formValue.quiz.questions.map((q: QuizFormValue['questions'][0]) => ({
             text: q.text,
             options: q.options,
-            correctAnswers: q.correctAnswers
+            correctAnswers: q.correctAnswers || []
           }))
         } : undefined
       };
 
+      // Debug-Log
+      console.log('Processed Lesson with Quiz:', lesson);
+      
       this.dialogRef.close(lesson);
     }
   }
@@ -324,33 +350,31 @@ export class LessonDialogComponent implements OnInit {
     const options = this.getOptionsForQuestion(questionIndex);
     options.removeAt(optionIndex);
     
-    // Update correctAnswers if needed
     const question = this.questions.at(questionIndex);
-    const currentCorrectAnswers = question.get('correctAnswers')?.value || [];
-    if (currentCorrectAnswers.includes(optionIndex)) {
-      question.patchValue({ 
-        correctAnswers: currentCorrectAnswers.filter((_: number, i: number) => i !== optionIndex) 
-      });
-    }
+    const correctAnswers = question.get('correctAnswers')?.value || [];
+    const updatedCorrectAnswers = correctAnswers
+      .filter((index: number) => index !== optionIndex)
+      .map((index: number) => index > optionIndex ? index - 1 : index);
+    
+    question.patchValue({ correctAnswers: updatedCorrectAnswers });
   }
 
   toggleCorrectAnswer(questionIndex: number, optionIndex: number) {
     const question = this.questions.at(questionIndex);
-    const currentCorrectAnswers = question.get('correctAnswers')?.value || [];
+    const correctAnswers = question.get('correctAnswers')?.value || [];
     
-    const index = currentCorrectAnswers.indexOf(optionIndex);
+    const index = correctAnswers.indexOf(optionIndex);
     if (index === -1) {
-      currentCorrectAnswers.push(optionIndex);
+      correctAnswers.push(optionIndex);
     } else {
-      currentCorrectAnswers.splice(index, 1);
+      correctAnswers.splice(index, 1);
     }
     
-    question.patchValue({ correctAnswers: currentCorrectAnswers });
+    question.patchValue({ correctAnswers });
   }
 
   isCorrectAnswer(questionIndex: number, optionIndex: number): boolean {
     const question = this.questions.at(questionIndex);
-    const correctAnswers = question.get('correctAnswers')?.value || [];
-    return correctAnswers.includes(optionIndex);
+    return question.get('correctAnswers')?.value?.includes(optionIndex) || false;
   }
 } 

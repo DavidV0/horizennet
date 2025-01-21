@@ -1,0 +1,161 @@
+<div class="lesson-detail-container" *ngIf="lesson$ | async as lesson">
+  <!-- Video Section -->
+  <div class="video-section" *ngIf="lesson.videoUrl">
+    <div class="video-container">
+      <video 
+        controls
+        controlsList="nodownload" 
+        preload="metadata"
+        class="video-player"
+        [src]="lesson.videoUrl | safe">
+        <p>Ihr Browser unterstützt das Video-Tag nicht.</p>
+      </video>
+    </div>
+  </div>
+
+  <!-- Lesson Info -->
+  <div class="lesson-info">
+    <h1>{{lesson.title}}</h1>
+    <p class="description">{{lesson.description}}</p>
+  </div>
+
+  <!-- Content Sections -->
+  <div class="content-sections">
+    <!-- Files Section -->
+    <mat-expansion-panel expanded>
+      <mat-expansion-panel-header>
+        <mat-panel-title>
+          <mat-icon>attachment</mat-icon>
+          <span>Dateien</span>
+        </mat-panel-title>
+      </mat-expansion-panel-header>
+      
+      <ng-container *ngIf="lesson.files">
+        <div class="files-list" *ngIf="lesson.files.length > 0; else noFiles">
+          <button *ngFor="let file of lesson.files" 
+                  (click)="downloadFile(file)" 
+                  class="file-item">
+            <mat-icon>{{getFileIcon(file.type)}}</mat-icon>
+            <span>{{file.name}}</span>
+            <mat-icon class="download-icon">download</mat-icon>
+          </button>
+        </div>
+      </ng-container>
+      <ng-template #noFiles>
+        <p class="no-content">Keine Dateien verfügbar</p>
+      </ng-template>
+    </mat-expansion-panel>
+
+    <!-- Quiz Section -->
+    <mat-expansion-panel expanded>
+      <mat-expansion-panel-header>
+        <mat-panel-title>
+          <mat-icon>quiz</mat-icon>
+          <span>Quiz</span>
+        </mat-panel-title>
+      </mat-expansion-panel-header>
+      
+      <ng-container *ngIf="lesson.quiz">
+        <div class="quiz-container">
+          <!-- Debug-Info -->
+          <p style="display: none">Questions: {{lesson.quiz.questions?.length}}</p>
+          
+          <h3>{{lesson.quiz.title}}</h3>
+          
+          <!-- Quiz Result -->
+          <div class="quiz-result" *ngIf="quizSubmitted && quizResult">
+            <div class="result-header" [class.success]="quizResult.correctCount === quizResult.totalQuestions">
+              <mat-icon>{{quizResult.correctCount === quizResult.totalQuestions ? 'check_circle' : 'info'}}</mat-icon>
+              <h4>Quiz Ergebnis</h4>
+            </div>
+            <p class="result-text">
+              Du hast {{quizResult.correctCount}} von {{quizResult.totalQuestions}} Fragen richtig beantwortet!
+            </p>
+            <!-- Quiz Result Button -->
+            <button mat-flat-button 
+                    class="quiz-button"
+                    (click)="resetQuiz()">
+              <mat-icon>replay</mat-icon>
+              Quiz wiederholen
+            </button>
+          </div>
+
+          <!-- Questions -->
+          <div class="questions" [class.submitted]="quizSubmitted">
+            <div *ngFor="let question of lesson.quiz.questions; let i = index" 
+                 class="question"
+                 [class.correct]="quizSubmitted && quizResult && quizResult.correctIndices?.includes(i)"
+                 [class.wrong]="quizSubmitted && quizResult && quizResult.wrongIndices?.includes(i)">
+              <p class="question-text">
+                <span class="question-number">{{i + 1}}.</span>
+                {{question.text}}
+                <span class="question-type">(Mehrfachauswahl möglich)</span>
+              </p>
+              <div class="options">
+                <button mat-button 
+                        *ngFor="let option of question.options; let j = index"
+                        [class.selected]="isAnswerSelected(i, j)"
+                        [disabled]="quizSubmitted"
+                        (click)="selectAnswer(i, j)">
+                  <mat-icon class="checkbox-icon">
+                    {{isAnswerSelected(i, j) ? 'check_box' : 'check_box_outline_blank'}}
+                  </mat-icon>
+                  <span>{{option}}</span>
+                </button>
+              </div>
+              <!-- Feedback nach Submission -->
+              <div class="question-feedback" *ngIf="quizSubmitted && quizResult">
+                <p *ngIf="quizResult.correctIndices?.includes(i)" class="correct-feedback">
+                  <mat-icon>check_circle</mat-icon>
+                  Richtig!
+                </p>
+                <p *ngIf="quizResult.wrongIndices?.includes(i)" class="wrong-feedback">
+                  <mat-icon>error</mat-icon>
+                  Leider falsch
+                  <span class="correct-answer">
+                    {{ getCorrectAnswersText(question) }}
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Submit Button -->
+          <button mat-flat-button 
+                  class="quiz-button"
+                  (click)="submitQuiz()"
+                  [disabled]="!canSubmitQuiz() || quizSubmitted">
+            <span>Quiz abschließen</span>
+            <mat-icon>send</mat-icon>
+          </button>
+        </div>
+      </ng-container>
+      <ng-template #noQuiz>
+        <p class="no-content">Kein Quiz verfügbar</p>
+      </ng-template>
+    </mat-expansion-panel>
+  </div>
+
+  <!-- Navigation -->
+  <div class="lesson-navigation">
+    <!-- Zurück zum Modul Button -->
+    <button mat-flat-button 
+            class="back-button"
+            (click)="backToModule()">
+      <mat-icon>arrow_back</mat-icon>
+      <span>Zurück zum Modul</span>
+    </button>
+
+    <!-- Nächste Lektion Button -->
+    <button mat-flat-button 
+            class="next-lesson-button"
+            (click)="nextLesson()"
+            *ngIf="hasNextLesson()">
+      <span>Nächste Lektion</span>
+      <mat-icon>chevron_right</mat-icon>
+    </button>
+  </div>
+
+  <!-- Debug-Anzeige -->
+  <pre style="display: none">{{ lesson | json }}</pre>
+</div> 

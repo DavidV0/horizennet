@@ -4,7 +4,7 @@ import { routes } from './app.routes';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideHttpClient, withFetch } from '@angular/common/http';
 import { provideFirebaseApp, initializeApp } from '@angular/fire/app';
-import { provideFirestore, getFirestore, enableIndexedDbPersistence } from '@angular/fire/firestore';
+import { getFirestore, provideFirestore, enableMultiTabIndexedDbPersistence } from '@angular/fire/firestore';
 import { provideAuth, getAuth } from '@angular/fire/auth';
 import { provideFunctions, getFunctions } from '@angular/fire/functions';
 import { provideStorage, getStorage } from '@angular/fire/storage';
@@ -16,19 +16,13 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     provideAnimations(),
     provideHttpClient(withFetch()),
-    provideFirebaseApp(() => {
-      const app = initializeApp(environment.firebase);
-      return app;
-    }),
+    provideFirebaseApp(() => initializeApp(environment.firebase)),
     provideFirestore(() => {
       const firestore = getFirestore();
-      enableIndexedDbPersistence(firestore).catch((err) => {
-        if (err.code == 'failed-precondition') {
-          console.warn('Multiple tabs open, persistence can only be enabled in one tab at a a time.');
-        } else if (err.code == 'unimplemented') {
-          console.warn('The current browser does not support persistence.');
-        }
-      });
+      const settings = {
+        cacheSizeBytes: 40000000, // 40 MB
+        experimentalForceLongPolling: true
+      };
       return firestore;
     }),
     provideAuth(() => getAuth()),
