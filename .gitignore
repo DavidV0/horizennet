@@ -56,3 +56,4 @@ testem.log
 
 # Firebase service account key files
 *-firebase-adminsdk-*.json
+functions/.env.production
