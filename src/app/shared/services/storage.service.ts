@@ -36,7 +36,9 @@ export class StorageService {
       'state_changed',
       (snapshot) => {
         const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        progress$.next({ progress });
+        if (progress < 100) {
+          progress$.next({ progress });
+        }
       },
       (error) => {
         console.error('Upload error:', error);

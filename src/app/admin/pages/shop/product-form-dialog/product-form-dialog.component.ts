@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { Component, Inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -7,6 +7,13 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatSelectModule } from '@angular/material/select';
+import { MatChipsModule } from '@angular/material/chips';
+import { ShopService } from '../../../../shared/services/shop.service';
+import { CourseService } from '../../../../shared/services/course.service';
+import { Course } from '../../../../shared/models/course.model';
+import { ShopProduct } from '../../../../shared/interfaces/shop-product.interface';
+import { Observable } from 'rxjs';
 
 @Component({
   selector: 'app-product-form-dialog',
@@ -21,81 +28,48 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
     MatFormFieldModule,
     MatInputModule,
     MatIconModule,
-    MatProgressBarModule
+    MatProgressBarModule,
+    MatSelectModule,
+    MatChipsModule
   ]
 })
-export class ProductFormDialogComponent {
+export class ProductFormDialogComponent implements OnInit {
   productForm: FormGroup;
   imagePreview: string | undefined;
   uploadProgress: number = 0;
   isUploading: boolean = false;
   selectedFile: File | undefined;
+  isLoading = false;
+  courses$!: Observable<Course[]>;
 
   constructor(
     private fb: FormBuilder,
     private dialogRef: MatDialogRef<ProductFormDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: { id?: string; product?: any }
+    private shopService: ShopService,
+    private courseService: CourseService,
+    @Inject(MAT_DIALOG_DATA) public data: { product?: ShopProduct }
   ) {
-    // Create form with editable and read-only fields
     this.productForm = this.fb.group({
-      // Editable fields
       name: ['', [Validators.required, Validators.minLength(1)]],
+      price: ['', [Validators.required, Validators.min(0)]],
       oldPrice: [''],
-      tag: [''],
-      // Read-only fields
-      price: [{value: '', disabled: true}],
-      stripeProductId: [{value: '', disabled: true}],
-      stripeFullPaymentId: [{value: '', disabled: true}],
-      stripeSixMonthsId: [{value: '', disabled: true}],
-      stripeTwelveMonthsId: [{value: '', disabled: true}],
-      stripeEighteenMonthsId: [{value: '', disabled: true}]
+      description: [''],
+      features: [[]],
+      courseIds: [[], Validators.required],
+      tag: ['']
     });
 
-    if (data?.product) {
-      // Set default Stripe IDs based on product name
-      let stripeProductId = '';
-      let stripePriceIds = {
-        fullPayment: '',
-        sixMonths: '',
-        twelveMonths: '',
-        eighteenMonths: ''
-      };
-
-      if (data.product.name === 'Horizon Academy') {
-        stripeProductId = 'prod_RaJP8uJTvZnxRj';
-        stripePriceIds = {
-          fullPayment: 'price_1Qh8mUGmKQzZmpXRRe5qUaj1',
-          sixMonths: 'price_1Qh8mUGmKQzZmpXRAq2gWoyZ',
-          twelveMonths: 'price_1Qh8mUGmKQzZmpXRHn9lgRHq',
-          eighteenMonths: 'price_1Qh8mUGmKQzZmpXRWXzdLWti'
-        };
-      } else if (data.product.name === 'Horizon Krypto') {
-        stripeProductId = 'prod_RaJPLaApWZxg7X';
-        stripePriceIds = {
-          fullPayment: 'price_1Qh8mVGmKQzZmpXRX7Ye4whH',
-          sixMonths: 'price_1Qh8mVGmKQzZmpXRchnqbJjG',
-          twelveMonths: 'price_1Qh8mVGmKQzZmpXRsd01cwXP',
-          eighteenMonths: 'price_1Qh8mVGmKQzZmpXRqcIJ0Lnm'
-        };
-      }
-
-      // Update form with existing values
-      this.productForm.patchValue({
-        name: data.product.name || '',
-        oldPrice: data.product.oldPrice || '',
-        tag: data.product.tag || '',
-        price: data.product.price || '',
-        stripeProductId: data.product.stripeProductId || stripeProductId,
-        stripeFullPaymentId: data.product.stripePriceIds?.fullPayment || stripePriceIds.fullPayment,
-        stripeSixMonthsId: data.product.stripePriceIds?.sixMonths || stripePriceIds.sixMonths,
-        stripeTwelveMonthsId: data.product.stripePriceIds?.twelveMonths || stripePriceIds.twelveMonths,
-        stripeEighteenMonthsId: data.product.stripePriceIds?.eighteenMonths || stripePriceIds.eighteenMonths
-      });
-
-      if (data.product.image) {
-        this.imagePreview = data.product.image;
+    if (this.data?.product) {
+      this.productForm.patchValue(this.data.product);
+      if (this.data.product.image) {
+        this.imagePreview = this.data.product.image;
       }
     }
+  }
+
+  async ngOnInit() {
+    // Load available courses
+    this.courses$ = this.courseService.getCourses('ADMIN');
   }
 
   onFileSelected(event: any): void {
@@ -110,28 +84,39 @@ export class ProductFormDialogComponent {
     }
   }
 
-  onSubmit(): void {
-    if (this.productForm.valid) {
-      const formValue = this.productForm.getRawValue();
-      
-      // Only include editable fields and preserve existing data
-      const productData = {
-        ...this.data.product,
-        name: String(formValue.name || '').trim(),
-        oldPrice: formValue.oldPrice ? Number(formValue.oldPrice) : null,
-        tag: formValue.tag ? String(formValue.tag).trim() : null
-      };
+  async onSubmit(): Promise<void> {
+    if (this.productForm.valid && (this.selectedFile || this.data?.product?.image)) {
+      this.isLoading = true;
+      try {
+        const formValue = this.productForm.getRawValue();
+        
+        const productData: Partial<ShopProduct> = {
+          name: formValue.name.trim(),
+          price: Number(formValue.price),
+          oldPrice: formValue.oldPrice ? Number(formValue.oldPrice) : undefined,
+          tag: formValue.tag ? formValue.tag.trim() : undefined,
+          description: formValue.description,
+          features: formValue.features,
+          courseIds: formValue.courseIds,
+          image: this.data?.product?.image || '', // Will be updated after upload
+          stripeProductId: this.data?.product?.stripeProductId || '', // Will be set by the service
+          stripePriceIds: this.data?.product?.stripePriceIds || {
+            fullPayment: '',
+            sixMonths: '',
+            twelveMonths: '',
+            eighteenMonths: ''
+          }
+        };
 
-      // Keep existing Stripe data
-      if (this.data.product) {
-        productData.stripeProductId = this.data.product.stripeProductId;
-        productData.stripePriceIds = this.data.product.stripePriceIds;
+        this.dialogRef.close({
+          product: productData,
+          file: this.selectedFile
+        });
+      } catch (error) {
+        console.error('Error saving product:', error);
+      } finally {
+        this.isLoading = false;
       }
-
-      this.dialogRef.close({
-        product: productData,
-        file: this.selectedFile
-      });
     }
   }
 
@@ -142,5 +127,8 @@ export class ProductFormDialogComponent {
   removeImage(): void {
     this.imagePreview = undefined;
     this.selectedFile = undefined;
+    if (this.data?.product) {
+      this.data.product.image = '';
+    }
   }
 } 

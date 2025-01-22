@@ -3,6 +3,7 @@ import { HomeComponent } from './pages/home/home.component';
 import { ShopComponent } from './pages/shop/shop.component';
 import { CheckoutComponent } from './pages/shop/checkout/checkout.component';
 import { authGuard } from './shared/guards/auth.guard';
+import { CourseAccessGuard } from './shared/guards/course-access.guard';
 
 export const routes: Routes = [
   {
@@ -36,6 +37,7 @@ export const routes: Routes = [
           },
           {
             path: ':id',
+            canActivate: [CourseAccessGuard],
             data: { ssr: false },
             children: [
               {
@@ -45,6 +47,7 @@ export const routes: Routes = [
               },
               {
                 path: 'modules/:moduleId',
+                canActivate: [CourseAccessGuard],
                 data: { ssr: false },
                 children: [
                   {

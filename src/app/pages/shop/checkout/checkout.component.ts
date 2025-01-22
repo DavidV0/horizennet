@@ -24,6 +24,8 @@ import { StripeService } from '../../../shared/services/stripe.service';
 import { isPlatformBrowser } from '@angular/common';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { HttpClient } from '@angular/common/http';
+import { AuthService } from '../../../shared/services/auth.service';
+import { User } from '@angular/fire/auth';
 
 // Test card numbers
 const TEST_CARDS = {
@@ -50,6 +52,7 @@ const TEST_CARDS = {
     MatDialogModule,
     RouterModule
   ],
+  providers: [AuthService, UserService],
   templateUrl: './checkout.component.html',
   styleUrls: ['./checkout.component.scss']
 })
@@ -94,7 +97,8 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
     private cdr: ChangeDetectorRef,
     @Inject(PLATFORM_ID) private platformId: Object,
     private auth: AngularFireAuth,
-    private http: HttpClient
+    private http: HttpClient,
+    private authService: AuthService
   ) {
     this.checkoutForm = this.fb.group({
       firstName: ['Max', [Validators.required, Validators.minLength(2)]],
@@ -239,7 +243,7 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   private async loadCartProducts() {
     const cartItems = Array.from(this.cartService.getCartItems());
-    const products = await this.shopService.getAllProducts().toPromise();
+    const products = await firstValueFrom(this.shopService.getAllProducts());
     
     if (products) {
       this.cartProducts = products.filter(product => 
@@ -440,6 +444,8 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
       if (this.isSubscription) {
         // Handle subscription payment
         const priceId = this.getStripePriceId(selectedPlan);
+        console.log('Creating subscription with:', { priceId, customerId, paymentMethodId });
+        
         this.stripeSubscription = await firstValueFrom(
           this.paymentService.createSubscription(
             priceId,
@@ -448,29 +454,61 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
           )
         );
 
+        console.log('Subscription created:', this.stripeSubscription);
+
         if (this.stripeSubscription.status === 'active') {
+          console.log('Subscription is active, completing order');
           await this.completeOrder(customerId);
-        } else if (this.stripeSubscription.status === 'incomplete') {
-          // Get the subscription details with payment_intent
-          const subscriptionDetails = await firstValueFrom(
-            this.paymentService.getSubscriptionStatus(this.stripeSubscription.id)
-          );
+        } else if (this.stripeSubscription.status === 'incomplete' || 
+                  this.stripeSubscription.status === 'requires_payment_method') {
+          console.log('Subscription requires payment confirmation');
           
-          if (subscriptionDetails.clientSecret) {
-            const { error } = await this.stripe!.confirmCardPayment(
-              subscriptionDetails.clientSecret
+          // Use the client secret from the subscription response
+          const clientSecret = this.stripeSubscription.clientSecret;
+          
+          if (clientSecret) {
+            console.log('Confirming card payment with client secret:', clientSecret);
+            const { paymentIntent, error } = await this.stripe!.confirmCardPayment(
+              clientSecret,
+              {
+                payment_method: paymentMethodId
+              }
             );
 
             if (error) {
+              console.error('Payment confirmation error:', error);
               throw new Error(error.message);
             }
 
-            await this.completeOrder(customerId);
+            console.log('Payment intent after confirmation:', paymentIntent);
+
+            if (paymentIntent && paymentIntent.status === 'succeeded') {
+              console.log('Payment confirmed, completing order');
+              await this.completeOrder(customerId);
+            } else if (paymentIntent && paymentIntent.status === 'requires_payment_method') {
+              throw new Error('Die Zahlung wurde abgelehnt. Bitte überprüfen Sie Ihre Zahlungsinformationen.');
+            } else if (paymentIntent && paymentIntent.status === 'requires_action') {
+              throw new Error('Die Zahlung erfordert eine zusätzliche Authentifizierung.');
+            } else {
+              throw new Error(`Unerwarteter Zahlungsstatus: ${paymentIntent?.status}`);
+            }
+          } else {
+            throw new Error('Kein Client Secret in der Antwort gefunden');
           }
+        } else if (this.stripeSubscription.status === 'trialing' || 
+                  this.stripeSubscription.status === 'past_due' ||
+                  this.stripeSubscription.status === 'unpaid') {
+          // These statuses still indicate a successful subscription creation
+          console.log(`Subscription is in ${this.stripeSubscription.status} status, completing order`);
+          await this.completeOrder(customerId);
+        } else {
+          throw new Error(`Unerwarteter Abonnementstatus: ${this.stripeSubscription.status}`);
         }
       } else {
         // Handle one-time payment
         const amount = this.calculatePriceWithVAT(this.monthlyTotal); // Amount in euros
+        console.log('Creating payment intent:', { amount, customerId, paymentMethodId });
+        
         this.paymentIntent = await firstValueFrom(
           this.paymentService.createPaymentIntent(amount, {
             customer: customerId,
@@ -479,23 +517,34 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
           })
         );
 
+        console.log('Payment intent created:', this.paymentIntent);
+
         if (!this.paymentIntent?.clientSecret) {
           throw new Error('Fehler beim Erstellen der Zahlung');
         }
 
         // Check if payment requires additional actions
-        if (this.paymentIntent.status === 'requires_action') {
-          const { error } = await this.stripe!.confirmCardPayment(
+        if (this.paymentIntent.status === 'requires_action' || 
+            this.paymentIntent.status === 'requires_payment_method') {
+          console.log('Payment requires action, confirming card payment');
+          const { paymentIntent, error } = await this.stripe!.confirmCardPayment(
             this.paymentIntent.clientSecret
           );
 
           if (error) {
             throw new Error(error.message);
           }
-        }
 
-        // If we get here, the payment was successful
-        await this.completeOrder(customerId);
+          if (paymentIntent && paymentIntent.status === 'succeeded') {
+            console.log('Payment confirmed, completing order');
+            await this.completeOrder(customerId);
+          } else {
+            throw new Error(`Unexpected payment intent status: ${paymentIntent?.status}`);
+          }
+        } else {
+          console.log('Payment successful, completing order');
+          await this.completeOrder(customerId);
+        }
       }
     } catch (error: any) {
       console.error('Payment error:', error);
@@ -571,9 +620,37 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
       const formValues = this.checkoutForm.value;
       const orderId = this.isSubscription ? this.stripeSubscription?.id : this.paymentIntent?.id;
       
+      if (!orderId) {
+        throw new Error('No order ID found');
+      }
+
+      console.log('Processing order:', { orderId, isSubscription: this.isSubscription });
+      
+      // Get purchased course IDs
+      const purchasedCourses = this.cartProducts.map(product => product.id);
+      
+      // Get current user
+      const user = await firstValueFrom(this.authService.user$) as User;
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      console.log('Activating product access for user:', user.uid);
+
+      // Activate course access for each purchased product
+      for (const product of this.cartProducts) {
+        try {
+          await this.userService.activateProductAccess(user.uid, orderId, product);
+          console.log('Product access activated:', product.id);
+        } catch (accessError) {
+          console.error('Error activating product access:', accessError);
+          // Continue with other products
+        }
+      }
+      
       // Send purchase confirmation email
       try {
-        await this.http.post(`${this.apiUrl}/sendPurchaseConfirmation`, {
+        const emailData = {
           email: formValues.email,
           firstName: formValues.firstName,
           lastName: formValues.lastName,
@@ -588,22 +665,37 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
             zipCode: formValues.zipCode,
             city: formValues.city,
             country: formValues.country
-          }
-        }).toPromise();
+          },
+          purchasedCourses: purchasedCourses,
+          isSubscription: this.isSubscription
+        };
+
+        console.log('Sending confirmation email:', emailData);
         
+        await firstValueFrom(
+          this.http.post(`${this.apiUrl}/api/sendPurchaseConfirmation`, emailData)
+        );
+        
+        console.log('Confirmation email sent successfully');
       } catch (emailError) {
         console.error('Error sending purchase confirmation email:', emailError);
         // Continue with redirection even if email fails
       }
       
+      console.log('Redirecting to success page');
+      
       // Redirect to success page
-      const queryParams = `?orderId=${orderId}&type=${this.isSubscription ? 'subscription' : 'payment'}`;
-      this.router.navigate(['/success'], { queryParams: { orderId, type: this.isSubscription ? 'subscription' : 'payment' } });
+      await this.router.navigate(['/success'], { 
+        queryParams: { 
+          orderId, 
+          type: this.isSubscription ? 'subscription' : 'payment' 
+        }
+      });
       
     } catch (error: any) {
       console.error('Error completing order:', error);
       // Still redirect to success page as payment was successful
-      this.router.navigate(['/success']);
+      await this.router.navigate(['/success']);
     }
   }
 
@@ -647,22 +739,25 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
       return '';
     }
 
-    const isAcademy = product.name.toLowerCase().includes('academy');
+    if (!product.stripePriceIds) {
+      console.error('No stripe price IDs found for product');
+      return '';
+    }
     
     switch(months) {
+      case 0:
+        return product.stripePriceIds.fullPayment;
       case 6:
-        return isAcademy ? 'price_1Qh8mUGmKQzZmpXRHn9lgRHq' : 'price_1Qh8mVGmKQzZmpXRsd01cwXP';
+        return product.stripePriceIds.sixMonths;
       case 12:
-        return isAcademy ? 'price_1Qh8mUGmKQzZmpXRWXzdLWti' : 'price_1Qh8mVGmKQzZmpXRqcIJ0Lnm';
+        return product.stripePriceIds.twelveMonths;
       case 18:
-        return isAcademy ? 'price_1Qh8mUGmKQzZmpXRAq2gWoyZ' : 'price_1Qh8mVGmKQzZmpXRchnqbJjG';
+        return product.stripePriceIds.eighteenMonths;
       default:
         console.error('Invalid payment plan selected');
         return '';
     }
   }
-
-
 
   goBack() {
     this.setCurrentStep(1, false);

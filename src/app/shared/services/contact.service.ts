@@ -14,7 +14,7 @@ export interface ContactFormData {
   providedIn: 'root',
 })
 export class ContactService {
-  private functionUrl = `${environment.functionsBaseUrl}/sendContactEmail`;
+  private functionUrl = `${environment.apiUrl}/sendContactEmail`;
 
   constructor(private http: HttpClient) {}
 

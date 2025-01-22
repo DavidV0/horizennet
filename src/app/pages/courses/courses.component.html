@@ -23,7 +23,12 @@
 
     <!-- Courses Grid -->
     <div class="courses-grid" *ngIf="!isLoading && courses.length > 0">
-      <mat-card class="course-card" *ngFor="let course of courses">
+      <mat-card class="course-card" *ngFor="let course of courses" [class.locked]="!course.hasAccess">
+        <div class="course-overlay" *ngIf="!course.hasAccess">
+          <mat-icon>lock</mat-icon>
+          <span>Kurs kaufen</span>
+        </div>
+        
         <img [src]="course.image" [alt]="course.title" class="course-image">
         
         <mat-card-content>
@@ -39,9 +44,12 @@
         </mat-card-content>
 
         <mat-card-actions>
-          <button mat-flat-button [routerLink]="['/dashboard/courses', course.id]">
-            <mat-icon>play_arrow</mat-icon>
-            <span>Jetzt starten</span>
+          <button mat-flat-button 
+                  (click)="startCourse(course)"
+                  [color]="course.hasAccess ? 'accent' : 'warn'"
+                  [matTooltip]="course.hasAccess ? 'Kurs starten' : 'Kurs im Shop kaufen'">
+            <mat-icon>{{course.hasAccess ? 'play_arrow' : 'shopping_cart'}}</mat-icon>
+            <span>{{course.hasAccess ? 'Jetzt starten' : 'Kurs kaufen'}}</span>
           </button>
         </mat-card-actions>
       </mat-card>

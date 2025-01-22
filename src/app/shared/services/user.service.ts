@@ -3,6 +3,8 @@ import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { AngularFireFunctions } from '@angular/fire/compat/functions';
 import { firstValueFrom } from 'rxjs';
+import { ShopProduct } from '../interfaces/shop-product.interface';
+import firebase from 'firebase/compat/app';
 
 export interface UserData {
   firstName: string;
@@ -23,6 +25,8 @@ export interface UserData {
   becomePartner?: boolean;
   stripeCustomerId?: string;
   stripeSubscriptionId?: string;
+  purchasedCourses?: string[];
+  productType?: string;
 }
 
 interface ConsentData {
@@ -71,7 +75,9 @@ export class UserService {
         status: 'pending_activation',
         keyActivated: false,
         createdAt: new Date(),
-        becomePartner: userData.becomePartner || false
+        becomePartner: userData.becomePartner || false,
+        purchasedCourses: userData.purchasedCourses || [],
+        productType: userData.productType || 'crypto'
       });
       console.log('Product key document created successfully');
 
@@ -199,6 +205,10 @@ export class UserService {
           consent1: consent.consent1,
           consent2: consent.consent2,
           timestamp: consent.timestamp
+        },
+        courses: {
+          purchased: keyData.purchasedCourses || [],
+          progress: {}
         }
       };
 
@@ -279,6 +289,38 @@ export class UserService {
       });
     } catch (error) {
       console.error('Error updating user subscription:', error);
+      throw error;
+    }
+  }
+
+  async activateProductAccess(userId: string, productKey: string, product: ShopProduct) {
+    try {
+      // Create or update product key document
+      await this.firestore.collection('productKeys').doc(productKey).set({
+        isActivated: true,
+        userId,
+        activatedAt: new Date(),
+        courseIds: product.courseIds
+      }, { merge: true }); // Using merge: true to preserve any existing data
+
+      // Create or update user_courses document
+      await this.firestore.collection('user_courses').doc(userId).set({
+        courseIds: firebase.firestore.FieldValue.arrayUnion(...product.courseIds)
+      }, { merge: true });
+
+      // Create or update user's document with product access
+      await this.firestore.collection('users').doc(userId).set({
+        [`products.${product.id}`]: {
+          activated: true,
+          productKey,
+          activatedAt: new Date(),
+          courseIds: product.courseIds
+        }
+      }, { merge: true }); // Using merge: true to preserve any existing data
+
+      return true;
+    } catch (error) {
+      console.error('Error activating product access:', error);
       throw error;
     }
   }

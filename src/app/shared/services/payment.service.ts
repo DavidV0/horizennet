@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Observable, throwError, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
-import { Observable, throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
 
 export interface PaymentIntent {
   clientSecret: string;
@@ -14,6 +14,21 @@ export interface Subscription {
   id: string;
   status: string;
   currentPeriodEnd: number;
+  gracePeriodEnd?: number;
+  lastNotificationSent?: string;
+  clientSecret?: string;
+}
+
+export interface SubscriptionStatus {
+  id: string;
+  status: string;
+  currentPeriodEnd: number;
+  gracePeriodEnd?: number;
+  clientSecret?: string;
+  paymentIntent?: {
+    clientSecret: string;
+    status: string;
+  };
 }
 
 @Injectable({
@@ -21,12 +36,14 @@ export interface Subscription {
 })
 export class PaymentService {
   private apiUrl = environment.apiUrl;
+  private readonly GRACE_PERIOD_DAYS = 7; // 7 days grace period for failed payments
+  private readonly REMINDER_DAYS = [7, 3, 1]; // Send reminders 7, 3, and 1 day before renewal
 
   constructor(private http: HttpClient) {}
 
   // One-time payment
   createPaymentIntent(amount: number, options: any = {}): Observable<PaymentIntent> {
-    return this.http.post<PaymentIntent>(`${this.apiUrl}/stripe/payments`, {
+    return this.http.post<PaymentIntent>(`${this.apiUrl}/api/stripe/payments`, {
       amount,
       ...options
     }).pipe(
@@ -36,37 +53,82 @@ export class PaymentService {
 
   // Subscription payment
   createSubscription(priceId: string, customerId: string, paymentMethodId: string): Observable<Subscription> {
-    return this.http.post<Subscription>(`${this.apiUrl}/stripe/subscriptions`, {
+    return this.http.post<Subscription>(`${this.apiUrl}/api/stripe/subscriptions`, {
       priceId,
       customerId,
-      paymentMethodId
+      paymentMethodId,
+      gracePeriodDays: this.GRACE_PERIOD_DAYS
     }).pipe(
       catchError(this.handleError)
     );
   }
 
-  // Get subscription status
-  getSubscriptionStatus(subscriptionId: string): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/stripe/subscriptions/${subscriptionId}`);
+  // Get subscription status with grace period info
+  getSubscriptionStatus(subscriptionId: string): Observable<SubscriptionStatus> {
+    return this.http.get<SubscriptionStatus>(`${this.apiUrl}/api/stripe/subscriptions/${subscriptionId}`).pipe(
+      map(status => {
+        // Add grace period end date if status is past_due
+        if (status.status === 'past_due' && !status.gracePeriodEnd) {
+          const gracePeriodEnd = new Date();
+          gracePeriodEnd.setDate(gracePeriodEnd.getDate() + this.GRACE_PERIOD_DAYS);
+          status.gracePeriodEnd = gracePeriodEnd.getTime();
+        }
+        return status;
+      }),
+      catchError(this.handleError)
+    );
+  }
+
+  // Check if subscription needs renewal reminder
+  checkRenewalReminder(subscription: SubscriptionStatus): Observable<boolean> {
+    const now = Date.now();
+    const daysUntilRenewal = Math.ceil((subscription.currentPeriodEnd * 1000 - now) / (1000 * 60 * 60 * 24));
+    
+    return of(this.REMINDER_DAYS.includes(daysUntilRenewal));
+  }
+
+  // Send renewal reminder
+  sendRenewalReminder(subscriptionId: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/api/stripe/subscriptions/${subscriptionId}/reminder`, {}).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  // Handle failed payment with grace period
+  handleFailedPayment(subscriptionId: string): Observable<SubscriptionStatus> {
+    return this.http.post<SubscriptionStatus>(`${this.apiUrl}/api/stripe/subscriptions/${subscriptionId}/handle-failed-payment`, {
+      gracePeriodDays: this.GRACE_PERIOD_DAYS
+    }).pipe(
+      catchError(this.handleError)
+    );
   }
 
   // Cancel subscription
   cancelSubscription(subscriptionId: string): Observable<Subscription> {
-    return this.http.delete<Subscription>(`${this.apiUrl}/stripe/subscriptions/${subscriptionId}`).pipe(
+    return this.http.delete<Subscription>(`${this.apiUrl}/api/stripe/subscriptions/${subscriptionId}`).pipe(
       catchError(this.handleError)
     );
   }
 
   // Handle payment webhook events (for failed payments, etc.)
   handleWebhookEvent(event: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/webhook`, event).pipe(
+    return this.http.post(`${this.apiUrl}/api/webhook`, event).pipe(
       catchError(this.handleError)
     );
   }
 
   // Retry failed payment
   retryFailedPayment(paymentIntentId: string, paymentMethodId?: string): Observable<PaymentIntent> {
-    return this.http.post<PaymentIntent>(`${this.apiUrl}/stripe/payments/${paymentIntentId}/retry`, {
+    return this.http.post<PaymentIntent>(`${this.apiUrl}/api/stripe/payments/${paymentIntentId}/retry`, {
+      paymentMethodId
+    }).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  // Update payment method
+  updatePaymentMethod(subscriptionId: string, paymentMethodId: string): Observable<SubscriptionStatus> {
+    return this.http.post<SubscriptionStatus>(`${this.apiUrl}/api/stripe/subscriptions/${subscriptionId}/payment-method`, {
       paymentMethodId
     }).pipe(
       catchError(this.handleError)

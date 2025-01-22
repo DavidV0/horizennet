@@ -10,21 +10,16 @@ export class StripeService {
   private apiUrl = environment.apiUrl;
   private headers = new HttpHeaders()
     .set('Content-Type', 'application/json')
-    .set('Accept', 'application/json')
-    .set('Access-Control-Allow-Origin', '*');
+    .set('Accept', 'application/json');
 
   constructor(private http: HttpClient) { }
 
   // Customer Management
   createCustomer(email: string, name: string): Observable<any> {
-    
     return this.http.post(
-      `${this.apiUrl}/stripe/customers`,
+      `${this.apiUrl}/api/stripe/customers`,
       { email, name },
-      { 
-        headers: this.headers,
-        withCredentials: false
-      }
+      { headers: this.headers }
     ).pipe(
       timeout(30000),
       retry(2),
@@ -34,11 +29,8 @@ export class StripeService {
 
   getCustomer(customerId: string): Observable<any> {
     return this.http.get(
-      `${this.apiUrl}/stripe/customers/${customerId}`,
-      { 
-        headers: this.headers,
-        withCredentials: false
-      }
+      `${this.apiUrl}/api/stripe/customers/${customerId}`,
+      { headers: this.headers }
     ).pipe(
       timeout(30000),
       retry(2),
