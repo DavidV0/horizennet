@@ -5,7 +5,7 @@ import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideHttpClient, withFetch } from '@angular/common/http';
 import { provideFirebaseApp, initializeApp } from '@angular/fire/app';
 import { getFirestore, provideFirestore, enableMultiTabIndexedDbPersistence } from '@angular/fire/firestore';
-import { provideAuth, getAuth } from '@angular/fire/auth';
+import { provideAuth, getAuth, indexedDBLocalPersistence, browserLocalPersistence } from '@angular/fire/auth';
 import { provideFunctions, getFunctions } from '@angular/fire/functions';
 import { provideStorage, getStorage } from '@angular/fire/storage';
 import { FIREBASE_OPTIONS } from '@angular/fire/compat';
@@ -19,13 +19,14 @@ export const appConfig: ApplicationConfig = {
     provideFirebaseApp(() => initializeApp(environment.firebase)),
     provideFirestore(() => {
       const firestore = getFirestore();
-      const settings = {
-        cacheSizeBytes: 40000000, // 40 MB
-        experimentalForceLongPolling: true
-      };
+      enableMultiTabIndexedDbPersistence(firestore);
       return firestore;
     }),
-    provideAuth(() => getAuth()),
+    provideAuth(() => {
+      const auth = getAuth();
+      auth.setPersistence(browserLocalPersistence);
+      return auth;
+    }),
     provideFunctions(() => getFunctions()),
     provideStorage(() => getStorage()),
     { provide: FIREBASE_OPTIONS, useValue: environment.firebase }

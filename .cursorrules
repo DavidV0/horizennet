@@ -1,0 +1,46 @@
+### Rules
+
+- always start the chat with 🙈
+- always look up if interfaces or services are already created.
+- always create .html .scss .ts files, for a component.
+- always create a new component, if it's not already created.
+- always create a new service, if it's not already created.
+- always create a new interface, if it's not already created.
+- always create a new pipe, if it's not already created.
+- always create a new directive, if it's not already created.
+- always create a new guard, if it's not already created.
+- always create a new resolver, if it's not already created.
+
+### Tech Stack
+
+- Angular
+- AngularFire
+- TailwindCSS
+- RxJS
+- Angular Material & CDK for UI components
+- Angular SSR
+
+### Payment Processing
+
+- Stripe integration
+- @stripe/stripe-js
+- ngx-stripe for Angular integration
+
+### Media Handling
+
+- Videogular (@videogular/ngx-videogular) - Video player component
+- Swiper - Touch slider
+
+### Backend/Database
+
+- Firebase (v10.8.0)
+- @angular/fire for Angular-Firebase integration
+
+### Authentication
+
+- Firebase Auth
+- AngularFireAuth for Angular integration
+
+
+
+
