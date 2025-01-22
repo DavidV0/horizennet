@@ -55,12 +55,14 @@ interface ChatMessage {
         </div>
 
         <div class="message" *ngFor="let message of messages" 
-             [class.own-message]="message.senderId === currentUserId"
+             [class.own-message]="message.senderId === 'support'"
              [class.fade-in]="true">
           <div class="message-content">
             <div class="message-header">
-              <span class="sender-name">{{message.senderName}}</span>
-              <span class="timestamp">{{message.timestamp | date:'HH:mm'}}</span>
+              <span class="sender-name">
+                {{message.senderId === 'support' ? 'Support Team' : message.senderName}}
+              </span>
+              <span class="timestamp">{{message.timestamp | date:'dd.MM.yyyy HH:mm'}}</span>
             </div>
             <div class="message-bubble">
               <div class="message-text">{{message.text}}</div>
@@ -70,11 +72,6 @@ interface ChatMessage {
                   <span class="file-name">{{file.name}}</span>
                 </div>
               </div>
-            </div>
-            <div class="message-status" *ngIf="message.senderId === currentUserId">
-              <mat-icon [class.read]="message.status === 'read'">
-                {{message.status === 'read' ? 'done_all' : message.status === 'delivered' ? 'done_all' : 'done'}}
-              </mat-icon>
             </div>
           </div>
         </div>
@@ -481,6 +478,7 @@ export class ChatDetailComponent implements OnInit, OnDestroy {
   
   userName: string = 'User';
   currentUserId: string = '';
+  chatId: string = '';
   messages: ChatMessage[] = [];
   newMessage: string = '';
   selectedFiles: File[] = [];
@@ -510,6 +508,7 @@ export class ChatDetailComponent implements OnInit, OnDestroy {
 
     const chatId = this.route.snapshot.paramMap.get('id');
     if (chatId) {
+      this.chatId = chatId;
       this.loadChat(chatId);
     }
   }
@@ -573,26 +572,23 @@ export class ChatDetailComponent implements OnInit, OnDestroy {
   }
 
   async sendMessage() {
-    if (!this.isAuthenticated) {
-      console.error('User not authenticated');
-      return;
-    }
-
     if (!this.newMessage?.trim() && !this.selectedFiles.length) return;
 
     try {
-      const chatId = this.route.snapshot.paramMap.get('id');
-      if (!chatId) {
-        console.error('No chat ID found');
+      const user = await this.authService.user$.pipe(take(1)).toPromise();
+      if (!user) {
+        console.error('No user found');
         return;
       }
 
+      // Upload files if any
       const files = await this.uploadFiles();
-      
+
+      // Create and send the message
       const message: Partial<ChatMessage> = {
         text: this.newMessage?.trim() || '',
-        senderId: this.currentUserId,
-        senderName: this.userName,
+        senderId: 'support',
+        senderName: 'Support Team',  // Fixed sender name for support messages
         timestamp: new Date(),
         files,
         status: 'sent'
@@ -600,7 +596,7 @@ export class ChatDetailComponent implements OnInit, OnDestroy {
 
       await this.firestore
         .collection('chats')
-        .doc(chatId)
+        .doc(this.chatId)
         .collection('messages')
         .add(message);
 

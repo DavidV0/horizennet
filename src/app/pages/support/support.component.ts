@@ -58,7 +58,7 @@ interface FirestoreMessage {
           <div class="message-content">
             <div class="message-header">
               <span class="sender-name">
-                {{message.senderId === 'support' ? 'Support' : message.senderName}}
+                {{message.senderId === 'support' ? 'Support Team' : message.senderName}}
               </span>
               <span class="timestamp">{{message.timestamp | date:'HH:mm'}}</span>
             </div>
