@@ -30,6 +30,9 @@ jobs:
       - name: Build
         run: npm run build --configuration=production
         
+      - name: Copy .htaccess
+        run: cp .htaccess ./dist/horizennet/browser/
+        
       - name: 📂 Deploy to FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
