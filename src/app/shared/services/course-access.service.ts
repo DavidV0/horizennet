@@ -20,7 +20,7 @@ export class CourseAccessService {
         
         return from(
           this.firestore
-            .collection('users')
+            .collection('user_courses')
             .doc(user.uid)
             .get()
             .toPromise()
@@ -28,7 +28,7 @@ export class CourseAccessService {
           map(doc => {
             if (!doc?.exists) return false;
             const userData = doc.data() as any;
-            return userData?.courses?.purchased?.includes(courseId) || false;
+            return userData?.courseIds?.includes(courseId) || false;
           })
         );
       })
@@ -43,7 +43,7 @@ export class CourseAccessService {
         
         return from(
           this.firestore
-            .collection('users')
+            .collection('user_courses')
             .doc(user.uid)
             .get()
             .toPromise()
@@ -51,7 +51,7 @@ export class CourseAccessService {
           map(doc => {
             if (!doc?.exists) return [];
             const userData = doc.data() as any;
-            return userData?.courses?.purchased || [];
+            return userData?.courseIds || [];
           })
         );
       })

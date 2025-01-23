@@ -627,21 +627,13 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
       console.log('Processing order:', { orderId, isSubscription: this.isSubscription });
       
       // Get purchased course IDs
-      const purchasedCourses = this.cartProducts.map(product => product.id);
+      const purchasedCourses = this.cartProducts.map(product => product.courseIds);
       
-      // Get current user
-      const user = await firstValueFrom(this.authService.user$) as User;
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-
-      console.log('Activating product access for user:', user.uid);
-
       // Activate course access for each purchased product
       for (const product of this.cartProducts) {
         try {
-          await this.userService.activateProductAccess(user.uid, orderId, product);
-          console.log('Product access activated:', product.id);
+          await this.userService.activateProductAccess(customerId, orderId, product);
+          console.log('Product access activated:', product.courseIds);
         } catch (accessError) {
           console.error('Error activating product access:', accessError);
           // Continue with other products
