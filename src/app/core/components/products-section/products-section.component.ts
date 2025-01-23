@@ -21,9 +21,9 @@ export class ProductsSectionComponent implements OnInit, OnDestroy {
   constructor(private productService: ProductService) {}
 
   ngOnInit(): void {
-    this.subscription = this.productService.getAllProducts()
+    this.subscription = this.productService.getActiveProducts()
       .pipe(
-        map(products => products.slice(0, 2))
+        map(products => products.slice(0, 3)) // Show top 3 products (already sorted by order)
       )
       .subscribe(products => {
         this.products = products;
@@ -35,4 +35,8 @@ export class ProductsSectionComponent implements OnInit, OnDestroy {
       this.subscription.unsubscribe();
     }
   }
-} 
+
+  getProductLink(product: Product): string {
+    return `/produkte/${product.slug || product.id}`;
+  }
+}

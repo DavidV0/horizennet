@@ -8,6 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { Product } from '../../../shared/interfaces/product.interface';
 import { StorageService } from '../../../shared/services/storage.service';
 
@@ -24,7 +25,8 @@ import { StorageService } from '../../../shared/services/storage.service';
     MatInputModule,
     MatSelectModule,
     MatIconModule,
-    MatProgressBarModule
+    MatProgressBarModule,
+    MatSlideToggleModule
   ],
   template: `
     <div class="dialog-container">
@@ -107,11 +109,20 @@ import { StorageService } from '../../../shared/services/storage.service';
             <input matInput formControlName="ctaText">
           </mat-form-field>
 
-          <!-- CTA Link -->
+          <!-- Order -->
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Call-to-Action Link</mat-label>
-            <input matInput formControlName="ctaLink">
+            <mat-label>Anzeigereihenfolge</mat-label>
+            <input matInput type="number" formControlName="order" min="0" required>
+            <mat-hint>Niedrigere Zahl = höhere Position</mat-hint>
+            <mat-error *ngIf="productForm.get('order')?.hasError('required')">
+              Reihenfolge ist erforderlich
+            </mat-error>
           </mat-form-field>
+
+          <!-- Active Status -->
+          <mat-slide-toggle formControlName="isActive" class="full-width status-toggle">
+            Produkt aktiv
+          </mat-slide-toggle>
         </div>
 
         <div mat-dialog-actions>
@@ -253,6 +264,24 @@ import { StorageService } from '../../../shared/services/storage.service';
         padding: var(--spacing-md);
       }
     }
+
+    .status-toggle {
+      display: block;
+      margin: var(--spacing-md) 0;
+      color: var(--color-white);
+
+      ::ng-deep .mdc-switch:enabled .mdc-switch__track::after {
+        background: var(--color-accent);
+      }
+
+      ::ng-deep .mdc-switch:enabled:hover .mdc-switch__track::after {
+        background: var(--color-accent-light);
+      }
+
+      ::ng-deep .mdc-switch:enabled .mdc-switch__handle::after {
+        background: var(--color-white);
+      }
+    }
   `]
 })
 export class ProductDialogComponent {
@@ -276,7 +305,8 @@ export class ProductDialogComponent {
       features: [data.product?.features?.join(', ') || ''],
       benefits: [data.product?.benefits?.join(', ') || ''],
       ctaText: [data.product?.ctaText || 'Jetzt entdecken'],
-      ctaLink: [data.product?.ctaLink || '/kontakt'],
+      order: [data.product?.order || 0, [Validators.required, Validators.min(0)]],
+      isActive: [data.product?.isActive ?? true],
       image: [data.product?.image || '']
     });
 
@@ -336,7 +366,8 @@ export class ProductDialogComponent {
         features: this.productForm.get('features')?.value.split(',').map((f: string) => f.trim()).filter((f: string) => f),
         benefits: this.productForm.get('benefits')?.value.split(',').map((b: string) => b.trim()).filter((b: string) => b),
         ctaText: this.productForm.get('ctaText')?.value,
-        ctaLink: this.productForm.get('ctaLink')?.value,
+        order: parseInt(this.productForm.get('order')?.value),
+        isActive: this.productForm.get('isActive')?.value,
         image: imageUrl
       };
 

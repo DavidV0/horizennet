@@ -21,9 +21,15 @@ export class ProductDetailComponent implements OnInit {
   ) {}
 
   async ngOnInit() {
-    const productId = this.route.snapshot.paramMap.get('id');
-    if (productId) {
-      this.product = await this.productService.getProduct(productId);
+    const param = this.route.snapshot.paramMap.get('id');
+    if (param) {
+      // Try to get by slug first
+      this.product = await this.productService.getProductBySlug(param);
+      
+      // If not found by slug, try by ID
+      if (!this.product) {
+        this.product = await this.productService.getProduct(param);
+      }
     }
   }
 

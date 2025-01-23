@@ -23,8 +23,8 @@
             <button mat-raised-button 
                     [class.gold-gradient]="product.id === 'academy'"
                     class="cta-button hover-effect" 
-                    [routerLink]="product.ctaLink">
-              {{product.ctaText}}
+                    [routerLink]="['/produkte', product.slug || product.id]">
+              {{product.ctaText || 'Jetzt entdecken'}}
               <mat-icon>rocket_launch</mat-icon>
             </button>
           </div>

@@ -1,28 +1,30 @@
 <section class="products-section">
   <div class="container">
-    <h2>Unsere Produkte</h2>
+    <div class="section-header">
+      <h2>Unsere Produkte</h2>
+      <p>Entdecken Sie unsere maßgeschneiderten Lösungen für Ihren Erfolg</p>
+    </div>
+
     <div class="products-grid">
-      <ng-container *ngFor="let product of products">
-        <div class="product-card" #animatedElement>
-          <div class="product-image">
-            <img [src]="product.image" [alt]="product.title">
-          </div>
-          <div class="product-content">
-            <h3>{{ product.title }}</h3>
-            <p>{{ product.shortDescription }}</p>
-            <div class="features">
-              <div class="feature" *ngFor="let feature of product.features">
-                <mat-icon>check_circle</mat-icon>
-                <span>{{ feature }}</span>
-              </div>
-            </div>
-            <a [routerLink]="['/produkte', product.id]" class="cta-button">
-              {{ product.ctaText }}
-              <mat-icon>arrow_forward</mat-icon>
-            </a>
-          </div>
+      <div class="product-card" *ngFor="let product of products">
+        <div class="product-image">
+          <img [src]="product.image" [alt]="product.title">
         </div>
-      </ng-container>
+        <div class="product-content">
+          <h3>{{product.title}}</h3>
+          <p>{{product.shortDescription}}</p>
+          <ul class="features" *ngIf="product.features && product.features.length > 0">
+            <li *ngFor="let feature of product.features">
+              <mat-icon>check_circle</mat-icon>
+              <span>{{feature}}</span>
+            </li>
+          </ul>
+          <a [routerLink]="getProductLink(product)" class="cta-button">
+            {{product.ctaText}}
+            <mat-icon>arrow_forward</mat-icon>
+          </a>
+        </div>
+      </div>
     </div>
     <div class="view-all">
       <a routerLink="/produkte" class="view-all-button">

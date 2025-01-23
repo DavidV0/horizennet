@@ -66,13 +66,20 @@ export class DashboardComponent implements OnInit {
   }
 
   loadCourses() {
-    this.courses$ = this.courseService.getCourses('USER').pipe(
-      map(courses => courses.filter(course => course.isActive)),
-      map(courses => {
+    this.authService.user$.pipe(take(1)).subscribe(user => {
+      if (user) {
+        this.courses$ = this.courseService.getUserCourses(user.uid).pipe(
+          map(courses => courses.filter(course => course.isActive)),
+          map(courses => {
+            this.isLoading = false;
+            return courses;
+          })
+        );
+      } else {
         this.isLoading = false;
-        return courses;
-      })
-    );
+        this.courses$ = new Observable<Course[]>(subscriber => subscriber.next([]));
+      }
+    });
   }
 
   getModuleCount(course: Course): number {

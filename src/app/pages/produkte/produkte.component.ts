@@ -24,8 +24,12 @@ export class ProdukteComponent implements OnInit {
   constructor(private productService: ProductService) {}
 
   ngOnInit() {
-    this.productService.getAllProducts().subscribe(products => {
+    this.productService.getActiveProducts().subscribe(products => {
       this.products = products;
     });
+  }
+
+  getProductLink(product: Product): string {
+    return `/produkte/${product.slug || product.id}`;
   }
 } 
