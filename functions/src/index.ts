@@ -272,12 +272,13 @@ app.get('/', (req, res) => {
 });
 
 // Initialize Stripe with the latest API version
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2023-10-16'
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || functions.config().stripe.secret_key || '', {
+  apiVersion: '2024-12-18.acacia'
 });
 
 // Log the key being used (masked)
-console.log('Using Stripe key:', (process.env.STRIPE_SECRET_KEY || functions.config().stripe.secret_key)?.substring(0, 8) + '...');
+const stripeKey = process.env.STRIPE_SECRET_KEY || functions.config().stripe.secret_key || '';
+console.log('Using Stripe key:', stripeKey ? stripeKey.substring(0, 8) + '...' : 'No key found');
 
 // Nodemailer Transport
 const transporter = nodemailer.createTransport({
