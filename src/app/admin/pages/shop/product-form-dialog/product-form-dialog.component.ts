@@ -53,8 +53,6 @@ export class ProductFormDialogComponent implements OnInit {
       name: ['', [Validators.required, Validators.minLength(1)]],
       price: ['', [Validators.required, Validators.min(0)]],
       oldPrice: [''],
-      description: [''],
-      features: [[]],
       courseIds: [[], Validators.required],
       tag: ['']
     });
@@ -95,8 +93,6 @@ export class ProductFormDialogComponent implements OnInit {
           price: Number(formValue.price),
           oldPrice: formValue.oldPrice ? Number(formValue.oldPrice) : undefined,
           tag: formValue.tag ? formValue.tag.trim() : undefined,
-          description: formValue.description,
-          features: formValue.features,
           courseIds: formValue.courseIds,
           image: this.data?.product?.image || '', // Will be updated after upload
           stripeProductId: this.data?.product?.stripeProductId || '', // Will be set by the service
