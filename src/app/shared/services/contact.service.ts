@@ -8,13 +8,14 @@ export interface ContactFormData {
   lastName: string;
   email: string;
   message: string;
+  privacyPolicy: boolean;
 }
 
 @Injectable({
   providedIn: 'root',
 })
 export class ContactService {
-  private functionUrl = `${environment.apiUrl}/sendContactEmail`;
+  private functionUrl = `${environment.apiUrl}/api/sendContactForm`;
 
   constructor(private http: HttpClient) {}
 

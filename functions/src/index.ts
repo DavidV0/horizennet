@@ -284,9 +284,13 @@ const transporter = nodemailer.createTransport({
   host: "w01ef01f.kasserver.com",
   port: 587,
   secure: false,
+  name: 'm07462fe',
   auth: {
-    user: "office@horizonnet-consulting.at",
-    pass: process.env.EMAIL_PASSWORD || functions.config().email.password || ''
+    user: 'office@horizonnet-consulting.at',
+    pass: process.env.EMAIL_PASSWORD || functions.config().email.password,
+  },
+  tls: {
+    rejectUnauthorized: false
   }
 });
 
@@ -708,6 +712,105 @@ router.post("/webhook", async (req: Request, res: Response) => {
   }
 });
 
+// Die sendContactForm Funktion als Express-Route
+router.post('/sendContactForm', async (req: Request, res: Response) => {
+  // Set CORS headers
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, POST');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  try {
+    const data = req.body as ContactFormData;
+    console.log('Received contact form data:', data);
+    
+    // Validate input data
+    if (!data.firstName || !data.lastName || !data.email || !data.message) {
+      console.log('Missing required fields:', { data });
+      res.status(400).json({
+        error: 'Alle Pflichtfelder müssen ausgefüllt sein.'
+      });
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(data.email)) {
+      console.log('Invalid email format:', data.email);
+      res.status(400).json({
+        error: 'Bitte geben Sie eine gültige E-Mail-Adresse ein.'
+      });
+      return;
+    }
+
+    try {
+      // Send email to admin
+      console.log('Sending email to admin...');
+      const adminMailResult = await transporter.sendMail({
+        from: '"HorizonNet Kontaktformular" <office@horizonnet-consulting.at>',
+        to: 'office@horizonnet-consulting.at',
+        subject: 'Neue Kontaktanfrage',
+        html: `
+          <h2>Neue Kontaktanfrage von ${escapeHtml(data.firstName)} ${escapeHtml(data.lastName)}</h2>
+          <p><strong>Name:</strong> ${escapeHtml(data.firstName)} ${escapeHtml(data.lastName)}</p>
+          <p><strong>E-Mail:</strong> ${escapeHtml(data.email)}</p>
+          <p><strong>Nachricht:</strong></p>
+          <p>${escapeHtml(data.message)}</p>
+          <p><strong>Zeitpunkt:</strong> ${new Date().toLocaleString('de-AT')}</p>
+        `
+      });
+      console.log('Admin email sent:', adminMailResult);
+
+      // Send confirmation email to user
+      console.log('Sending confirmation email to user...');
+      const userMailResult = await transporter.sendMail({
+        from: '"HorizonNet Consulting" <office@horizonnet-consulting.at>',
+        to: data.email,
+        subject: 'Ihre Kontaktanfrage bei HorizonNet',
+        html: `
+          <h2>Vielen Dank für Ihre Kontaktanfrage!</h2>
+          <p>Sehr geehrte(r) ${escapeHtml(data.firstName)} ${escapeHtml(data.lastName)},</p>
+          <p>wir haben Ihre Nachricht erhalten und werden uns schnellstmöglich bei Ihnen melden.</p>
+          <p>Ihre Nachricht:</p>
+          <blockquote style="border-left: 2px solid #ccc; padding-left: 10px; margin: 10px 0;">
+            ${escapeHtml(data.message)}
+          </blockquote>
+          <p>Mit freundlichen Grüßen,<br>Ihr HorizonNet Team</p>
+        `
+      });
+      console.log('User confirmation email sent:', userMailResult);
+
+      // Store in Firestore
+      console.log('Storing contact request in Firestore...');
+      await admin.firestore().collection('contactRequests').add({
+        ...data,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        status: 'new'
+      });
+      console.log('Contact request stored in Firestore');
+
+      res.status(200).json({ success: true });
+    } catch (error) {
+      console.error('Detailed error in sendContactForm:', error);
+      res.status(500).json({
+        error: 'Ein Fehler ist aufgetreten beim Verarbeiten Ihrer Anfrage.',
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  } catch (error) {
+    console.error('Error in sendContactForm:', error);
+    res.status(500).json({
+      error: 'Ein unerwarteter Fehler ist aufgetreten.',
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
 // Export the Express app wrapped in functions.https.onRequest
 export const api = onRequest({
   timeoutSeconds: 300,
@@ -832,7 +935,7 @@ export const sendActivationConfirmation = onCall<ActivationConfirmationData>({
 
     // Send activation email with login credentials
     await transporter.sendMail({
-      from: `"HorizonNet Consulting" <${process.env.EMAIL_USER || functions.config().email.user}>`,
+      from: '"HorizonNet Consulting" <office@horizonnet-consulting.at>',
       to: email,
       subject: "Ihr Account wurde aktiviert",
       html: `
@@ -845,267 +948,14 @@ export const sendActivationConfirmation = onCall<ActivationConfirmationData>({
         <p>Zum Login gelangen Sie hier:</p>
         <p><a href="${BASE_URL}/login">Zum Login</a></p>
         <p>In Ihrem Kundendashboard finden Sie alle wichtigen Informationen und Dokumente.</p>
-        <p>Bei Fragen stehen wir Ihnen gerne zur Verfügung.</p>
         <p>Mit freundlichen Grüßen,<br>Ihr HorizonNet Team</p>
       `
     });
 
     console.log('Activation confirmation email sent successfully');
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error sending activation confirmation:', error);
-    throw new functions.https.HttpsError('internal', `Failed to send email: ${error.message}`);
+    return { error: 'Failed to send activation confirmation' };
   }
 });
-
-// Helper function to create price points for a product
-export async function createPricePoints(productId: string, basePrice: number) {
-  try {
-    console.log('Creating full payment price for product:', productId);
-    // Create full payment price
-    let fullPaymentPrice;
-    try {
-      fullPaymentPrice = await stripe.prices.create({
-        product: productId,
-        unit_amount: Math.round(basePrice * 100), // Convert to cents
-        currency: 'eur'
-      });
-      console.log('Full payment price created:', fullPaymentPrice.id);
-    } catch (error: any) {
-      console.error('Error creating full payment price:', error);
-      throw new Error('Failed to create full payment price: ' + error.message);
-    }
-
-    console.log('Creating subscription prices');
-    // Create subscription prices
-    let sixMonthsPrice, twelveMonthsPrice, eighteenMonthsPrice;
-
-    try {
-      sixMonthsPrice = await stripe.prices.create({
-        product: productId,
-        unit_amount: Math.round((basePrice / 6) * 100), // Monthly amount for 6 months
-        currency: 'eur',
-        recurring: {
-          interval: 'month',
-          interval_count: 1
-        },
-        metadata: {
-          plan_duration: '6_months'
-        }
-      });
-      console.log('6-month price created:', sixMonthsPrice.id);
-    } catch (error: any) {
-      console.error('Error creating 6-month price:', error);
-      throw new Error('Failed to create 6-month price: ' + error.message);
-    }
-
-    try {
-      twelveMonthsPrice = await stripe.prices.create({
-        product: productId,
-        unit_amount: Math.round((basePrice / 12) * 100), // Monthly amount for 12 months
-        currency: 'eur',
-        recurring: {
-          interval: 'month',
-          interval_count: 1
-        },
-        metadata: {
-          plan_duration: '12_months'
-        }
-      });
-      console.log('12-month price created:', twelveMonthsPrice.id);
-    } catch (error: any) {
-      console.error('Error creating 12-month price:', error);
-      throw new Error('Failed to create 12-month price: ' + error.message);
-    }
-
-    try {
-      eighteenMonthsPrice = await stripe.prices.create({
-        product: productId,
-        unit_amount: Math.round((basePrice / 18) * 100), // Monthly amount for 18 months
-        currency: 'eur',
-        recurring: {
-          interval: 'month',
-          interval_count: 1
-        },
-        metadata: {
-          plan_duration: '18_months'
-        }
-      });
-      console.log('18-month price created:', eighteenMonthsPrice.id);
-    } catch (error: any) {
-      console.error('Error creating 18-month price:', error);
-      throw new Error('Failed to create 18-month price: ' + error.message);
-    }
-
-    return {
-      fullPayment: fullPaymentPrice.id,
-      sixMonths: sixMonthsPrice.id,
-      twelveMonths: twelveMonthsPrice.id,
-      eighteenMonths: eighteenMonthsPrice.id
-    };
-  } catch (error: any) {
-    console.error('Error in createPricePoints:', error);
-    throw error;
-  }
-}
-
-// Get Stripe product details
-export const getStripeProduct = onCall<{productId: string}>({
-  timeoutSeconds: 60,
-  memory: '256MiB',
-  minInstances: 0,
-  maxInstances: 10,
-  cors: [
-    'https://horizonnet-ed13d.web.app',
-    'https://horizonnet-consulting.at',
-    'http://localhost:4200'
-  ]
-}, async (request) => {
-  try {
-    const { productId } = request.data;
-    const product = await stripe.products.retrieve(productId);
-    
-    // Get all prices for this product
-    const prices = await stripe.prices.list({
-      product: productId,
-      active: true
-    });
-
-    return {
-      product,
-      prices: prices.data
-    };
-  } catch (error) {
-    console.error('Error retrieving Stripe product:', error);
-    throw new functions.https.HttpsError('internal', 'Failed to retrieve Stripe product');
-  }
-});
-
-// Archive Stripe product
-export const archiveStripeProduct = onCall<{productId: string}>({
-  timeoutSeconds: 60,
-  memory: '256MiB',
-  minInstances: 0,
-  maxInstances: 10,
-  cors: [
-    'https://horizonnet-ed13d.web.app',
-    'https://horizonnet-consulting.at',
-    'http://localhost:4200'
-  ]
-}, async (request) => {
-  try {
-    const { productId } = request.data;
-    const product = await stripe.products.update(productId, {
-      active: false
-    });
-    return { success: true, product };
-  } catch (error: any) {
-    console.error('Error archiving Stripe product:', error);
-    throw new functions.https.HttpsError(
-      'internal',
-      'Failed to archive Stripe product',
-      error.message
-    );
-  }
-});
-// Die sendContactForm Funktion als HTTP-Funktion
-export const sendContactForm = onRequest({
-  timeoutSeconds: 60,
-  memory: '256MiB',
-  minInstances: 0,
-  maxInstances: 10,
-  cors: [
-    'https://horizonnet-ed13d.web.app',
-    'https://horizonnet-consulting.at',
-    'http://localhost:4200'
-  ]
-}, async (req, res) => {
-  try {
-    const data = req.body as ContactFormData;
-    
-    // Validate input data
-    if (!data.firstName || !data.lastName || !data.email || !data.message) {
-      res.status(400).json({
-        error: 'Alle Pflichtfelder müssen ausgefüllt sein.'
-      });
-      return;
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(data.email)) {
-      res.status(400).json({
-        error: 'Bitte geben Sie eine gültige E-Mail-Adresse ein.'
-      });
-      return;
-    }
-
-    // Create email transporter with explicit credentials
-    const emailTransporter = nodemailer.createTransport({
-      host: "w01ef01f.kasserver.com",
-      port: 587,
-      secure: false,
-      auth: {
-        user: "office@horizonnet-consulting.at",
-        pass: process.env.EMAIL_PASSWORD || functions.config().email.password
-      },
-      tls: {
-        rejectUnauthorized: false
-      }
-    });
-
-    try {
-      // Send email to admin
-      await emailTransporter.sendMail({
-        from: '"HorizonNet Kontaktformular" <office@horizonnet-consulting.at>',
-        to: 'office@horizonnet-consulting.at',
-        subject: 'Neue Kontaktanfrage',
-        html: `
-          <h2>Neue Kontaktanfrage von ${escapeHtml(data.firstName)} ${escapeHtml(data.lastName)}</h2>
-          <p><strong>Name:</strong> ${escapeHtml(data.firstName)} ${escapeHtml(data.lastName)}</p>
-          <p><strong>E-Mail:</strong> ${escapeHtml(data.email)}</p>
-          <p><strong>Nachricht:</strong></p>
-          <p>${escapeHtml(data.message)}</p>
-          <p><strong>Zeitpunkt:</strong> ${new Date().toLocaleString('de-AT')}</p>
-        `
-      });
-
-      // Send confirmation email to user
-      await emailTransporter.sendMail({
-        from: '"HorizonNet Consulting" <office@horizonnet-consulting.at>',
-        to: data.email,
-        subject: 'Ihre Kontaktanfrage bei HorizonNet',
-        html: `
-          <h2>Vielen Dank für Ihre Kontaktanfrage!</h2>
-          <p>Sehr geehrte(r) ${escapeHtml(data.firstName)} ${escapeHtml(data.lastName)},</p>
-          <p>wir haben Ihre Nachricht erhalten und werden uns schnellstmöglich bei Ihnen melden.</p>
-          <p>Ihre Nachricht:</p>
-          <blockquote style="border-left: 2px solid #ccc; padding-left: 10px; margin: 10px 0;">
-            ${escapeHtml(data.message)}
-          </blockquote>
-          <p>Mit freundlichen Grüßen,<br>Ihr HorizonNet Team</p>
-        `
-      });
-
-      // Store in Firestore
-      await admin.firestore().collection('contactRequests').add({
-        ...data,
-        timestamp: admin.firestore.FieldValue.serverTimestamp(),
-        status: 'new'
-      });
-
-      res.status(200).json({ success: true });
-    } catch (error) {
-      console.error('Error in sendContactForm:', error);
-      res.status(500).json({
-        error: 'Ein Fehler ist aufgetreten beim Verarbeiten Ihrer Anfrage.'
-      });
-    }
-  } catch (error) {
-    console.error('Error in sendContactForm:', error);
-    res.status(500).json({
-      error: 'Ein unerwarteter Fehler ist aufgetreten.'
-    });
-  }
-});
-
