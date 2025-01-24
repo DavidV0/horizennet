@@ -233,8 +233,6 @@ export class ChatListComponent implements OnInit {
     private authService: AuthService
   ) {
     this.authService.user$.pipe(take(1)).subscribe(admin => {
-      console.log('Admin Email:', admin?.email);
-      
       if (admin) {
         this.activeChats$ = this.firestore
           .collection<Chat>('chats', ref => 
@@ -243,9 +241,7 @@ export class ChatListComponent implements OnInit {
           .valueChanges({ idField: 'id' })
           .pipe(
             switchMap(chats => {
-              console.log('Found chats:', chats);
               const chatsWithMeta = chats.map(async chat => {
-                console.log('Processing chat:', chat);
                 const messagesRef = this.firestore.collection(`chats/${chat.id}/messages`);
                 
                 // Get unread count

@@ -153,7 +153,6 @@ export class SupportComponent implements OnInit, OnDestroy {
       this.authService.user$.subscribe(async user => {
         this.isAuthenticated = !!user;
         if (user) {
-          console.log('Current User ID:', user.uid);
           this.currentUserId = user.uid;
           await this.loadUserData(user.uid);
           this.loadMessages();
@@ -285,7 +284,6 @@ export class SupportComponent implements OnInit, OnDestroy {
         status: 'sent'
       };
 
-      console.log('Sending message to chat:', chatId, message); // Debug log
 
       await this.firestore
         .collection('chats')

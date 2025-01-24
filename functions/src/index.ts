@@ -8,8 +8,52 @@ import Stripe from "stripe";
 import * as dotenv from "dotenv";
 import * as nodemailer from "nodemailer";
 
+// Imports bleiben gleich...
+
+// Das Interface wird verwendet, also TypeScript-Fehler ignorieren
+/* eslint-disable @typescript-eslint/no-unused-vars */
+interface ContactFormData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  message: string;
+  privacyPolicy: boolean;
+  timestamp: Date;
+}
+
+interface EmailOptions {
+  to: string;
+  subject: string;
+  template: string;
+  data: Record<string, any>;
+}
+
+interface ExtendedRequest extends Request {
+  params: {
+    subscriptionId: string;
+  };
+  body: {
+    gracePeriodDays?: number;
+    paymentMethodId?: string;
+  };
+}
+
 dotenv.config();
-admin.initializeApp();
+
+// Initialize Firebase Admin
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
+
+// Add this helper function at the top of the file
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
 // Send purchase confirmation email
 const sendPurchaseConfirmationHandler = async (req: Request, res: Response) => {
@@ -228,8 +272,8 @@ app.get('/', (req, res) => {
 });
 
 // Initialize Stripe with the latest API version
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || functions.config().stripe.secret_key, {
-  apiVersion: '2024-12-18.acacia'
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+  apiVersion: '2023-10-16'
 });
 
 // Log the key being used (masked)
@@ -240,13 +284,9 @@ const transporter = nodemailer.createTransport({
   host: "w01ef01f.kasserver.com",
   port: 587,
   secure: false,
-  name: 'm07462fe',
   auth: {
-    user: 'office@horizonnet-consulting.at',
-    pass: process.env.EMAIL_PASSWORD || functions.config().email.password,
-  },
-  tls: {
-    rejectUnauthorized: false
+    user: "office@horizonnet-consulting.at",
+    pass: process.env.EMAIL_PASSWORD || functions.config().email.password || ''
   }
 });
 
@@ -263,24 +303,6 @@ transporter.verify(function(error, success) {
 const BASE_URL = process.env.NODE_ENV === 'production' 
   ? "https://horizonnet-consulting.at"
   : "http://localhost:4200";
-
-// Interfaces
-interface EmailOptions {
-  to: string;
-  subject: string;
-  template: string;
-  data: Record<string, any>;
-}
-
-interface ExtendedRequest extends Request {
-  params: {
-    subscriptionId: string;
-  };
-  body: {
-    gracePeriodDays?: number;
-    paymentMethodId?: string;
-  };
-}
 
 // Email sending function
 const sendEmail = async (options: EmailOptions): Promise<void> => {
@@ -986,3 +1008,104 @@ export const archiveStripeProduct = onCall<{productId: string}>({
     );
   }
 });
+// Die sendContactForm Funktion als HTTP-Funktion
+export const sendContactForm = onRequest({
+  timeoutSeconds: 60,
+  memory: '256MiB',
+  minInstances: 0,
+  maxInstances: 10,
+  cors: [
+    'https://horizonnet-ed13d.web.app',
+    'https://horizonnet-consulting.at',
+    'http://localhost:4200'
+  ]
+}, async (req, res) => {
+  try {
+    const data = req.body as ContactFormData;
+    
+    // Validate input data
+    if (!data.firstName || !data.lastName || !data.email || !data.message) {
+      res.status(400).json({
+        error: 'Alle Pflichtfelder müssen ausgefüllt sein.'
+      });
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(data.email)) {
+      res.status(400).json({
+        error: 'Bitte geben Sie eine gültige E-Mail-Adresse ein.'
+      });
+      return;
+    }
+
+    // Create email transporter with explicit credentials
+    const emailTransporter = nodemailer.createTransport({
+      host: "w01ef01f.kasserver.com",
+      port: 587,
+      secure: false,
+      auth: {
+        user: "office@horizonnet-consulting.at",
+        pass: process.env.EMAIL_PASSWORD || functions.config().email.password
+      },
+      tls: {
+        rejectUnauthorized: false
+      }
+    });
+
+    try {
+      // Send email to admin
+      await emailTransporter.sendMail({
+        from: '"HorizonNet Kontaktformular" <office@horizonnet-consulting.at>',
+        to: 'office@horizonnet-consulting.at',
+        subject: 'Neue Kontaktanfrage',
+        html: `
+          <h2>Neue Kontaktanfrage von ${escapeHtml(data.firstName)} ${escapeHtml(data.lastName)}</h2>
+          <p><strong>Name:</strong> ${escapeHtml(data.firstName)} ${escapeHtml(data.lastName)}</p>
+          <p><strong>E-Mail:</strong> ${escapeHtml(data.email)}</p>
+          <p><strong>Nachricht:</strong></p>
+          <p>${escapeHtml(data.message)}</p>
+          <p><strong>Zeitpunkt:</strong> ${new Date().toLocaleString('de-AT')}</p>
+        `
+      });
+
+      // Send confirmation email to user
+      await emailTransporter.sendMail({
+        from: '"HorizonNet Consulting" <office@horizonnet-consulting.at>',
+        to: data.email,
+        subject: 'Ihre Kontaktanfrage bei HorizonNet',
+        html: `
+          <h2>Vielen Dank für Ihre Kontaktanfrage!</h2>
+          <p>Sehr geehrte(r) ${escapeHtml(data.firstName)} ${escapeHtml(data.lastName)},</p>
+          <p>wir haben Ihre Nachricht erhalten und werden uns schnellstmöglich bei Ihnen melden.</p>
+          <p>Ihre Nachricht:</p>
+          <blockquote style="border-left: 2px solid #ccc; padding-left: 10px; margin: 10px 0;">
+            ${escapeHtml(data.message)}
+          </blockquote>
+          <p>Mit freundlichen Grüßen,<br>Ihr HorizonNet Team</p>
+        `
+      });
+
+      // Store in Firestore
+      await admin.firestore().collection('contactRequests').add({
+        ...data,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        status: 'new'
+      });
+
+      res.status(200).json({ success: true });
+    } catch (error) {
+      console.error('Error in sendContactForm:', error);
+      res.status(500).json({
+        error: 'Ein Fehler ist aufgetreten beim Verarbeiten Ihrer Anfrage.'
+      });
+    }
+  } catch (error) {
+    console.error('Error in sendContactForm:', error);
+    res.status(500).json({
+      error: 'Ein unerwarteter Fehler ist aufgetreten.'
+    });
+  }
+});
+

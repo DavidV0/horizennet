@@ -306,16 +306,20 @@ export class LessonDialogComponent implements OnInit {
         title: formValue.title,
         description: formValue.description,
         duration: formValue.duration,
-        type: formValue.type,
         videoUrl: formValue.videoUrl,
         content: formValue.content || '',
         files: formValue.files || []
       };
 
-      if (formValue.type === 'quiz') {
+      // Quiz-Daten hinzufügen, wenn Fragen vorhanden sind
+      if (this.questions.length > 0) {
         lessonData.quiz = {
-          title: formValue.quizTitle || '',
-          questions: formValue.questions || []
+          title: formValue.quiz.title || 'Quiz',
+          questions: formValue.quiz.questions.map((q: any) => ({
+            text: q.text,
+            options: q.options.filter((opt: string) => opt.trim() !== ''),
+            correctAnswers: q.correctAnswers || []
+          }))
         };
       }
 

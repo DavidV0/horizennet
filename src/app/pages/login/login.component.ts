@@ -50,9 +50,19 @@ import { AuthService } from '../../shared/services/auth.service';
             {{ errorMessage }}
           </div>
 
+          <div class="success-message" *ngIf="successMessage">
+            {{ successMessage }}
+          </div>
+
           <button mat-raised-button color="primary" type="submit" [disabled]="loginForm.invalid || isLoading">
             {{ isLoading ? 'Wird eingeloggt...' : 'Login' }}
           </button>
+
+          <div class="forgot-password">
+            <button mat-button type="button" (click)="resetPassword()" [disabled]="isResetting">
+              {{ isResetting ? 'E-Mail wird gesendet...' : 'Passwort vergessen?' }}
+            </button>
+          </div>
         </form>
       </div>
     </div>
@@ -100,20 +110,73 @@ import { AuthService } from '../../shared/services/auth.service';
       margin: 1rem 0;
     }
 
+    .success-message {
+      color: var(--color-accent);
+      text-align: center;
+      margin: 1rem 0;
+    }
+
     button[type="submit"] {
       margin-top: 1rem;
       padding: 0.8rem;
       font-size: 1.1rem;
     }
 
+    .forgot-password {
+      text-align: center;
+      margin-top: 1rem;
+
+      button {
+        color: var(--color-accent);
+        font-size: 0.9rem;
+        text-decoration: none;
+        transition: all 0.3s ease;
+
+        &:hover {
+          text-decoration: underline;
+        }
+
+        &:disabled {
+          opacity: 0.7;
+        }
+      }
+    }
+
     ::ng-deep {
       .mat-mdc-form-field {
-        --mdc-filled-text-field-container-color: transparent;
-        --mdc-filled-text-field-focus-active-indicator-color: var(--color-accent);
-        --mdc-filled-text-field-hover-active-indicator-color: var(--color-accent);
-        --mdc-filled-text-field-focus-label-text-color: var(--color-accent);
-        --mdc-filled-text-field-label-text-color: var(--color-white);
-        --mdc-filled-text-field-input-text-color: var(--color-white);
+        --mdc-outlined-text-field-outline-color: var(--color-accent);
+        --mdc-outlined-text-field-focus-outline-color: var(--color-accent);
+        --mdc-outlined-text-field-hover-outline-color: var(--color-accent);
+        --mdc-outlined-text-field-focus-label-text-color: var(--color-accent);
+        --mdc-outlined-text-field-label-text-color: var(--color-white);
+        --mdc-outlined-text-field-input-text-color: var(--color-white);
+        --mat-form-field-focus-color: var(--color-accent);
+
+        .mdc-text-field--focused .mdc-floating-label {
+          color: var(--color-accent) !important;
+        }
+
+        .mdc-text-field--focused .mdc-notched-outline__leading,
+        .mdc-text-field--focused .mdc-notched-outline__notch,
+        .mdc-text-field--focused .mdc-notched-outline__trailing {
+          border-color: var(--color-accent) !important;
+        }
+
+        .mat-mdc-form-field-focus-overlay {
+          background-color: var(--color-accent);
+        }
+
+        input {
+          caret-color: var(--color-accent) !important;
+        }
+
+        .mat-mdc-text-field-wrapper {
+          &:hover .mdc-notched-outline__leading,
+          &:hover .mdc-notched-outline__notch,
+          &:hover .mdc-notched-outline__trailing {
+            border-color: var(--color-accent) !important;
+          }
+        }
       }
 
       .mat-mdc-raised-button.mat-primary {
@@ -127,7 +190,9 @@ export class LoginComponent {
   loginForm: FormGroup;
   hidePassword = true;
   isLoading = false;
+  isResetting = false;
   errorMessage = '';
+  successMessage = '';
 
   constructor(
     private fb: FormBuilder,
@@ -144,6 +209,7 @@ export class LoginComponent {
     if (this.loginForm.valid) {
       this.isLoading = true;
       this.errorMessage = '';
+      this.successMessage = '';
 
       try {
         const { email, password } = this.loginForm.value;
@@ -155,6 +221,39 @@ export class LoginComponent {
       } finally {
         this.isLoading = false;
       }
+    }
+  }
+
+  async resetPassword() {
+    const email = this.loginForm.get('email')?.value;
+    
+    if (!email) {
+      this.errorMessage = 'Bitte geben Sie Ihre E-Mail-Adresse ein';
+      return;
+    }
+
+    if (!this.loginForm.get('email')?.valid) {
+      this.errorMessage = 'Bitte geben Sie eine gültige E-Mail-Adresse ein';
+      return;
+    }
+
+    this.isResetting = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    try {
+      await this.authService.resetPassword(email);
+      this.successMessage = 'Eine E-Mail zum Zurücksetzen des Passworts wurde gesendet';
+      this.loginForm.get('password')?.reset();
+    } catch (error: any) {
+      if (error.message === 'Diese E-Mail-Adresse ist nicht registriert.') {
+        this.errorMessage = error.message;
+      } else {
+        this.errorMessage = 'Fehler beim Senden der Zurücksetz-E-Mail. Bitte versuchen Sie es später erneut.';
+      }
+      console.error('Password reset error:', error);
+    } finally {
+      this.isResetting = false;
     }
   }
 } 

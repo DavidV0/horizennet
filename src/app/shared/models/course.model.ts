@@ -34,6 +34,7 @@ export interface Lesson {
   completedAt?: Date;
   completedBy?: string;
   completionType?: 'video' | 'quiz';
+  order?: number;
 }
 
 export interface File {

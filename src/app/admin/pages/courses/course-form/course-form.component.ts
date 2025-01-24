@@ -42,6 +42,7 @@ export class CourseFormComponent implements OnInit {
   imagePreview: string | null = null;
   uploadProgress = 0;
   modules: Module[] = [];
+  selectedImageFile: File | null = null;
 
   constructor(
     private fb: FormBuilder,
@@ -56,7 +57,7 @@ export class CourseFormComponent implements OnInit {
       title: ['', [Validators.required, Validators.minLength(3)]],
       subtitle: [''],
       description: ['', [Validators.required, Validators.minLength(10)]],
-      image: [null]
+      image: ['', [Validators.required]]
     });
     
     if (this.isEditMode && data.course) {
@@ -64,7 +65,8 @@ export class CourseFormComponent implements OnInit {
       this.courseForm.patchValue({
         title: data.course.title,
         subtitle: data.course.subtitle,
-        description: data.course.description
+        description: data.course.description,
+        image: data.course.image
       });
       if (data.course.image) {
         this.imagePreview = data.course.image;
@@ -87,10 +89,11 @@ export class CourseFormComponent implements OnInit {
   onFileSelected(event: Event) {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (file) {
-      this.courseForm.patchValue({ image: file });
+      this.selectedImageFile = file;
       const reader = new FileReader();
       reader.onload = () => {
         this.imagePreview = reader.result as string;
+        this.courseForm.patchValue({ image: this.imagePreview });
       };
       reader.readAsDataURL(file);
     }
@@ -117,25 +120,53 @@ export class CourseFormComponent implements OnInit {
     });
   }
 
-  openLessonDialog(moduleId: string, lesson?: Lesson) {
+  openLessonDialog(moduleId: string, lesson?: Lesson): void {
     const dialogRef = this.dialog.open(LessonDialogComponent, {
-      width: '600px',
+      width: '800px',
       data: { lesson }
     });
 
-    dialogRef.afterClosed().subscribe(result => {
+    dialogRef.afterClosed().subscribe((result: Lesson) => {
       if (result) {
         const moduleIndex = this.modules.findIndex(m => m.id === moduleId);
         if (moduleIndex !== -1) {
           if (lesson) {
+            // Update existing lesson
             const lessonIndex = this.modules[moduleIndex].lessons.findIndex(l => l.id === lesson.id);
             if (lessonIndex !== -1) {
-              this.modules[moduleIndex].lessons[lessonIndex] = { ...result };
+              this.modules[moduleIndex].lessons[lessonIndex] = {
+                ...lesson,
+                ...result,
+                type: result.videoUrl ? 'video' : 'article',
+                quiz: result.quiz ? {
+                  title: result.quiz.title || 'Quiz',
+                  questions: result.quiz.questions.map(q => ({
+                    text: q.text,
+                    options: q.options.filter(opt => opt.trim() !== ''),
+                    correctAnswers: q.correctAnswers || []
+                  }))
+                } : undefined
+              };
             }
           } else {
-            result.order = this.modules[moduleIndex].lessons.length;
-            this.modules[moduleIndex].lessons.push(result);
+            // Add new lesson
+            const newLesson: Lesson = {
+              ...result,
+              id: result.id || crypto.randomUUID(),
+              type: result.videoUrl ? 'video' : 'article',
+              order: this.modules[moduleIndex].lessons.length,
+              quiz: result.quiz ? {
+                title: result.quiz.title || 'Quiz',
+                questions: result.quiz.questions.map(q => ({
+                  text: q.text,
+                  options: q.options.filter(opt => opt.trim() !== ''),
+                  correctAnswers: q.correctAnswers || []
+                }))
+              } : undefined
+            };
+            this.modules[moduleIndex].lessons.push(newLesson);
           }
+          this.reorderLessons(moduleIndex);
         }
       }
     });
@@ -190,63 +221,78 @@ export class CourseFormComponent implements OnInit {
     if (this.courseForm.valid) {
       try {
         const formValue = this.courseForm.value;
-        const imageFile = this.courseForm.get('image')?.value;
         
         // Basis-Daten vorbereiten
         const courseData: Partial<Course> = {
-          title: formValue.title || '',
+          title: formValue.title,
           subtitle: formValue.subtitle || '',
-          description: formValue.description || '',
+          description: formValue.description,
+          image: formValue.image,
           modules: this.modules.map(module => ({
             id: module.id,
             title: module.title,
             description: module.description,
             order: module.order,
-            lessons: module.lessons.map(lesson => {
-              const mappedLesson: Lesson = {
+            lessons: module.lessons?.map(lesson => {
+              // Basis-Lektion mit Pflichtfeldern
+              const mappedLesson: Partial<Lesson> = {
                 id: lesson.id,
-                title: lesson.title,
-                description: lesson.description,
-                duration: lesson.duration,
-                type: lesson.type,
-                videoUrl: lesson.videoUrl || '',
-                content: lesson.content || '',
-                completed: lesson.completed,
-                files: lesson.files || []
+                title: lesson.title || '',
+                type: lesson.type || 'video',
+                description: lesson.description || ''
               };
 
-              // Quiz nur hinzufügen, wenn es existiert und Fragen hat
-              if (lesson.quiz && Array.isArray(lesson.quiz.questions) && lesson.quiz.questions.length > 0) {
+              // Optionale Felder nur hinzufügen, wenn sie existieren
+              if (lesson.videoUrl) {
+                mappedLesson.videoUrl = lesson.videoUrl;
+              }
+
+              if (lesson.duration) {
+                mappedLesson.duration = lesson.duration;
+              }
+
+              if (lesson.content) {
+                mappedLesson.content = lesson.content;
+              }
+
+              if (lesson.completed !== undefined) {
+                mappedLesson.completed = lesson.completed;
+              }
+
+              if (Array.isArray(lesson.files) && lesson.files.length > 0) {
+                mappedLesson.files = lesson.files;
+              }
+
+              // Quiz nur hinzufügen wenn es gültige Fragen enthält
+              if (lesson.quiz?.questions && Array.isArray(lesson.quiz.questions) && lesson.quiz.questions.length > 0) {
                 mappedLesson.quiz = {
                   title: lesson.quiz.title || 'Quiz',
                   questions: lesson.quiz.questions.map(q => ({
-                    text: q.text,
-                    options: q.options,
-                    correctAnswers: q.correctAnswers
+                    text: q.text || '',
+                    options: Array.isArray(q.options) ? q.options : [],
+                    correctAnswers: Array.isArray(q.correctAnswers) ? q.correctAnswers : []
                   }))
                 };
               }
 
-              return mappedLesson;
-            })
+              return mappedLesson as Lesson;
+            }) || []
           })),
-          isActive: formValue.isActive || false,
+          isActive: this.isEditMode ? (this.data.course?.isActive || false) : false,
           updatedAt: new Date()
         };
 
         if (this.isEditMode && this.data.course) {
-          // Update existierenden Kurs
           await this.courseService.updateCourse(
             this.data.course.id,
             courseData,
-            imageFile
+            this.selectedImageFile || undefined
           );
           this.dialogRef.close({ ...this.data.course, ...courseData });
         } else {
-          // Erstelle neuen Kurs
           courseData.createdAt = new Date();
-          const newCourse = await this.courseService.createCourse(courseData, imageFile);
-          this.dialogRef.close(newCourse);
+          await this.courseService.createCourse(courseData, this.selectedImageFile || undefined);
+          this.dialogRef.close(courseData);
         }
       } catch (error) {
         console.error('Error saving course:', error);
