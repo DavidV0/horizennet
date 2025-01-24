@@ -24,7 +24,10 @@
 .env.local
 .env.development.local
 .env.test.local
+.env.production
 .env.production.local
+/functions/.env
+/functions/.env.production
 
 # IDE
 .idea/
@@ -56,4 +59,3 @@ testem.log
 
 # Firebase service account key files
 *-firebase-adminsdk-*.json
-functions/.env.production
