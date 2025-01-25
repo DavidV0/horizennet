@@ -7,11 +7,9 @@ import cors from "cors";
 import Stripe from "stripe";
 import * as dotenv from "dotenv";
 import * as nodemailer from "nodemailer";
+import * as path from "path";
 
-// Imports bleiben gleich...
-
-// Das Interface wird verwendet, also TypeScript-Fehler ignorieren
-/* eslint-disable @typescript-eslint/no-unused-vars */
+// Interfaces
 interface ContactFormData {
   firstName: string;
   lastName: string;
@@ -38,12 +36,120 @@ interface ExtendedRequest extends Request {
   };
 }
 
-dotenv.config();
+// Setze die Umgebungsvariablen für Cloud Functions
+const runtimeConfig = {
+  email: {
+    user: process.env.EMAIL_USER || functions.config().email?.user,
+    password: process.env.EMAIL_PASSWORD || functions.config().email?.password,
+    name: process.env.EMAIL_NAME || functions.config().email?.name
+  },
+  stripe: {
+    secretKey: process.env.STRIPE_SECRET_KEY || functions.config().stripe?.secret_key,
+    webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || functions.config().stripe?.webhook_secret
+  },
+  api: {
+    url: process.env.API_URL || functions.config().api?.url
+  }
+};
 
-// Initialize Firebase Admin
-if (!admin.apps.length) {
-  admin.initializeApp();
+console.log('Runtime Config:', {
+  email: {
+    user: runtimeConfig.email.user,
+    name: runtimeConfig.email.name
+  },
+  stripe: {
+    secretKey: runtimeConfig.stripe.secretKey ? 'sk_****' + runtimeConfig.stripe.secretKey.slice(-4) : undefined,
+    webhookSecret: runtimeConfig.stripe.webhookSecret ? 'whsec_****' + runtimeConfig.stripe.webhookSecret.slice(-4) : undefined
+  },
+  api: {
+    url: runtimeConfig.api.url
+  }
+});
+
+// Setze NODE_ENV für Produktion
+process.env.NODE_ENV = 'production';
+
+// Lade die richtige .env-Datei basierend auf der Umgebung
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('Versuche Env-Datei zu laden...');
+
+// Lade die .env.production Datei
+const envPath = path.join(__dirname, '../.env.production');
+console.log('Versuche .env.production zu laden von:', envPath);
+const result = dotenv.config({ path: envPath });
+
+if (result.error) {
+  console.error('Fehler beim Laden der .env.production:', result.error);
+} else {
+  console.log('Erfolgreich geladen. Umgebungsvariablen:', {
+    EMAIL_USER: process.env.EMAIL_USER,
+    EMAIL_NAME: process.env.EMAIL_NAME,
+    API_URL: process.env.API_URL,
+    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY ? 'sk_****' + process.env.STRIPE_SECRET_KEY.slice(-4) : undefined,
+    STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET ? 'whsec_****' + process.env.STRIPE_WEBHOOK_SECRET.slice(-4) : undefined
+  });
 }
+
+// Stripe Konfiguration mit den geladenen Variablen
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+  apiVersion: '2024-12-18.acacia',
+  timeout: 30000, // 30 Sekunden Timeout
+  maxNetworkRetries: 3 // Automatische Wiederholungsversuche
+});
+
+// Email-Transporter mit den geladenen Variablen
+const transporter = nodemailer.createTransport({
+  host: "w01ef01f.kasserver.com",
+  port: 587,
+  secure: false,
+  name: process.env.EMAIL_NAME,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASSWORD,
+  },
+  tls: {
+    rejectUnauthorized: false
+  }
+});
+
+// Produktions-Konfiguration für Firebase Admin
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.applicationDefault(),
+    storageBucket: 'horizonnet-ed13d.firebasestorage.app'
+  });
+}
+
+// Initialize Express app
+const app = express();
+app.use(cors({ 
+  origin: ['https://horizonnet-consulting.at', 'https://www.horizonnet-consulting.at'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+app.use(express.json());
+
+// Rate Limiting für Produktion
+const rateLimit = require('express-rate-limit');
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 Minuten
+  max: 100 // Limit jede IP auf 100 Anfragen pro Fenster
+});
+app.use(limiter);
+
+// Produktions-Logging
+const productionLogger = (req: Request, res: Response, next: Function) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  next();
+};
+app.use(productionLogger);
+
+// Error Handling für Produktion
+const errorHandler = (err: Error, req: Request, res: Response, next: Function) => {
+  console.error(err.stack);
+  res.status(500).send('Internal Server Error');
+};
+app.use(errorHandler);
 
 // Add this helper function at the top of the file
 function escapeHtml(unsafe: string): string {
@@ -248,52 +354,16 @@ const sendPurchaseConfirmationHandler = async (req: Request, res: Response) => {
 };
 
 // Initialize Express app
-const app: express.Application = express();
 const router: Router = express.Router();
-const corsOptions = {
-  origin: [
-    'https://horizonnet-ed13d.web.app',
-    'https://horizonnet-consulting.at',
-    'http://localhost:4200'
-  ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-  credentials: true,
-  maxAge: 86400 // 24 hours
-};
-
-// Apply CORS middleware
-app.use(cors(corsOptions));
-app.use(express.json());
 
 // Health check endpoint for Cloud Run
 app.get('/', (req, res) => {
   res.status(200).send('OK');
 });
 
-// Initialize Stripe with the latest API version
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || functions.config().stripe.secret_key || '', {
-  apiVersion: '2024-12-18.acacia'
-});
-
 // Log the key being used (masked)
 const stripeKey = process.env.STRIPE_SECRET_KEY || functions.config().stripe.secret_key || '';
 console.log('Using Stripe key:', stripeKey ? stripeKey.substring(0, 8) + '...' : 'No key found');
-
-// Nodemailer Transport
-const transporter = nodemailer.createTransport({
-  host: "w01ef01f.kasserver.com",
-  port: 587,
-  secure: false,
-  name: 'm07462fe',
-  auth: {
-    user: 'office@horizonnet-consulting.at',
-    pass: process.env.EMAIL_PASSWORD || functions.config().email.password,
-  },
-  tls: {
-    rejectUnauthorized: false
-  }
-});
 
 // Verify transporter connection
 transporter.verify(function(error, success) {
@@ -812,7 +882,7 @@ router.post('/sendContactForm', async (req: Request, res: Response) => {
   }
 });
 
-// Export the Express app wrapped in functions.https.onRequest
+// Export the Express app as a Firebase Function
 export const api = onRequest({
   timeoutSeconds: 300,
   memory: '256MiB',
@@ -952,7 +1022,6 @@ export const sendActivationConfirmation = onCall<ActivationConfirmationData>({
         <p>Mit freundlichen Grüßen,<br>Ihr HorizonNet Team</p>
       `
     });
-
     console.log('Activation confirmation email sent successfully');
     return { success: true };
   } catch (error) {

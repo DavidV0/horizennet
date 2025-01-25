@@ -27,21 +27,29 @@ service firebase.storage {
       return request.resource.contentType.matches('video/.*');
     }
 
-    // Öffentliche Bilder (z.B. Produktbilder, Event-Bilder)
-    match /products/{productId}/{fileName} {
-      allow read: if true;
-      allow write: if isAdmin() && isImageType();
+    function isValidSize(maxSize) {
+      return request.resource.size <= maxSize * 1024 * 1024;
     }
 
+    // Shop-Produkte
+    match /products/{productId}/{fileName} {
+      allow read: if true;
+      allow write: if isAdmin() && isImageType() && isValidSize(10);
+    }
+
+    // Events
     match /events/{eventId}/{fileName} {
       allow read: if true;
-      allow write: if isAdmin() && isImageType();
+      allow write: if isAdmin() && isImageType() && isValidSize(10);
     }
 
     // Kursbilder und -videos
     match /courses/{courseId}/{fileName} {
-      allow read: if true;
-      allow write: if isAdmin() && (isImageType() || isVideoType());
+      allow read: if isAuthenticated() &&
+        firestore.exists(/databases/(default)/documents/productKeys/$(request.auth.uid));
+      allow write: if isAdmin() && 
+        ((isImageType() && isValidSize(10)) || 
+         (isVideoType() && isValidSize(2048)));
     }
 
     // Benutzerprofilbilder
@@ -49,20 +57,24 @@ service firebase.storage {
       allow read: if true;
       allow write: if request.auth != null && 
                   request.auth.uid == userId && 
-                  isImageType();
+                  isImageType() &&
+                  isValidSize(5);
     }
 
     // Dokumente
     match /documents/{fileName} {
-      allow read: if true;
-      allow write: if isAdmin() && isDocumentType();
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() && 
+                  isDocumentType() &&
+                  isValidSize(25);
     }
 
     // Chat-Anhänge
     match /chats/{chatId}/{fileName} {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated() && 
-                  (isImageType() || isDocumentType());
+                  ((isImageType() && isValidSize(10)) || 
+                   (isDocumentType() && isValidSize(25)));
     }
 
     // Standardregel für alle anderen Dateien
