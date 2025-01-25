@@ -36,6 +36,7 @@ jobs:
           echo "# Email Konfiguration" > .env.production
           echo "EMAIL_USER=${{ secrets.EMAIL_USER }}" >> .env.production
           echo "EMAIL_PASSWORD=${{ secrets.EMAIL_PASSWORD }}" >> .env.production
+          echo "EMAIL_NAME=${{ secrets.EMAIL_NAME }}" >> .env.production
           echo "" >> .env.production
           echo "# Stripe Konfiguration" >> .env.production
           echo "STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}" >> .env.production
@@ -46,13 +47,17 @@ jobs:
         
       - name: Copy Production Environment
         run: cp .env.production .env
+
+      - name: Create Service Account Key File
+        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > $HOME/service-account.json
         
       - name: Deploy to Firebase
-        run: firebase deploy --only functions
+        run: firebase deploy --only functions --json --token "${{ secrets.FIREBASE_TOKEN }}" --project horizonnet-ed13d
         env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          GOOGLE_APPLICATION_CREDENTIALS: $HOME/service-account.json
           NODE_ENV: production
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          EMAIL_NAME: ${{ secrets.EMAIL_NAME }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }} 
