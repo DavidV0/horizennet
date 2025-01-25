@@ -101,27 +101,27 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
     private authService: AuthService
   ) {
     this.checkoutForm = this.fb.group({
-      firstName: ['Max', [Validators.required, Validators.minLength(2)]],
-      lastName: ['Mustermann', [Validators.required, Validators.minLength(2)]],
-      email: ['david.v@atg-at.net', [Validators.required, Validators.email]],
-      street: ['Musterstraße', [Validators.required, Validators.minLength(3)]],
-      streetNumber: ['123', [Validators.required]],
-      zipCode: ['1234', [Validators.required, Validators.pattern('^[0-9]{4}$')]],
-      city: ['Wien', [Validators.required, Validators.minLength(2)]],
+      firstName: ['', [Validators.required, Validators.minLength(2)]],
+      lastName: ['', [Validators.required, Validators.minLength(2)]],
+      email: ['', [Validators.required, Validators.email]],
+      street: ['', [Validators.required, Validators.minLength(3)]],
+      streetNumber: ['', [Validators.required]],
+      zipCode: ['', [Validators.required, Validators.pattern('^[0-9]{4}$')]],
+      city: ['', [Validators.required, Validators.minLength(2)]],
       country: ['Austria', Validators.required],
       language: ['German', Validators.required],
-      mobile: ['06641234567', [Validators.required, Validators.pattern('^[+]?[0-9]{10,13}$')]],
+      mobile: ['', [Validators.required, Validators.pattern('^[+]?[0-9]{10,13}$')]],
       phone: [''],
       useShippingAsBilling: [true],
       acceptTerms: [false, Validators.requiredTrue],
       newsletter: [false],
       becomePartner: [false],
       paymentPlan: [0, Validators.required],
-      cardholderName: ['Max Mustermann', [Validators.required, Validators.minLength(2)]],
-      cardNumber: ['4242 4242 4242 4242', [Validators.required, Validators.pattern('^[0-9]{4}\\s[0-9]{4}\\s[0-9]{4}\\s[0-9]{4}$')]],
-      expiryMonth: ['12', [Validators.required, Validators.pattern('^(0[1-9]|1[0-2])$')]],
-      expiryYear: ['25', [Validators.required, Validators.pattern('^[0-9]{2}$')]],
-      cvv: ['123', [Validators.required, Validators.pattern('^[0-9]{3,4}$')]]
+      cardholderName: ['', [Validators.required, Validators.minLength(2)]],
+      cardNumber: ['', [Validators.required, Validators.pattern('^[0-9]{4}\\s[0-9]{4}\\s[0-9]{4}\\s[0-9]{4}$')]],
+      expiryMonth: ['', [Validators.required, Validators.pattern('^(0[1-9]|1[0-2])$')]],
+      expiryYear: ['', [Validators.required, Validators.pattern('^[0-9]{2}$')]],
+      cvv: ['', [Validators.required, Validators.pattern('^[0-9]{3,4}$')]]
     });
 
     this.checkoutForm.get('paymentPlan')?.valueChanges.subscribe(() => {
