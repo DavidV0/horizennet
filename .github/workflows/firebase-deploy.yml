@@ -46,7 +46,7 @@ jobs:
       - name: GitHub Action for Firebase
         uses: w9jds/firebase-action@master
         with:
-          args: deploy --only functions
+          args: functions:deploy
         env:
           GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           PROJECT_ID: horizonnet-ed13d
