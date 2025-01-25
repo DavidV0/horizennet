@@ -21,9 +21,14 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-          
-      - name: Install Firebase Tools
-        run: npm install -g firebase-tools
+
+      - name: GitHub Action for Firebase
+        uses: w9jds/firebase-action@master
+        with:
+          args: deploy --only functions
+        env:
+          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          PROJECT_ID: horizonnet-ed13d
           
       - name: Install Dependencies
         run: npm ci --legacy-peer-deps
@@ -46,18 +51,4 @@ jobs:
           echo "API_URL=${{ secrets.API_URL }}" >> .env.production
         
       - name: Copy Production Environment
-        run: cp .env.production .env
-
-      - name: Create Service Account Key File
-        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > $HOME/service-account.json
-        
-      - name: Deploy to Firebase
-        run: firebase deploy --only functions --json --token "${{ secrets.FIREBASE_TOKEN }}" --project horizonnet-ed13d
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: $HOME/service-account.json
-          NODE_ENV: production
-          EMAIL_USER: ${{ secrets.EMAIL_USER }}
-          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
-          EMAIL_NAME: ${{ secrets.EMAIL_NAME }}
-          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
-          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }} 
+        run: cp .env.production .env 
