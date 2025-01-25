@@ -20,6 +20,9 @@ jobs:
         with:
           node-version: '18'
           
+      - name: Install Firebase Tools
+        run: npm install -g firebase-tools
+          
       - name: Install Dependencies
         run: npm ci --legacy-peer-deps
         
@@ -42,12 +45,14 @@ jobs:
         
       - name: Copy Production Environment
         run: cp .env.production .env
-
-      - name: GitHub Action for Firebase
-        uses: w9jds/firebase-action@master
-        with:
-          args: functions:deploy
+        
+      - name: Deploy to Firebase
+        run: firebase deploy --only functions
         env:
-          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          PROJECT_ID: horizonnet-ed13d
-          NODE_ENV: production 
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          NODE_ENV: production
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          EMAIL_NAME: ${{ secrets.EMAIL_NAME }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }} 
