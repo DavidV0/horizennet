@@ -1,7 +1,7 @@
 export const environment = {
   production: true,
   apiUrl: 'https://api-kwordus5wa-uc.a.run.app',
-  stripePublishableKey: 'pk_test_51Qh8EAGmKQzZmpXR3GBd47wZxt6Ez2SSJMF3Ts8ZvmHxlS4IPSABhSGSROJar8wQeMP9C5zdzj3Y2LbVIiZ1x8hc007EPRO1Xo',
+  stripePublishableKey: 'pk_live_51Qh8EAGmKQzZmpXRWnyWScYgNZPTmnDJrJ1c2VmMIGU7o62WdWHt3rIt4Yn2Ob0VL0fip3QOmaiyoJ9Tqo7Ge3Qf00bQIyVqEe',
   firebase: {
     apiKey: "AIzaSyAALm7dx2_16lGXF-6SsBw9vQ8Pce038nE",
     authDomain: "horizonnet-ed13d.firebaseapp.com",

@@ -1,10 +1,74 @@
 rules_version = '2';
 
 service firebase.storage {
-  match /b/horizonnet-ed13d.firebasestorage.app/o {
-    match /{allPaths=**} {
+  match /b/{bucket}/o {
+    // Hilfsfunktionen
+    function isAdmin() {
+      return request.auth != null && 
+        firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isImageType() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    function isDocumentType() {
+      return request.resource.contentType.matches('application/pdf') ||
+             request.resource.contentType.matches('application/msword') ||
+             request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    }
+
+    function isVideoType() {
+      return request.resource.contentType.matches('video/.*');
+    }
+
+    // Öffentliche Bilder (z.B. Produktbilder, Event-Bilder)
+    match /products/{productId}/{fileName} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isAdmin() && isImageType();
+    }
+
+    match /events/{eventId}/{fileName} {
+      allow read: if true;
+      allow write: if isAdmin() && isImageType();
+    }
+
+    // Kursbilder und -videos
+    match /courses/{courseId}/{fileName} {
+      allow read: if true;
+      allow write: if isAdmin() && (isImageType() || isVideoType());
+    }
+
+    // Benutzerprofilbilder
+    match /users/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null && 
+                  request.auth.uid == userId && 
+                  isImageType();
+    }
+
+    // Dokumente
+    match /documents/{fileName} {
+      allow read: if true;
+      allow write: if isAdmin() && isDocumentType();
+    }
+
+    // Chat-Anhänge
+    match /chats/{chatId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && 
+                  (isImageType() || isDocumentType());
+    }
+
+    // Standardregel für alle anderen Dateien
+    match /{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
     }
   }
 } 
