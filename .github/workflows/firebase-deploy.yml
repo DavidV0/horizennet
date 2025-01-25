@@ -19,14 +19,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-
-      - name: GitHub Action for Firebase
-        uses: w9jds/firebase-action@master
-        with:
-          args: deploy --only functions
-        env:
-          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          PROJECT_ID: horizonnet-ed13d
           
       - name: Install Dependencies
         run: npm ci --legacy-peer-deps
@@ -49,4 +41,13 @@ jobs:
           echo "API_URL=${{ secrets.API_URL }}" >> .env.production
         
       - name: Copy Production Environment
-        run: cp .env.production .env 
+        run: cp .env.production .env
+
+      - name: GitHub Action for Firebase
+        uses: w9jds/firebase-action@master
+        with:
+          args: deploy --only functions
+        env:
+          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          PROJECT_ID: horizonnet-ed13d
+          NODE_ENV: production 
