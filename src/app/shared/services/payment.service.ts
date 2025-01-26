@@ -51,6 +51,13 @@ export class PaymentService {
     );
   }
 
+  // Get payment intent status
+  getPaymentIntent(paymentIntentId: string): Observable<PaymentIntent> {
+    return this.http.get<PaymentIntent>(`${this.apiUrl}/api/stripe/payments/${paymentIntentId}`).pipe(
+      catchError(this.handleError)
+    );
+  }
+
   // Subscription payment
   createSubscription(priceId: string, customerId: string, paymentMethodId: string): Observable<Subscription> {
     return this.http.post<Subscription>(`${this.apiUrl}/api/stripe/subscriptions`, {
@@ -133,6 +140,13 @@ export class PaymentService {
     }).pipe(
       catchError(this.handleError)
     );
+  }
+
+  createCustomer(customerData: { email: string; name: string }): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/api/stripe/customers`, customerData)
+      .pipe(
+        catchError(this.handleError)
+      );
   }
 
   private handleError(error: any) {

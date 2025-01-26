@@ -101,27 +101,27 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
     private authService: AuthService
   ) {
     this.checkoutForm = this.fb.group({
-      firstName: ['', [Validators.required, Validators.minLength(2)]],
-      lastName: ['', [Validators.required, Validators.minLength(2)]],
-      email: ['', [Validators.required, Validators.email]],
-      street: ['', [Validators.required, Validators.minLength(3)]],
-      streetNumber: ['', [Validators.required]],
-      zipCode: ['', [Validators.required, Validators.pattern('^[0-9]{4}$')]],
-      city: ['', [Validators.required, Validators.minLength(2)]],
-      country: ['', Validators.required],
-      language: ['', Validators.required],
-      mobile: ['', [Validators.required, Validators.pattern('^[+]?[0-9]{10,13}$')]],
+      firstName: ['Max', [Validators.required, Validators.minLength(2)]],
+      lastName: ['Mustermann', [Validators.required, Validators.minLength(2)]],
+      email: ['david.v@atg-at.net', [Validators.required, Validators.email]],
+      street: ['Musterstraße', [Validators.required, Validators.minLength(3)]],
+      streetNumber: ['123', [Validators.required]],
+      zipCode: ['1234', [Validators.required, Validators.pattern('^[0-9]{4}$')]],
+      city: ['Wien', [Validators.required, Validators.minLength(2)]],
+      country: ['Austria', Validators.required],
+      language: ['German', Validators.required],
+      mobile: ['06641234567', [Validators.required, Validators.pattern('^[+]?[0-9]{10,13}$')]],
       phone: [''],
       useShippingAsBilling: [true],
       acceptTerms: [false, Validators.requiredTrue],
       newsletter: [false],
       becomePartner: [false],
       paymentPlan: [0, Validators.required],
-      cardholderName: ['', [Validators.required, Validators.minLength(2)]],
-      cardNumber: ['', [Validators.required, Validators.pattern('^[0-9]{4}\\s[0-9]{4}\\s[0-9]{4}\\s[0-9]{4}$')]],
-      expiryMonth: ['', [Validators.required, Validators.pattern('^(0[1-9]|1[0-2])$')]],
-      expiryYear: ['', [Validators.required, Validators.pattern('^[0-9]{2}$')]],
-      cvv: ['', [Validators.required, Validators.pattern('^[0-9]{3,4}$')]]
+      cardholderName: ['Max Mustermann', [Validators.required, Validators.minLength(2)]],
+      cardNumber: ['4242 4242 4242 4242', [Validators.required, Validators.pattern('^[0-9]{4}\\s[0-9]{4}\\s[0-9]{4}\\s[0-9]{4}$')]],
+      expiryMonth: ['12', [Validators.required, Validators.pattern('^(0[1-9]|1[0-2])$')]],
+      expiryYear: ['25', [Validators.required, Validators.pattern('^[0-9]{2}$')]],
+      cvv: ['123', [Validators.required, Validators.pattern('^[0-9]{3,4}$')]]
     });
 
     this.checkoutForm.get('paymentPlan')?.valueChanges.subscribe(() => {
@@ -359,7 +359,10 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
       const fullName = `${formValues.firstName} ${formValues.lastName}`;
       
       const customerData = await firstValueFrom(
-        this.stripeService.createCustomer(formValues.email, fullName)
+        this.stripeService.createCustomer({
+          email: formValues.email,
+          name: fullName
+        })
       );
 
       if (!customerData) {
@@ -381,7 +384,7 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   async onSubmit() {
-    if (!this.checkoutForm.valid || !this.stripe || !this.card || !this.customerId) {
+    if (!this.checkoutForm.valid || !this.stripe || !this.card) {
       return;
     }
 
@@ -392,7 +395,27 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
       const formValues = this.checkoutForm.value;
       const fullName = `${formValues.firstName} ${formValues.lastName}`;
 
-      // Create payment method
+      // Erstelle oder hole den Kunden
+      try {
+        console.log('Creating/retrieving customer...');
+        const customerResponse = await firstValueFrom(
+          this.stripeService.createCustomer({
+            email: formValues.email,
+            name: fullName
+          })
+        );
+        this.customerId = customerResponse.id;
+        console.log('Customer created/retrieved:', this.customerId);
+      } catch (customerError: any) {
+        console.error('Error creating customer:', customerError);
+        throw new Error('Fehler beim Erstellen des Kundenprofils');
+      }
+
+      if (!this.customerId) {
+        throw new Error('Kundenprofil konnte nicht erstellt werden');
+      }
+
+      // Create payment method with 3D Secure support
       const { paymentMethod, error: paymentMethodError } = await this.stripe.createPaymentMethod({
         type: 'card',
         card: this.card,
@@ -416,7 +439,7 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
         throw new Error('Zahlungsmethode konnte nicht erstellt werden');
       }
 
-      // Process payment with existing customer ID
+      // Process payment with existing customer ID and handle 3D Secure
       await this.processPaymentAndOrder(this.customerId, paymentMethod.id);
 
     } catch (error: any) {
@@ -460,7 +483,8 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
           console.log('Subscription is active, completing order');
           await this.completeOrder(customerId);
         } else if (this.stripeSubscription.status === 'incomplete' || 
-                  this.stripeSubscription.status === 'requires_payment_method') {
+                  this.stripeSubscription.status === 'requires_payment_method' ||
+                  this.stripeSubscription.status === 'requires_action') {
           console.log('Subscription requires payment confirmation');
           
           // Use the client secret from the subscription response
@@ -471,7 +495,8 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
             const { paymentIntent, error } = await this.stripe!.confirmCardPayment(
               clientSecret,
               {
-                payment_method: paymentMethodId
+                payment_method: paymentMethodId,
+                return_url: window.location.origin + '/payment-success'
               }
             );
 
@@ -488,15 +513,19 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
             } else if (paymentIntent && paymentIntent.status === 'requires_payment_method') {
               throw new Error('Die Zahlung wurde abgelehnt. Bitte überprüfen Sie Ihre Zahlungsinformationen.');
             } else if (paymentIntent && paymentIntent.status === 'requires_action') {
-              throw new Error('Die Zahlung erfordert eine zusätzliche Authentifizierung.');
+              // Handle 3D Secure authentication
+              const { error: confirmError } = await this.stripe!.confirmCardPayment(clientSecret);
+              if (confirmError) {
+                throw new Error(confirmError.message);
+              }
+              await this.completeOrder(customerId);
             } else {
               throw new Error(`Unerwarteter Zahlungsstatus: ${paymentIntent?.status}`);
             }
           } else {
             throw new Error('Kein Client Secret in der Antwort gefunden');
           }
-        } else if (this.stripeSubscription.status === 'trialing' || 
-                  this.stripeSubscription.status === 'past_due' ||
+        } else if (this.stripeSubscription.status === 'past_due' ||
                   this.stripeSubscription.status === 'unpaid') {
           // These statuses still indicate a successful subscription creation
           console.log(`Subscription is in ${this.stripeSubscription.status} status, completing order`);
@@ -506,11 +535,11 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
         }
       } else {
         // Handle one-time payment
-        const amount = this.calculatePriceWithVAT(this.monthlyTotal); // Amount in euros
-        console.log('Creating payment intent:', { amount, customerId, paymentMethodId });
+        const amount = this.calculatePriceWithVAT(this.fullTotal); // Amount in euros
+        console.log('Creating payment intent:', { amount: amount * 100, customerId, paymentMethodId });
         
         this.paymentIntent = await firstValueFrom(
-          this.paymentService.createPaymentIntent(amount, {
+          this.paymentService.createPaymentIntent(amount * 100, {
             customer: customerId,
             payment_method: paymentMethodId,
             currency: 'eur'
@@ -523,27 +552,31 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
           throw new Error('Fehler beim Erstellen der Zahlung');
         }
 
-        // Check if payment requires additional actions
-        if (this.paymentIntent.status === 'requires_action' || 
-            this.paymentIntent.status === 'requires_payment_method') {
-          console.log('Payment requires action, confirming card payment');
-          const { paymentIntent, error } = await this.stripe!.confirmCardPayment(
-            this.paymentIntent.clientSecret
-          );
-
-          if (error) {
-            throw new Error(error.message);
+        // Immer zuerst die Zahlung bestätigen
+        console.log('Confirming card payment with client secret:', this.paymentIntent.clientSecret);
+        const { paymentIntent: confirmedIntent, error: confirmError } = await this.stripe!.confirmCardPayment(
+          this.paymentIntent.clientSecret,
+          {
+            payment_method: paymentMethodId,
+            return_url: window.location.origin + '/payment-success'
           }
+        );
 
-          if (paymentIntent && paymentIntent.status === 'succeeded') {
-            console.log('Payment confirmed, completing order');
-            await this.completeOrder(customerId);
-          } else {
-            throw new Error(`Unexpected payment intent status: ${paymentIntent?.status}`);
-          }
-        } else {
-          console.log('Payment successful, completing order');
+        if (confirmError) {
+          console.error('Payment confirmation error:', confirmError);
+          throw new Error(confirmError.message);
+        }
+
+        console.log('Payment intent after confirmation:', confirmedIntent);
+
+        if (confirmedIntent?.status === 'succeeded') {
+          console.log('Payment confirmed, completing order');
           await this.completeOrder(customerId);
+        } else if (confirmedIntent?.status === 'requires_action') {
+          console.log('3D Secure authentication required');
+          // Der Browser wird automatisch zur 3D Secure Seite weitergeleitet
+        } else {
+          throw new Error(`Unerwarteter Zahlungsstatus: ${confirmedIntent?.status}`);
         }
       }
     } catch (error: any) {
@@ -614,9 +647,6 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   private async completeOrder(customerId: string) {
     try {
-      // Clear cart first
-      this.cartService.clearCart();
-      
       const formValues = this.checkoutForm.value;
       const orderId = this.isSubscription ? this.stripeSubscription?.id : this.paymentIntent?.id;
       
@@ -624,7 +654,27 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
         throw new Error('No order ID found');
       }
 
-      console.log('Processing order:', { orderId, isSubscription: this.isSubscription });
+      // Überprüfen Sie den Zahlungsstatus
+      if (this.isSubscription) {
+        const subscription = await firstValueFrom(
+          this.paymentService.getSubscriptionStatus(orderId)
+        );
+        if (subscription.status !== 'active' && subscription.status !== 'trialing') {
+          throw new Error('Zahlung wurde nicht bestätigt');
+        }
+      } else {
+        const paymentIntent = await firstValueFrom(
+          this.paymentService.getPaymentIntent(orderId)
+        );
+        if (paymentIntent.status !== 'succeeded') {
+          throw new Error('Zahlung wurde nicht bestätigt');
+        }
+      }
+
+      console.log('Payment confirmed, processing order:', { orderId, isSubscription: this.isSubscription });
+      
+      // Clear cart first
+      this.cartService.clearCart();
       
       // Get purchased course IDs
       const purchasedCourses = this.cartProducts.map(product => product.courseIds);
@@ -640,7 +690,7 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
         }
       }
       
-      // Send purchase confirmation email
+      // Send purchase confirmation email only after successful payment and activation
       try {
         const emailData = {
           email: formValues.email,
@@ -673,7 +723,7 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
         console.error('Error sending purchase confirmation email:', emailError);
         // Continue with redirection even if email fails
       }
-      
+
       console.log('Redirecting to success page');
       
       // Redirect to success page
@@ -686,8 +736,7 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
       
     } catch (error: any) {
       console.error('Error completing order:', error);
-      // Still redirect to success page as payment was successful
-      await this.router.navigate(['/success']);
+      throw error; // Fehler weiterleiten, damit die Bestellung nicht als erfolgreich markiert wird
     }
   }
 

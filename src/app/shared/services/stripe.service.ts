@@ -12,13 +12,13 @@ export class StripeService {
     .set('Content-Type', 'application/json')
     .set('Accept', 'application/json');
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient) {}
 
   // Customer Management
-  createCustomer(email: string, name: string): Observable<any> {
+  createCustomer(customerData: { email: string; name: string }): Observable<any> {
     return this.http.post(
       `${this.apiUrl}/api/stripe/customers`,
-      { email, name },
+      customerData,
       { headers: this.headers }
     ).pipe(
       timeout(30000),

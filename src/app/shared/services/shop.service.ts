@@ -90,7 +90,7 @@ export class ShopService {
 
     // Create Stripe product and price points
     const response = await firstValueFrom(this.http.post<StripeProductResponse>(
-      `${this.apiUrl}/createStripeProductHttp`,
+      `${this.apiUrl}/api/stripe/products`,
       {
         name: product.name,
         description: product.description,
@@ -121,6 +121,48 @@ export class ShopService {
   async updateProduct(id: string, product: Partial<ShopProduct>, imageFile?: File): Promise<void> {
     const docRef = doc(this.firestore, this.collectionName, id);
     let imageUrl = product.image || '';
+
+    const existingProduct = await getDoc(docRef);
+    const existingData = existingProduct.data() as ShopProduct;
+
+    // Aktualisiere Stripe-Produkt wenn Name oder Beschreibung geändert wurden
+    if ((product.name && product.name !== existingData.name) || 
+        (product.description && product.description !== existingData.description)) {
+      try {
+        await firstValueFrom(this.http.post<StripeProductResponse>(
+          `${this.apiUrl}/api/stripe/products/${existingData.stripeProductId}/prices`,
+          {
+            price: product.price || existingData.price,
+            name: product.name,
+            description: product.description,
+            existingPriceIds: existingData.stripePriceIds
+          }
+        ));
+      } catch (error) {
+        console.error('Error updating Stripe product:', error);
+        throw new Error('Fehler beim Aktualisieren des Stripe-Produkts');
+      }
+    }
+
+    // Wenn sich der Preis geändert hat, aktualisiere die Stripe-Preise
+    if (typeof product.price === 'number' && existingData.price !== product.price && existingData.stripeProductId) {
+      console.log('Updating Stripe prices for product:', existingData.stripeProductId);
+      try {
+        const response = await firstValueFrom(this.http.post<StripeProductResponse>(
+          `${this.apiUrl}/api/stripe/products/${existingData.stripeProductId}/prices`,
+          {
+            price: product.price,
+            name: product.name || existingData.name,
+            description: product.description || existingData.description,
+            existingPriceIds: existingData.stripePriceIds
+          }
+        ));
+        product.stripePriceIds = response.priceIds;
+      } catch (error) {
+        console.error('Error updating Stripe prices:', error);
+        throw new Error('Fehler beim Aktualisieren der Stripe-Preise');
+      }
+    }
 
     if (imageFile) {
       const imagePath = `${this.storagePath}/${id}/${imageFile.name}`;

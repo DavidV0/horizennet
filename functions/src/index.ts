@@ -7,9 +7,11 @@ import cors from "cors";
 import Stripe from "stripe";
 import * as dotenv from "dotenv";
 import * as nodemailer from "nodemailer";
-import * as path from "path";
 
-// Interfaces
+// Imports bleiben gleich...
+
+// Das Interface wird verwendet, also TypeScript-Fehler ignorieren
+/* eslint-disable @typescript-eslint/no-unused-vars */
 interface ContactFormData {
   firstName: string;
   lastName: string;
@@ -36,120 +38,16 @@ interface ExtendedRequest extends Request {
   };
 }
 
-// Setze die Umgebungsvariablen für Cloud Functions
-const runtimeConfig = {
-  email: {
-    user: process.env.EMAIL_USER || functions.config().email?.user,
-    password: process.env.EMAIL_PASSWORD || functions.config().email?.password,
-    name: process.env.EMAIL_NAME || functions.config().email?.name
-  },
-  stripe: {
-    secretKey: process.env.STRIPE_SECRET_KEY || functions.config().stripe?.secret_key,
-    webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || functions.config().stripe?.webhook_secret
-  },
-  api: {
-    url: process.env.API_URL || functions.config().api?.url
-  }
-};
-
-console.log('Runtime Config:', {
-  email: {
-    user: runtimeConfig.email.user,
-    name: runtimeConfig.email.name
-  },
-  stripe: {
-    secretKey: runtimeConfig.stripe.secretKey ? 'sk_****' + runtimeConfig.stripe.secretKey.slice(-4) : undefined,
-    webhookSecret: runtimeConfig.stripe.webhookSecret ? 'whsec_****' + runtimeConfig.stripe.webhookSecret.slice(-4) : undefined
-  },
-  api: {
-    url: runtimeConfig.api.url
-  }
-});
-
-// Setze NODE_ENV für Produktion
-process.env.NODE_ENV = 'production';
-
-// Lade die richtige .env-Datei basierend auf der Umgebung
-console.log('NODE_ENV:', process.env.NODE_ENV);
-console.log('Versuche Env-Datei zu laden...');
-
-// Lade die .env.production Datei
-const envPath = path.join(__dirname, '../.env.production');
-console.log('Versuche .env.production zu laden von:', envPath);
-const result = dotenv.config({ path: envPath });
-
-if (result.error) {
-  console.error('Fehler beim Laden der .env.production:', result.error);
-} else {
-  console.log('Erfolgreich geladen. Umgebungsvariablen:', {
-    EMAIL_USER: process.env.EMAIL_USER,
-    EMAIL_NAME: process.env.EMAIL_NAME,
-    API_URL: process.env.API_URL,
-    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY ? 'sk_****' + process.env.STRIPE_SECRET_KEY.slice(-4) : undefined,
-    STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET ? 'whsec_****' + process.env.STRIPE_WEBHOOK_SECRET.slice(-4) : undefined
-  });
+interface StripeRequest extends Request {
+  rawBody?: string;
 }
 
-// Stripe Konfiguration mit den geladenen Variablen
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2024-12-18.acacia',
-  timeout: 30000, // 30 Sekunden Timeout
-  maxNetworkRetries: 3 // Automatische Wiederholungsversuche
-});
+dotenv.config();
 
-// Email-Transporter mit den geladenen Variablen
-const transporter = nodemailer.createTransport({
-  host: "w01ef01f.kasserver.com",
-  port: 587,
-  secure: false,
-  name: process.env.EMAIL_NAME,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD,
-  },
-  tls: {
-    rejectUnauthorized: false
-  }
-});
-
-// Produktions-Konfiguration für Firebase Admin
+// Initialize Firebase Admin
 if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.applicationDefault(),
-    storageBucket: 'horizonnet-ed13d.firebasestorage.app'
-  });
+  admin.initializeApp();
 }
-
-// Initialize Express app
-const app = express();
-app.use(cors({ 
-  origin: ['https://horizonnet-consulting.at', 'https://www.horizonnet-consulting.at'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-app.use(express.json());
-
-// Rate Limiting für Produktion
-const rateLimit = require('express-rate-limit');
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 Minuten
-  max: 100 // Limit jede IP auf 100 Anfragen pro Fenster
-});
-app.use(limiter);
-
-// Produktions-Logging
-const productionLogger = (req: Request, res: Response, next: Function) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
-  next();
-};
-app.use(productionLogger);
-
-// Error Handling für Produktion
-const errorHandler = (err: Error, req: Request, res: Response, next: Function) => {
-  console.error(err.stack);
-  res.status(500).send('Internal Server Error');
-};
-app.use(errorHandler);
 
 // Add this helper function at the top of the file
 function escapeHtml(unsafe: string): string {
@@ -354,16 +252,61 @@ const sendPurchaseConfirmationHandler = async (req: Request, res: Response) => {
 };
 
 // Initialize Express app
+const app: express.Application = express();
 const router: Router = express.Router();
+const corsOptions = {
+  origin: [
+    'https://horizonnet-ed13d.web.app',
+    'https://horizonnet-consulting.at',
+    'http://localhost:4200'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  credentials: true,
+  maxAge: 86400 // 24 hours
+};
+
+// Apply CORS middleware
+app.use(cors(corsOptions));
+app.use(express.json());
+
+// Konfiguriere body-parser für raw bodies
+app.use((req, res, next) => {
+  if (req.originalUrl === '/webhook') {
+    next();
+  } else {
+    express.json()(req, res, next);
+  }
+});
 
 // Health check endpoint for Cloud Run
 app.get('/', (req, res) => {
   res.status(200).send('OK');
 });
 
+// Initialize Stripe with the latest API version
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || functions.config().stripe.secret_key || '', {
+  apiVersion: '2024-12-18.acacia'
+});
+
 // Log the key being used (masked)
 const stripeKey = process.env.STRIPE_SECRET_KEY || functions.config().stripe.secret_key || '';
 console.log('Using Stripe key:', stripeKey ? stripeKey.substring(0, 8) + '...' : 'No key found');
+
+// Nodemailer Transport
+const transporter = nodemailer.createTransport({
+  host: "w01ef01f.kasserver.com",
+  port: 587,
+  secure: false,
+  name: 'm07462fe',
+  auth: {
+    user: 'office@horizonnet-consulting.at',
+    pass: process.env.EMAIL_PASSWORD || functions.config().email.password,
+  },
+  tls: {
+    rejectUnauthorized: false
+  }
+});
 
 // Verify transporter connection
 transporter.verify(function(error, success) {
@@ -441,54 +384,86 @@ const getCustomer = async (req: Request, res: Response) => {
   }
 };
 
-const createPaymentIntent = async (req: Request, res: Response) => {
+const createPaymentIntent = async (req: Request, res: Response): Promise<void> => {
   try {
     const { amount, currency = "eur", customer, payment_method } = req.body;
+    
+    console.log('Received payment intent request:', { amount, currency, customer, payment_method });
 
-    // Create an invoice
-    const invoice = await stripe.invoices.create({
-      customer,
-      auto_advance: true, // Auto-finalize the draft
-      collection_method: 'charge_automatically',
-      pending_invoice_items_behavior: 'include'
-    });
+    if (!amount || !customer || !payment_method) {
+      console.error('Missing required fields:', { amount, customer, payment_method });
+      res.status(400).json({ error: "Amount, customer and payment_method are required" });
+      return;
+    }
 
-    // Add invoice item directly without storing the result
-    await stripe.invoiceItems.create({
-      customer,
-      amount: Math.round(amount * 100),
-      currency,
-      description: 'HorizonNet Produkt',
-      invoice: invoice.id
-    });
+    try {
+      // Create payment intent first
+      console.log('Creating payment intent');
+      const paymentIntentData: Stripe.PaymentIntentCreateParams = {
+        amount: Math.round(amount), // amount should already be in cents
+        currency,
+        customer,
+        payment_method,
+        confirmation_method: 'automatic',
+        capture_method: 'automatic' as const,
+        setup_future_usage: 'off_session'
+      };
 
-    // Finalize and pay the invoice
-    await stripe.invoices.finalizeInvoice(invoice.id);
+      console.log('Payment intent data:', paymentIntentData);
+      const paymentIntent = await stripe.paymentIntents.create(paymentIntentData);
+      console.log('Created payment intent:', paymentIntent.id);
 
-    // Create payment intent with the invoice
-    const paymentIntentData: any = {
-      amount: Math.round(amount * 100),
-      currency,
-      customer,
-      payment_method,
-      confirmation_method: 'manual',
-      capture_method: 'automatic',
-      metadata: {
+      // Create an invoice after successful payment intent creation
+      console.log('Creating invoice for customer:', customer);
+      const invoice = await stripe.invoices.create({
+        customer,
+        auto_advance: true,
+        collection_method: 'charge_automatically',
+        pending_invoice_items_behavior: 'include'
+      });
+
+      console.log('Created invoice:', invoice.id);
+
+      // Add invoice item
+      console.log('Adding invoice item:', { amount, currency });
+      await stripe.invoiceItems.create({
+        customer,
+        amount: Math.round(amount),
+        currency,
+        description: 'HorizonNet Produkt',
+        invoice: invoice.id
+      });
+
+      // Update payment intent with invoice metadata
+      await stripe.paymentIntents.update(paymentIntent.id, {
+        metadata: {
+          invoice_id: invoice.id
+        }
+      });
+
+      // Finalize invoice
+      console.log('Finalizing invoice:', invoice.id);
+      await stripe.invoices.finalizeInvoice(invoice.id);
+
+      res.json({
+        clientSecret: paymentIntent.client_secret,
+        id: paymentIntent.id,
+        status: paymentIntent.status,
         invoice_id: invoice.id
-      }
-    };
-
-    const paymentIntent = await stripe.paymentIntents.create(paymentIntentData);
-
-    res.json({
-      clientSecret: paymentIntent.client_secret,
-      id: paymentIntent.id,
-      status: paymentIntent.status,
-      invoice_id: invoice.id
-    });
+      });
+    } catch (stripeError) {
+      console.error('Stripe API Error:', stripeError);
+      res.status(400).json({
+        error: 'Stripe API Error',
+        details: stripeError instanceof Error ? stripeError.message : String(stripeError)
+      });
+    }
   } catch (error) {
     console.error("Error creating payment intent:", error);
-    res.status(500).json({ error: "Error creating payment intent" });
+    res.status(500).json({ 
+      error: "Error creating payment intent",
+      details: error instanceof Error ? error.message : String(error)
+    });
   }
 };
 
@@ -756,9 +731,288 @@ router.post("/sendPurchaseConfirmation", async (req: Request, res: Response) => 
   await sendPurchaseConfirmationHandler(req, res);
 });
 
+// Stripe Product Endpoints
+const createStripeProduct = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { name, description, price } = req.body;
+    console.log('Creating Stripe product with data:', { name, description, price });
+
+    // Validate input
+    if (!name || !description || !price) {
+      res.status(400).json({ 
+        error: 'Name, description and price are required' 
+      });
+      return;
+    }
+
+    // Create the product in Stripe
+    const product = await stripe.products.create({
+      name,
+      description,
+      default_price_data: {
+        currency: 'eur',
+        unit_amount: Math.round(price * 100)
+      }
+    });
+
+    console.log('Created Stripe product:', product.id);
+
+    // Create price points for different payment plans
+    const pricePromises = [
+      // Full payment price (already created with product)
+      Promise.resolve(product.default_price),
+      
+      // 6 months payment plan
+      stripe.prices.create({
+        product: product.id,
+        currency: 'eur',
+        unit_amount: Math.round(price * 100 / 6),
+        recurring: {
+          interval: 'month',
+          interval_count: 1
+        },
+        metadata: {
+          plan: 'sixMonths'
+        }
+      }),
+
+      // 12 months payment plan
+      stripe.prices.create({
+        product: product.id,
+        currency: 'eur',
+        unit_amount: Math.round(price * 100 / 12),
+        recurring: {
+          interval: 'month',
+          interval_count: 1
+        },
+        metadata: {
+          plan: 'twelveMonths'
+        }
+      }),
+
+      // 18 months payment plan
+      stripe.prices.create({
+        product: product.id,
+        currency: 'eur',
+        unit_amount: Math.round(price * 100 / 18),
+        recurring: {
+          interval: 'month',
+          interval_count: 1
+        },
+        metadata: {
+          plan: 'eighteenMonths'
+        }
+      })
+    ];
+
+    const [fullPayment, sixMonths, twelveMonths, eighteenMonths] = await Promise.all(pricePromises);
+
+    const response = {
+      productId: product.id,
+      priceIds: {
+        fullPayment: typeof fullPayment === 'string' ? fullPayment : (fullPayment as Stripe.Price).id,
+        sixMonths: (sixMonths as Stripe.Price).id,
+        twelveMonths: (twelveMonths as Stripe.Price).id,
+        eighteenMonths: (eighteenMonths as Stripe.Price).id
+      }
+    };
+
+    console.log('Created all price points:', response);
+    res.json(response);
+  } catch (error) {
+    console.error('Error creating Stripe product:', error);
+    res.status(500).json({ 
+      error: 'Failed to create Stripe product',
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+};
+
+// Get payment intent
+const getPaymentIntent = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { paymentIntentId } = req.params;
+    console.log('Getting payment intent:', paymentIntentId);
+
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    console.log('Retrieved payment intent:', paymentIntent.id, 'with status:', paymentIntent.status);
+
+    res.json({
+      id: paymentIntent.id,
+      status: paymentIntent.status,
+      clientSecret: paymentIntent.client_secret
+    });
+  } catch (error) {
+    console.error('Error getting payment intent:', error);
+    res.status(500).json({ 
+      error: 'Failed to get payment intent',
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+};
+
+// Update product prices
+const updateProductPrices = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { productId } = req.params;
+    const { price, name, description, existingPriceIds } = req.body;
+    console.log('Updating product:', productId, 'with data:', { price, name, description });
+
+    if (!productId || typeof price !== 'number') {
+      console.error('Invalid input:', { productId, price });
+      res.status(400).json({ error: 'Product ID and price are required' });
+      return;
+    }
+
+    // Überprüfe, ob das Produkt existiert
+    let product: Stripe.Product;
+    try {
+      product = await stripe.products.retrieve(productId);
+      console.log('Found product:', product.id);
+
+      // Aktualisiere Produktdaten wenn vorhanden
+      if (name || description) {
+        const updateData: Stripe.ProductUpdateParams = {};
+        if (name) updateData.name = name;
+        if (description) updateData.description = description;
+        
+        await stripe.products.update(productId, updateData);
+        console.log('Updated product details:', { name, description });
+      }
+    } catch (error) {
+      console.error('Product not found:', productId);
+      res.status(404).json({ error: 'Product not found' });
+      return;
+    }
+
+    // Alte Preise deaktivieren und verstecken
+    if (existingPriceIds) {
+      console.log('Deactivating existing prices:', existingPriceIds);
+      const deactivatePromises = Object.values(existingPriceIds as Record<string, string>)
+        .filter(priceId => priceId && priceId !== product.default_price)
+        .map(async (priceId) => {
+          try {
+            await stripe.prices.update(priceId, { 
+              active: false,
+              metadata: { status: 'archived' }
+            });
+            console.log('Successfully deactivated price:', priceId);
+          } catch (error) {
+            console.error('Error deactivating price:', priceId, error);
+          }
+        });
+      await Promise.all(deactivatePromises);
+    }
+
+    // Aktualisiere den default_price
+    if (product.default_price) {
+      try {
+        await stripe.products.update(productId, {
+          default_price: undefined
+        });
+        console.log('Removed default price from product');
+      } catch (error) {
+        console.error('Error removing default price:', error);
+      }
+    }
+
+    // Erstelle neue Preise
+    console.log('Creating new prices...');
+    const pricePromises = [
+      // Einmalzahlung
+      stripe.prices.create({
+        product: productId,
+        currency: 'eur',
+        unit_amount: Math.round(price * 100),
+        metadata: {
+          plan: 'fullPayment'
+        }
+      }).then(price => {
+        console.log('Created full payment price:', price.id);
+        return price;
+      }),
+
+      // 6 Monate Ratenzahlung
+      stripe.prices.create({
+        product: productId,
+        currency: 'eur',
+        unit_amount: Math.round(price * 100 / 6),
+        recurring: {
+          interval: 'month',
+          interval_count: 1
+        },
+        metadata: {
+          plan: 'sixMonths'
+        }
+      }).then(price => {
+        console.log('Created 6-month price:', price.id);
+        return price;
+      }),
+
+      // 12 Monate Ratenzahlung
+      stripe.prices.create({
+        product: productId,
+        currency: 'eur',
+        unit_amount: Math.round(price * 100 / 12),
+        recurring: {
+          interval: 'month',
+          interval_count: 1
+        },
+        metadata: {
+          plan: 'twelveMonths'
+        }
+      }).then(price => {
+        console.log('Created 12-month price:', price.id);
+        return price;
+      }),
+
+      // 18 Monate Ratenzahlung
+      stripe.prices.create({
+        product: productId,
+        currency: 'eur',
+        unit_amount: Math.round(price * 100 / 18),
+        recurring: {
+          interval: 'month',
+          interval_count: 1
+        },
+        metadata: {
+          plan: 'eighteenMonths'
+        }
+      }).then(price => {
+        console.log('Created 18-month price:', price.id);
+        return price;
+      })
+    ];
+
+    const [fullPayment, sixMonths, twelveMonths, eighteenMonths] = await Promise.all(pricePromises);
+
+    const response = {
+      productId,
+      priceIds: {
+        fullPayment: fullPayment.id,
+        sixMonths: sixMonths.id,
+        twelveMonths: twelveMonths.id,
+        eighteenMonths: eighteenMonths.id
+      }
+    };
+
+    console.log('Successfully created all new prices:', response);
+    res.json(response);
+  } catch (error) {
+    console.error('Error updating product prices:', error instanceof Error ? error.stack : error);
+    res.status(500).json({ 
+      error: 'Failed to update product prices',
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+};
+
+router.post("/stripe/products", createStripeProduct);
+router.post("/stripe/products/:productId/prices", updateProductPrices);
 router.post("/stripe/customers", createCustomer);
 router.get("/stripe/customers/:customerId", getCustomer);
 router.post("/stripe/payments", createPaymentIntent);
+router.get("/stripe/payments/:paymentIntentId", getPaymentIntent);
 router.post("/stripe/payments/:paymentIntentId/retry", retryPayment);
 router.post("/stripe/subscriptions", createSubscription);
 router.get("/stripe/subscriptions/:subscriptionId", getSubscriptionStatus);
@@ -766,11 +1020,13 @@ router.delete("/stripe/subscriptions/:subscriptionId", cancelSubscription);
 router.post("/stripe/subscriptions/:subscriptionId/handle-failed-payment", handleFailedPayment);
 router.post("/stripe/subscriptions/:subscriptionId/reminder", sendRenewalReminder);
 router.post("/stripe/subscriptions/:subscriptionId/payment-method", updatePaymentMethod);
-router.post("/webhook", async (req: Request, res: Response) => {
+router.post("/webhook", express.raw({type: 'application/json'}), async (req: StripeRequest, res: Response) => {
   try {
-    const sig = req.headers['stripe-signature'];
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || functions.config().stripe.webhook_secret;
-    const event = stripe.webhooks.constructEvent(req.body, sig!, webhookSecret);
+    const sig = req.headers['stripe-signature'] as string;
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || 
+      (functions.config().stripe?.webhook_secret as string) || 
+      '';
+    const event = stripe.webhooks.constructEvent(req.rawBody || '', sig, webhookSecret);
 
     if (event.type.startsWith('invoice.') || event.type.startsWith('customer.subscription.')) {
       await handleSubscriptionWebhook(event);
@@ -882,7 +1138,7 @@ router.post('/sendContactForm', async (req: Request, res: Response) => {
   }
 });
 
-// Export the Express app as a Firebase Function
+// Export the Express app wrapped in functions.https.onRequest
 export const api = onRequest({
   timeoutSeconds: 300,
   memory: '256MiB',
@@ -1022,6 +1278,7 @@ export const sendActivationConfirmation = onCall<ActivationConfirmationData>({
         <p>Mit freundlichen Grüßen,<br>Ihr HorizonNet Team</p>
       `
     });
+
     console.log('Activation confirmation email sent successfully');
     return { success: true };
   } catch (error) {

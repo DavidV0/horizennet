@@ -51,6 +51,7 @@ export class ProductFormDialogComponent implements OnInit {
   ) {
     this.productForm = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(1)]],
+      description: ['', [Validators.required]],
       price: ['', [Validators.required, Validators.min(0)]],
       oldPrice: [''],
       courseIds: [[], Validators.required],
@@ -90,6 +91,7 @@ export class ProductFormDialogComponent implements OnInit {
         
         const productData: Partial<ShopProduct> = {
           name: formValue.name.trim(),
+          description: formValue.description.trim(),
           price: Number(formValue.price),
           oldPrice: formValue.oldPrice ? Number(formValue.oldPrice) : undefined,
           tag: formValue.tag ? formValue.tag.trim() : undefined,
