@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChildren, QueryList, ElementRef, AfterViewInit, PLATFORM_ID, Inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChildren, ViewChild, QueryList, ElementRef, AfterViewInit, PLATFORM_ID, Inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { BlogService } from '../../shared/services/blog.service';
 import { Blog } from '../../shared/interfaces/blog.interface';
@@ -21,7 +21,9 @@ import { RouterModule } from '@angular/router';
   ]
 })
 export class BlogComponent implements OnInit, OnDestroy, AfterViewInit {
-  @ViewChildren('animatedElement') animatedElements!: QueryList<ElementRef>;
+  @ViewChild('headerElement') headerElement?: ElementRef;
+  @ViewChildren('blogElement') blogElements!: QueryList<ElementRef>;
+  @ViewChild('blogElement') blogElement?: ElementRef;
   blogs: Blog[] = [];
   private subscription?: Subscription;
   private observer: IntersectionObserver | null = null;
@@ -52,13 +54,21 @@ export class BlogComponent implements OnInit, OnDestroy, AfterViewInit {
     this.observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
-          entry.target.classList.add('animate');
+          requestAnimationFrame(() => {
+            entry.target.classList.add('animate');
+          });
         }
       });
     }, options);
 
+    // Header Animation
+    if (this.headerElement?.nativeElement) {
+      this.observer.observe(this.headerElement.nativeElement);
+    }
+
+    // Blog Cards Animation
     setTimeout(() => {
-      this.animatedElements?.forEach(({ nativeElement }) => {
+      this.blogElements?.forEach(({ nativeElement }) => {
         if (this.observer) {
           this.observer.observe(nativeElement);
         }
@@ -79,25 +89,24 @@ export class BlogComponent implements OnInit, OnDestroy, AfterViewInit {
     this.subscription = this.blogService.getAllBlogs().subscribe({
       next: (blogs) => {
         if (!blogs) {
-          console.error('No blogs returned from service');
           this.blogs = [];
           return;
         }
         
         try {
           this.blogs = blogs.sort((a, b) => {
-            if (!a.date || !b.date) return 0;
+            if (!a.date || !b.date) {
+              return 0;
+            }
             const dateA = new Date(this.convertGermanDate(a.date));
             const dateB = new Date(this.convertGermanDate(b.date));
             return dateB.getTime() - dateA.getTime();
           });
         } catch (error) {
-          console.error('Error sorting blogs:', error);
           this.blogs = blogs;
         }
       },
-      error: (error) => {
-        console.error('Error loading blogs:', error);
+      error: () => {
         this.blogs = [];
       }
     });
@@ -116,13 +125,25 @@ export class BlogComponent implements OnInit, OnDestroy, AfterViewInit {
 
   formatDate(dateStr: string): string {
     try {
+      if (!dateStr) return '';
+      
+      if (dateStr.includes('März') || dateStr.includes('Mai') || 
+          dateStr.includes('Juni') || dateStr.includes('Juli') || 
+          dateStr.includes('Januar') || dateStr.includes('Februar') || 
+          dateStr.includes('April') || dateStr.includes('August') || 
+          dateStr.includes('September') || dateStr.includes('Oktober') || 
+          dateStr.includes('November') || dateStr.includes('Dezember')) {
+        return dateStr;
+      }
+
       const [day, month, year] = dateStr.split('.');
-      const date = new Date(Number(year), Number(month) - 1, Number(day));
-      return date.toLocaleDateString('de-DE', {
+      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      
+      return new Intl.DateTimeFormat('de-DE', {
         day: '2-digit',
         month: 'long',
         year: 'numeric'
-      });
+      }).format(date);
     } catch (error) {
       return dateStr;
     }
@@ -139,8 +160,6 @@ export class BlogComponent implements OnInit, OnDestroy, AfterViewInit {
     if (blog && blog.id) {
       this.router.navigate(['/blog', blog.id]).then(() => {
         window.scrollTo(0, 0);
-      }).catch(error => {
-        console.error('Navigation error:', error);
       });
     }
   }

@@ -41,8 +41,8 @@
       <div class="image-overlay"></div>
     </div>
 
-    <div class="blog-content animated fade-in-up" #animatedElement>
-      <div *ngFor="let content of blog.content" [ngClass]="content.type">
+    <div class="blog-content">
+      <div *ngFor="let content of blog.content" [ngClass]="content.type" class="animated fade-in-up" #animatedElement>
         <!-- Paragraph -->
         <p *ngIf="content.type === 'paragraph'" class="blog-paragraph">
           {{content.text}}

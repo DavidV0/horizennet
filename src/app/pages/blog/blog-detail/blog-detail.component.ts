@@ -77,25 +77,30 @@ export class BlogDetailComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-  private async loadBlog(): Promise<void> {
+  private loadBlog(): void {
     const id = this.route.snapshot.paramMap.get('id');
     if (!id) {
       this.handleError();
       return;
     }
 
-    try {
-      const blog = await this.blogService.getBlog(id);
-      if (blog) {
-        this.blog = blog;
-        this.isLoading = false;
-      } else {
+    this.subscription = this.blogService.getBlog(id).subscribe({
+      next: (blog) => {
+        if (blog) {
+          this.blog = blog;
+          if (!blog.content || !Array.isArray(blog.content)) {
+            this.handleError();
+            return;
+          }
+          this.isLoading = false;
+        } else {
+          this.handleError();
+        }
+      },
+      error: () => {
         this.handleError();
       }
-    } catch (error) {
-      console.error('Error loading blog:', error);
-      this.handleError();
-    }
+    });
   }
 
   private handleError(): void {
@@ -107,7 +112,6 @@ export class BlogDetailComponent implements OnInit, OnDestroy, AfterViewInit {
     if (!dateStr) return '';
     
     try {
-      // Prüfe, ob das Datum im Format "DD.MM.YYYY" ist
       if (!/^\d{2}\.\d{2}\.\d{4}$/.test(dateStr)) {
         return dateStr;
       }
@@ -115,7 +119,6 @@ export class BlogDetailComponent implements OnInit, OnDestroy, AfterViewInit {
       const [day, month, year] = dateStr.split('.');
       const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
 
-      // Prüfe, ob das Datum gültig ist
       if (isNaN(date.getTime())) {
         return dateStr;
       }
@@ -126,7 +129,6 @@ export class BlogDetailComponent implements OnInit, OnDestroy, AfterViewInit {
         year: 'numeric'
       }).format(date);
     } catch (error) {
-      console.error('Error formatting date:', error);
       return dateStr;
     }
   }

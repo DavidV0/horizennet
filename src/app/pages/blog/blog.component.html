@@ -1,6 +1,6 @@
 <div class="page-container">
   <section class="blog-section">
-    <div class="section-header animated fade-in-up" #animatedElement>
+    <div class="section-header animated fade-in-up" #headerElement>
       <h1>BLOG & NEWS</h1>
       <p class="section-subtitle">Insights, Strategien und Erfolgsgeschichten</p>
     </div>
@@ -12,7 +12,7 @@
     </div>
 
     <div class="blog-grid" *ngIf="blogs.length > 0">
-      <article class="blog-card animated fade-in-up" *ngFor="let blog of blogs" #animatedElement>
+      <article class="blog-card animated fade-in-up" *ngFor="let blog of blogs" #blogElement>
         <div class="blog-image">
           <img [src]="blog.image" [alt]="blog.title" (error)="handleImageError($event)">
           <div class="image-overlay"></div>

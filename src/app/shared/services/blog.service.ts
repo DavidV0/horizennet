@@ -29,34 +29,29 @@ export class BlogService {
     return from(getDocs(q)).pipe(
       map(snapshot => {
         if (snapshot.empty) {
-          console.log('No blogs found in Firestore');
           return [];
         }
-        
-        return snapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            ...data
-          } as Blog;
-        });
+        return snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as Blog));
       }),
-      catchError(error => {
-        console.error('Error fetching blogs from Firestore:', error);
-        return of([]);
-      })
+      catchError(() => of([]))
     );
   }
 
-  async getBlog(id: string): Promise<Blog | undefined> {
-    try {
-      const docRef = doc(this.firestore, this.collectionName, id);
-      const docSnap = await getDoc(docRef);
-      return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } as Blog : undefined;
-    } catch (error) {
-      console.error('Error getting blog:', error);
-      return undefined;
-    }
+  getBlog(id: string): Observable<Blog | undefined> {
+    const docRef = doc(this.firestore, this.collectionName, id);
+    
+    return from(getDoc(docRef)).pipe(
+      map(docSnap => {
+        if (!docSnap.exists()) {
+          return undefined;
+        }
+        return { id: docSnap.id, ...docSnap.data() } as Blog;
+      }),
+      catchError(() => of(undefined))
+    );
   }
 
   async createBlog(blog: Blog): Promise<void> {
