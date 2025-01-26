@@ -149,6 +149,27 @@ export class PaymentService {
       );
   }
 
+  capturePayment(paymentIntentId: string): Observable<PaymentIntent> {
+    return this.http.post<PaymentIntent>(
+      `${this.apiUrl}/api/stripe/payments/${paymentIntentId}/capture`,
+      {}
+    ).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  createSetupIntent(customerId: string, paymentMethodId: string): Observable<any> {
+    return this.http.post<any>(
+      `${this.apiUrl}/api/stripe/setup-intent`,
+      {
+        customer: customerId,
+        payment_method: paymentMethodId
+      }
+    ).pipe(
+      catchError(this.handleError)
+    );
+  }
+
   private handleError(error: any) {
     let errorMessage = 'Ein Fehler ist aufgetreten.';
     

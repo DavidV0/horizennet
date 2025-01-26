@@ -1007,6 +1007,36 @@ const updateProductPrices = async (req: Request, res: Response): Promise<void> =
   }
 };
 
+const createSetupIntent = async (req: Request, res: Response) => {
+  try {
+    const { customer, payment_method } = req.body;
+
+    if (!customer || !payment_method) {
+      res.status(400).json({ error: "Customer and payment_method are required" });
+      return;
+    }
+
+    const setupIntent = await stripe.setupIntents.create({
+      customer,
+      payment_method,
+      payment_method_types: ['card'],
+      usage: 'off_session'
+    });
+
+    res.json({
+      client_secret: setupIntent.client_secret,
+      id: setupIntent.id,
+      status: setupIntent.status
+    });
+  } catch (error) {
+    console.error("Error creating setup intent:", error);
+    res.status(500).json({ 
+      error: "Error creating setup intent",
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+};
+
 router.post("/stripe/products", createStripeProduct);
 router.post("/stripe/products/:productId/prices", updateProductPrices);
 router.post("/stripe/customers", createCustomer);
@@ -1020,6 +1050,7 @@ router.delete("/stripe/subscriptions/:subscriptionId", cancelSubscription);
 router.post("/stripe/subscriptions/:subscriptionId/handle-failed-payment", handleFailedPayment);
 router.post("/stripe/subscriptions/:subscriptionId/reminder", sendRenewalReminder);
 router.post("/stripe/subscriptions/:subscriptionId/payment-method", updatePaymentMethod);
+router.post("/stripe/setup-intent", createSetupIntent);
 router.post("/webhook", express.raw({type: 'application/json'}), async (req: StripeRequest, res: Response) => {
   try {
     const sig = req.headers['stripe-signature'] as string;
