@@ -66,7 +66,7 @@ export class CourseModulesComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.courseService.updateModule(this.courseId, result).subscribe();
+        this.courseService.updateModule(this.courseId, module.id, result).subscribe();
       }
     });
   }
@@ -95,7 +95,12 @@ export class CourseModulesComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.courseService.addLesson(this.courseId, module.id, result).subscribe();
+        const newLesson = {
+          ...result,
+          id: crypto.randomUUID(),
+          order: module.lessons?.length || 0
+        };
+        this.courseService.addLesson(this.courseId, module.id, newLesson).subscribe();
       }
     });
   }
@@ -107,7 +112,7 @@ export class CourseModulesComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.courseService.updateLesson(this.courseId, module.id, result).subscribe();
+        this.courseService.updateLesson(this.courseId, module.id, lesson.id, result).subscribe();
       }
     });
   }

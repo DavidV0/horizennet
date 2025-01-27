@@ -93,8 +93,18 @@ export class LessonComponent implements OnInit {
   }
 
   downloadFile(file: { url: string, name: string }) {
-    // Öffne den Download in einem neuen Tab
-    window.open(file.url, '_blank');
+    fetch(file.url)
+      .then(response => response.blob())
+      .then(blob => {
+        const blobUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = file.name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(blobUrl);
+      });
   }
 
   goToNextLesson() {

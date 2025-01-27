@@ -107,6 +107,100 @@ export class CourseService {
     );
   }
 
+  addLesson(courseId: string, moduleId: string, lesson: Lesson): Observable<void> {
+    return this.getCourse(courseId).pipe(
+      map(course => {
+        const moduleIndex = course.modules.findIndex(m => m.id === moduleId);
+        if (moduleIndex === -1) {
+          throw new Error('Module not found');
+        }
+        
+        if (!course.modules[moduleIndex].lessons) {
+          course.modules[moduleIndex].lessons = [];
+        }
+        
+        course.modules[moduleIndex].lessons.push(lesson);
+        return course.modules;
+      }),
+      switchMap(modules => this.updateModules(courseId, modules))
+    );
+  }
+
+  addModule(courseId: string, module: Module): Observable<void> {
+    return this.getCourse(courseId).pipe(
+      map(course => {
+        if (!course.modules) {
+          course.modules = [];
+        }
+        course.modules.push(module);
+        return course.modules;
+      }),
+      switchMap(modules => this.updateModules(courseId, modules))
+    );
+  }
+
+  updateModule(courseId: string, moduleId: string, module: Partial<Module>): Observable<void> {
+    return this.getCourse(courseId).pipe(
+      map(course => {
+        const moduleIndex = course.modules.findIndex(m => m.id === moduleId);
+        if (moduleIndex === -1) {
+          throw new Error('Module not found');
+        }
+        course.modules[moduleIndex] = { ...course.modules[moduleIndex], ...module };
+        return course.modules;
+      }),
+      switchMap(modules => this.updateModules(courseId, modules))
+    );
+  }
+
+  deleteModule(courseId: string, moduleId: string): Observable<void> {
+    return this.getCourse(courseId).pipe(
+      map(course => {
+        course.modules = course.modules.filter(m => m.id !== moduleId);
+        return course.modules;
+      }),
+      switchMap(modules => this.updateModules(courseId, modules))
+    );
+  }
+
+  updateLesson(courseId: string, moduleId: string, lessonId: string, lesson: Partial<Lesson>): Observable<void> {
+    return this.getCourse(courseId).pipe(
+      map(course => {
+        const moduleIndex = course.modules.findIndex(m => m.id === moduleId);
+        if (moduleIndex === -1) {
+          throw new Error('Module not found');
+        }
+        
+        const lessonIndex = course.modules[moduleIndex].lessons.findIndex(l => l.id === lessonId);
+        if (lessonIndex === -1) {
+          throw new Error('Lesson not found');
+        }
+        
+        course.modules[moduleIndex].lessons[lessonIndex] = {
+          ...course.modules[moduleIndex].lessons[lessonIndex],
+          ...lesson
+        };
+        return course.modules;
+      }),
+      switchMap(modules => this.updateModules(courseId, modules))
+    );
+  }
+
+  deleteLesson(courseId: string, moduleId: string, lessonId: string): Observable<void> {
+    return this.getCourse(courseId).pipe(
+      map(course => {
+        const moduleIndex = course.modules.findIndex(m => m.id === moduleId);
+        if (moduleIndex === -1) {
+          throw new Error('Module not found');
+        }
+        
+        course.modules[moduleIndex].lessons = course.modules[moduleIndex].lessons.filter(l => l.id !== lessonId);
+        return course.modules;
+      }),
+      switchMap(modules => this.updateModules(courseId, modules))
+    );
+  }
+
   getUserCourses(userId: string): Observable<Course[]> {
     return this.firestore
       .collection(this.USER_COURSES_COLLECTION)

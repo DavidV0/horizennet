@@ -134,9 +134,7 @@ export class LessonDialogComponent implements OnInit {
   }
 
   ngOnInit() {
-    if (!this.questions.length) {
-      this.addQuestion();
-    }
+    // Remove automatic quiz question creation
   }
 
   get files() {

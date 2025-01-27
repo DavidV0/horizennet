@@ -98,11 +98,7 @@ export class UeberUnsComponent implements AfterViewInit {
       position: 'CMO',
       image: 'assets/HorizonNet_tHwL.png'
     },
-    {
-      name: 'Adrian Haker',
-      position: 'WebDev & externer CTO',
-      image: 'assets/HorizonNet_tHwL.png'
-    },
+
     {
       name: 'Manuel Rosenberger',
       position: 'Sales Manager',
@@ -115,23 +111,15 @@ export class UeberUnsComponent implements AfterViewInit {
     },
     {
       name: 'Robin Berger',
-      position: 'Vertriebspartner',
+      position: 'Onboarding Manager',
       image: 'assets/HorizonNet_tHwL.png'
     },
-    {
-      name: 'Sarah Krzevac',
-      position: 'Vertriebspartner',
-      image: 'assets/HorizonNet_tHwL.png'
-    },
+
     {
       name: 'John Bamoura',
       position: 'Vertriebspartner',
       image: 'assets/HorizonNet_tHwL.png'
     },
-    {
-      name: 'Roman Horozov',
-      position: 'Vertriebspartner',
-      image: 'assets/HorizonNet_tHwL.png'
-    }
+ 
   ];
 }
