@@ -5,6 +5,9 @@ import { AngularFireFunctions } from '@angular/fire/compat/functions';
 import { firstValueFrom } from 'rxjs';
 import { ShopProduct } from '../interfaces/shop-product.interface';
 import firebase from 'firebase/compat/app';
+import { AuthService } from './auth.service';
+import { Observable, from, of, switchMap, map, catchError } from 'rxjs';
+import { User, LessonProgress, ModuleProgress, CourseProgress, Progress } from '../models/user.model';
 
 export interface UserData {
   firstName: string;
@@ -43,11 +46,19 @@ export class UserService {
   constructor(
     private firestore: AngularFirestore,
     private auth: AngularFireAuth,
-    private functions: AngularFireFunctions
+    private functions: AngularFireFunctions,
+    private authService: AuthService
   ) {}
 
-  async getCurrentUser() {
-    return await this.auth.currentUser;
+  getCurrentUser(): Observable<User | null> {
+    return this.authService.user$.pipe(
+      switchMap(user => {
+        if (!user) return of(null);
+        return this.firestore.doc<User>(`users/${user.uid}`).valueChanges().pipe(
+          map(userData => userData || null)
+        );
+      })
+    );
   }
 
   async createUserWithEmailAndPassword(email: string, password: string) {
@@ -233,14 +244,6 @@ export class UserService {
       // Create user document
       await this.firestore.collection('users').doc(user.uid).set(userData);
 
-      // Create or update user_courses document with user ID
-      await this.firestore.collection('user_courses').doc(user.uid).set({
-        courseIds: courseIds,
-        userId: user.uid,
-        email: email,
-        updatedAt: new Date()
-      }, { merge: true });
-
       // Update product key status with consent data
       await this.firestore.collection('productKeys').doc(productKey).update({
         status: 'active',
@@ -360,5 +363,148 @@ export class UserService {
     } catch (error) {
       throw error;
     }
+  }
+
+  markLessonAsCompleted(courseId: string, moduleId: string, lessonId: string, completionType: 'video' | 'quiz'): Observable<void> {
+    return this.authService.user$.pipe(
+      switchMap(user => {
+        if (!user) throw new Error('No user logged in');
+        
+        const userRef = this.firestore.doc(`users/${user.uid}`);
+        return userRef.get().pipe(
+          switchMap(doc => {
+            const userData = doc.data() as User;
+            const progress: Progress = userData.progress || { courses: {} };
+            
+            if (!progress.courses[courseId]) {
+              progress.courses[courseId] = {
+                modules: {},
+                startedAt: new Date()
+              };
+            }
+            
+            if (!progress.courses[courseId].modules[moduleId]) {
+              progress.courses[courseId].modules[moduleId] = {
+                lessons: {}
+              };
+            }
+            
+            progress.courses[courseId].modules[moduleId].lessons[lessonId] = {
+              completed: true,
+              completedAt: new Date(),
+              completionType
+            };
+            
+            return from(userRef.update({ progress }));
+          })
+        );
+      })
+    );
+  }
+
+  getLessonProgress(courseId: string, moduleId: string, lessonId: string): Observable<boolean> {
+    return this.getCurrentUser().pipe(
+      map(user => {
+        if (!user?.progress?.courses[courseId]?.modules[moduleId]?.lessons[lessonId]?.completed) {
+          return false;
+        }
+        return true;
+      })
+    );
+  }
+
+  getModuleProgress(courseId: string, moduleId: string): Observable<number> {
+    return this.getCurrentUser().pipe(
+      map(user => {
+        const moduleProgress = user?.progress?.courses[courseId]?.modules[moduleId]?.lessons || {};
+        const lessons = Object.values(moduleProgress) as LessonProgress[];
+        const completedLessons = lessons.filter(lesson => lesson.completed).length;
+        const totalLessons = lessons.length;
+        
+        return totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
+      })
+    );
+  }
+
+  getCourseProgress(courseId: string): Observable<number> {
+    return this.getCurrentUser().pipe(
+      map(user => {
+        const courseProgress = user?.progress?.courses[courseId]?.modules || {};
+        let completedLessons = 0;
+        let totalLessons = 0;
+        
+        Object.values(courseProgress).forEach((module: ModuleProgress) => {
+          const lessons = Object.values(module.lessons) as LessonProgress[];
+          completedLessons += lessons.filter(lesson => lesson.completed).length;
+          totalLessons += lessons.length;
+        });
+        
+        return totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
+      })
+    );
+  }
+
+  async purchaseCourse(courseId: string, user: User): Promise<void> {
+    const userRef = this.firestore.doc(`users/${user.firebaseUid}`);
+    const userData = (await userRef.get().toPromise())?.data() as User;
+    
+    await userRef.update({
+      purchasedCourses: [...new Set([...(userData?.purchasedCourses || []), courseId])]
+    });
+  }
+
+  // Migration method for old purchase system to new system
+  async migratePurchasedCourses(userId: string): Promise<void> {
+    const userRef = this.firestore.doc(`users/${userId}`);
+    const userDoc = await userRef.get().toPromise();
+    
+    if (!userDoc?.exists) return;
+    
+    const userData = userDoc.data() as User;
+    if (!userData) return;
+
+    // Collect courses from both old structures
+    const oldPurchased = Array.isArray(userData?.purchased) ? userData.purchased : [];
+    const coursesPurchased = Array.isArray(userData?.courses?.purchased) ? userData.courses.purchased : [];
+    
+    // Combine all purchased courses
+    const allPurchasedCourses = [...new Set([...oldPurchased, ...coursesPurchased])];
+    
+    // Initialize progress structure with correct types
+    const progress: Progress = {
+      courses: allPurchasedCourses.reduce((acc, courseId) => {
+        acc[courseId] = {
+          modules: {},
+          startedAt: new Date()
+        };
+        return acc;
+      }, {} as { [courseId: string]: CourseProgress })
+    };
+
+    // Prepare update object
+    const updateData = {
+      purchasedCourses: allPurchasedCourses,
+      progress,
+      ...(userData.purchased && { purchased: firebase.firestore.FieldValue.delete() }),
+      ...(userData.courses && { courses: firebase.firestore.FieldValue.delete() })
+    };
+
+    // Update the user document
+    await userRef.update(updateData);
+    
+    console.log('Migration completed for user:', userId);
+  }
+
+  // Helper method to check if user has access to course
+  hasAccessToCourse(courseId: string): Observable<boolean> {
+    return this.getCurrentUser().pipe(
+      map(user => {
+        if (!user) return false;
+        return user.purchasedCourses?.includes(courseId) || 
+               user.purchased?.includes(courseId) || 
+               user.courses?.purchased?.includes(courseId) || 
+               false;
+      })
+    );
   }
 } 

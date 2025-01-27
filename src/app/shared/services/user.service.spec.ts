@@ -4,6 +4,7 @@ import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { AngularFireFunctions } from '@angular/fire/compat/functions';
 import { of } from 'rxjs';
+import { User } from '../models/user.model';
 
 describe('UserService', () => {
   let service: UserService;
@@ -17,7 +18,8 @@ describe('UserService', () => {
         doc: jasmine.createSpy('doc').and.returnValue({
           set: jasmine.createSpy('set').and.returnValue(Promise.resolve())
         })
-      })
+      }),
+      doc: jasmine.createSpy('doc')
     };
 
     authMock = {
@@ -26,7 +28,7 @@ describe('UserService', () => {
     };
 
     functionsMock = {
-      httpsCallable: jasmine.createSpy('httpsCallable').and.returnValue(() => Promise.resolve())
+      httpsCallable: jasmine.createSpy('httpsCallable').and.returnValue(() => of({}))
     };
 
     TestBed.configureTestingModule({
@@ -73,19 +75,6 @@ describe('UserService', () => {
       );
     });
 
-    it('should update user_courses document with course IDs', async () => {
-      await service.activateProductAccess(mockCustomerId, mockProductKey, mockProduct as any);
-      
-      expect(firestoreMock.collection).toHaveBeenCalledWith('user_courses');
-      expect(firestoreMock.collection().doc).toHaveBeenCalledWith(mockCustomerId);
-      expect(firestoreMock.collection().doc().set).toHaveBeenCalledWith(
-        jasmine.objectContaining({
-          courseIds: jasmine.any(Object)
-        }),
-        { merge: true }
-      );
-    });
-
     it('should update customers document with product access', async () => {
       await service.activateProductAccess(mockCustomerId, mockProductKey, mockProduct as any);
       
@@ -114,6 +103,27 @@ describe('UserService', () => {
       await expectAsync(
         service.activateProductAccess(mockCustomerId, mockProductKey, mockProduct as any)
       ).toBeRejected();
+    });
+  });
+
+  it('should update user document with purchased courses', async () => {
+    const user = { uid: 'test-uid', email: 'test@test.com' } as User;
+    const courseId = 'test-course-id';
+    
+    const userDocRef = { 
+      get: jasmine.createSpy('get').and.returnValue(Promise.resolve({ 
+        data: () => ({ purchasedCourses: [] }) 
+      })), 
+      update: jasmine.createSpy('update').and.returnValue(Promise.resolve()) 
+    };
+    
+    firestoreMock.doc.and.returnValue(userDocRef);
+    
+    await service.purchaseCourse(courseId, user);
+    
+    expect(firestoreMock.doc).toHaveBeenCalledWith('users/test-uid');
+    expect(userDocRef.update).toHaveBeenCalledWith({
+      purchasedCourses: [courseId]
     });
   });
 }); 

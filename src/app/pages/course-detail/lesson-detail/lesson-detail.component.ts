@@ -10,6 +10,7 @@ import { Course, Module, Lesson, Question } from '../../../shared/models/course.
 import { SafePipe } from '../../../shared/pipes/safe.pipe';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AuthService } from '../../../shared/services/auth.service';
+import { UserService } from '../../../shared/services/user.service';
 
 interface QuizResult {
   totalQuestions: number;
@@ -43,7 +44,8 @@ export class LessonDetailComponent implements OnInit {
     private router: Router,
     private courseService: CourseService,
     private firestore: AngularFirestore,
-    private authService: AuthService
+    private authService: AuthService,
+    private userService: UserService
   ) {}
 
   ngOnInit() {
@@ -229,54 +231,24 @@ export class LessonDetailComponent implements OnInit {
   }
 
   async completeLesson() {
-    const user = await this.authService.user$.pipe(take(1)).toPromise();
-    if (!user) {
-      return;
-    }
-
     const courseId = this.route.parent!.parent!.snapshot.params['id'];
     const moduleId = this.route.parent!.snapshot.params['moduleId'];
     const lessonId = this.route.snapshot.params['lessonId'];
 
-    // Hole den Kurs direkt
-    const courseRef = this.firestore.collection('courses').doc(courseId);
-    const courseDoc = await courseRef.get().toPromise();
-
-    if (!courseDoc?.exists) {
-      return;
-    }
-
-    const courseData = courseDoc.data() as Course;
-    const modules = courseData.modules || [];
-
-    // Finde das richtige Modul
-    const moduleIndex = modules.findIndex(m => m.id === moduleId);
-    if (moduleIndex === -1) {
-      return;
-    }
-
-    // Finde die richtige Lektion
-    const lessonIndex = modules[moduleIndex].lessons.findIndex(l => l.id === lessonId);
-    if (lessonIndex === -1) {
-      return;
-    }
-
-    // Update die Lektion
-    modules[moduleIndex].lessons[lessonIndex] = {
-      ...modules[moduleIndex].lessons[lessonIndex],
-      completed: true,
-      completedAt: new Date(),
-      completedBy: user.uid,
-      completionType: 'video'
-    } as Lesson;
-
-    // Update den gesamten Kurs
-    await courseRef.update({
-      modules: modules
-    });
+    this.userService.markLessonAsCompleted(courseId, moduleId, lessonId, 'video')
+      .subscribe({
+        error: (error) => console.error('Error completing lesson:', error)
+      });
   }
 
   async onQuizCompleted() {
-    await this.completeLesson();
+    const courseId = this.route.parent!.parent!.snapshot.params['id'];
+    const moduleId = this.route.parent!.snapshot.params['moduleId'];
+    const lessonId = this.route.snapshot.params['lessonId'];
+
+    this.userService.markLessonAsCompleted(courseId, moduleId, lessonId, 'quiz')
+      .subscribe({
+        error: (error) => console.error('Error completing quiz:', error)
+      });
   }
 } 

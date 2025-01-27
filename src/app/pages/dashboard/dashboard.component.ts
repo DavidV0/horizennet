@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -9,10 +9,16 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../shared/services/auth.service';
 import { CourseService } from '../../shared/services/course.service';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
-import { take, filter, switchMap, map } from 'rxjs/operators';
+import { Observable, of, BehaviorSubject, forkJoin, Subscription, from } from 'rxjs';
+import { take, filter, switchMap, map, tap, catchError, finalize } from 'rxjs/operators';
 import { DashboardNavbarComponent } from '../../core/components/dashboard-navbar/dashboard-navbar.component';
 import { Course } from '../../shared/models/course.model';
-import { Observable } from 'rxjs';
+import { UserService } from '../../shared/services/user.service';
+import { User } from '../../shared/models/user.model';
+
+interface CourseWithProgress extends Course {
+  progress: number;
+}
 
 @Component({
   selector: 'app-dashboard',
@@ -30,54 +36,102 @@ import { Observable } from 'rxjs';
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   userData: any;
   isChildRoute = false;
-  courses$!: Observable<Course[]>;
-  isLoading = true;
+  courses: CourseWithProgress[] = [];
+  private subscription!: Subscription;
 
   constructor(
     private authService: AuthService,
     private courseService: CourseService,
     private firestore: AngularFirestore,
-    private router: Router
+    private router: Router,
+    private userService: UserService,
+    private ngZone: NgZone
   ) {
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
     ).subscribe(() => {
-      const currentUrl = this.router.url;
-      this.isChildRoute = currentUrl !== '/dashboard';
+      this.isChildRoute = this.router.url !== '/dashboard';
     });
   }
 
   ngOnInit() {
-    this.loadUserData();
     this.loadCourses();
   }
 
-  async loadUserData() {
-    const user = await this.authService.user$.pipe(take(1)).toPromise();
-    if (user) {
-      this.firestore.collection('users').doc(user.uid).valueChanges()
-        .subscribe(data => {
-          this.userData = data;
-        });
+  ngOnDestroy() {
+    if (this.subscription) {
+      this.subscription.unsubscribe();
     }
   }
 
-  loadCourses() {
-    this.authService.user$.pipe(take(1)).subscribe(user => {
-      if (user) {
-        this.courses$ = this.courseService.getUserCourses(user.uid).pipe(
-          map(courses => courses.filter(course => course.isActive)),
-          map(courses => {
-            this.isLoading = false;
-            return courses;
-          })
+  private loadCourses() {
+    console.log('Starting to load courses...');
+    
+    this.subscription = this.authService.user$.pipe(
+      take(1),
+      switchMap(user => {
+        console.log('Current user:', user?.uid);
+        if (!user) return of(null);
+        return this.firestore.doc<User>(`users/${user.uid}`).get();
+      }),
+      switchMap(userDoc => {
+        if (!userDoc) {
+          console.log('No user document found');
+          return of([]);
+        }
+
+        const userData = userDoc.data() as User;
+        console.log('User data:', userData);
+        console.log('Purchased courses:', userData?.purchasedCourses);
+        
+        this.ngZone.run(() => {
+          this.userData = userData;
+        });
+        
+        if (!userData?.purchasedCourses?.length) {
+          console.log('No purchased courses found');
+          return of([]);
+        }
+
+        console.log('Loading courses for user...');
+        return this.courseService.getCourses('USER').pipe(
+          tap(courses => console.log('Received courses:', courses))
         );
-      } else {
-        this.isLoading = false;
-        this.courses$ = new Observable<Course[]>(subscriber => subscriber.next([]));
+      }),
+      switchMap((courses: Course[]) => {
+        if (!courses.length) {
+          console.log('No courses received from service');
+          return of([]);
+        }
+
+        console.log('Loading progress for courses:', courses);
+        const progressPromises = courses.map(course => 
+          this.userService.getCourseProgress(course.id).pipe(
+            tap(progress => console.log(`Progress for course ${course.id}:`, progress)),
+            map(progress => ({
+              ...course,
+              progress: progress || 0
+            }))
+          )
+        );
+
+        return forkJoin(progressPromises);
+      })
+    ).subscribe({
+      next: (coursesWithProgress) => {
+        console.log('Final courses with progress:', coursesWithProgress);
+        this.ngZone.run(() => {
+          this.courses = coursesWithProgress || [];
+        });
+      },
+      error: (error) => {
+        console.error('Error loading courses:', error);
+        this.ngZone.run(() => {
+          this.courses = [];
+        });
       }
     });
   }
@@ -88,6 +142,10 @@ export class DashboardComponent implements OnInit {
 
   getLessonCount(course: Course): number {
     return course.modules.reduce((total, module) => total + module.lessons.length, 0);
+  }
+
+  getTotalLessons(course: Course): number {
+    return course.modules?.reduce((total, module) => total + (module.lessons?.length || 0), 0) || 0;
   }
 
   getCourseProgress(course: Course): number {
