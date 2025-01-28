@@ -46,7 +46,7 @@ export class CourseDetailComponent implements OnInit {
         modules: course.modules.map((module, index) => ({
           ...module,
           image: `assets/images/module-${index + 1}.jpg`,
-          isUnlocked: index === 0 // First module is unlocked by default
+          isUnlocked: true // All modules are unlocked
         }))
       }))
     );

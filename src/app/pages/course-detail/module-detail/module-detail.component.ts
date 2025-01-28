@@ -51,8 +51,7 @@ export class ModuleDetailComponent implements OnInit {
   }
 
   canAccessLesson(index: number): boolean {
-    // TODO: Implement proper lesson access logic
-    return true; // For now, all lessons are accessible
+    return true; // All lessons are freely accessible
   }
 
   startLesson(lesson: Lesson) {
