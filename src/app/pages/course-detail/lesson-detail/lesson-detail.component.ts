@@ -5,7 +5,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CourseService } from '../../../shared/services/course.service';
-import { Observable, switchMap, map, BehaviorSubject, take, combineLatest } from 'rxjs';
+import { Observable, switchMap, map, BehaviorSubject, take, combineLatest, tap } from 'rxjs';
 import { Course, Module, Lesson, Question } from '../../../shared/models/course.model';
 import { SafePipe } from '../../../shared/pipes/safe.pipe';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
@@ -34,10 +34,10 @@ interface QuizResult {
 })
 export class LessonDetailComponent implements OnInit {
   lesson$!: Observable<Lesson>;
-  selectedAnswers: { [key: number]: number[] } = {};
+  currentModule$ = new BehaviorSubject<Module | null>(null);
+  selectedAnswers: { [questionIndex: number]: number[] } = {};
   quizSubmitted = false;
   quizResult: QuizResult | null = null;
-  private currentModule$ = new BehaviorSubject<Module | null>(null);
 
   constructor(
     private route: ActivatedRoute,
@@ -49,26 +49,40 @@ export class LessonDetailComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.lesson$ = combineLatest([
-      this.route.parent!.parent!.params,
-      this.route.params
-    ]).pipe(
-      switchMap(([parentParams, routeParams]) => {
-        return this.courseService.getCourse(parentParams['id']).pipe(
-          map(course => {
-            const moduleId = routeParams['moduleId'];
-            const lessonId = routeParams['lessonId'];
-            
-            const module = course.modules.find(m => m.id === moduleId);
-            if (!module) throw new Error('Module not found');
-            
-            this.currentModule$.next(module);
-            const lesson = module.lessons.find(l => l.id === lessonId);
-            if (!lesson) throw new Error('Lesson not found');
-            
-            return lesson;
-          })
-        );
+    // Auf Route-Parameter-Änderungen reagieren
+    this.route.params.pipe(
+      switchMap(params => {
+        const courseId = this.route.parent!.parent!.snapshot.params['id'];
+        const moduleId = params['moduleId'];
+        const lessonId = params['lessonId'];
+
+        // Zuerst das Modul laden
+        this.courseService.getModule(courseId, moduleId).subscribe(module => {
+          this.currentModule$.next(module);
+        });
+
+        // Dann die Lektion laden und automatisch als abgeschlossen markieren, wenn es ein Artikel ist
+        this.courseService.getLesson(courseId, moduleId, lessonId).subscribe(lesson => {
+          if (lesson.type === 'article') {
+            this.userService.markLessonAsCompleted(courseId, moduleId, lessonId, 'video')
+              .subscribe({
+                error: (error) => console.error('Error completing article lesson:', error)
+              });
+          }
+        });
+
+        // Observable für die Lektion setzen
+        return this.courseService.getLesson(courseId, moduleId, lessonId);
+      })
+    ).subscribe();
+
+    // Observable für die Lektion setzen
+    this.lesson$ = this.route.params.pipe(
+      switchMap(params => {
+        const courseId = this.route.parent!.parent!.snapshot.params['id'];
+        const moduleId = params['moduleId'];
+        const lessonId = params['lessonId'];
+        return this.courseService.getLesson(courseId, moduleId, lessonId);
       })
     );
   }
@@ -168,7 +182,7 @@ export class LessonDetailComponent implements OnInit {
         this.resetQuiz();
         
         const nextLesson = module.lessons[currentIndex + 1];
-        this.router.navigate(['dashboard', 'courses', courseId, 'modules', moduleId, 'lessons', nextLesson.id]);
+        this.router.navigate(['/dashboard', 'courses', courseId, 'modules', moduleId, 'lessons', nextLesson.id]);
       }
     });
   }

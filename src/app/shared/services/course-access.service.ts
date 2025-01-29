@@ -3,7 +3,8 @@ import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { Observable, of } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
 import { AuthService } from './auth.service';
-import { User, Progress, CourseProgress } from '../models/user.model';
+import { User } from '../models/user.model';
+import { Progress, CourseProgress } from '../models/progress.model';
 
 @Injectable({
   providedIn: 'root'

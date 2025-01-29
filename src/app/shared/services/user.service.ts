@@ -6,8 +6,9 @@ import { firstValueFrom } from 'rxjs';
 import { ShopProduct } from '../interfaces/shop-product.interface';
 import firebase from 'firebase/compat/app';
 import { AuthService } from './auth.service';
-import { Observable, from, of, switchMap, map, catchError } from 'rxjs';
-import { User, LessonProgress, ModuleProgress, CourseProgress, Progress } from '../models/user.model';
+import { Observable, from, of, switchMap, map, catchError, combineLatest } from 'rxjs';
+import { User } from '../models/user.model';
+import { Progress, LessonProgress, ModuleProgress, CourseProgress } from '../models/progress.model';
 
 export interface UserData {
   firstName: string;
@@ -37,6 +38,31 @@ interface ConsentData {
   consent1: boolean;
   consent2: boolean;
   timestamp: string;
+}
+
+interface OldUserCourses {
+  purchased?: string[];
+  progress?: {
+    [courseId: string]: {
+      modules?: {
+        [moduleId: string]: {
+          lessons?: {
+            [lessonId: string]: {
+              completed?: boolean;
+              completedAt?: Date;
+            }
+          }
+        }
+      };
+      startedAt?: Date;
+    }
+  }
+}
+
+interface OldUser extends User {
+  purchased?: string[];
+  courses?: OldUserCourses;
+  products?: any;
 }
 
 @Injectable({
@@ -389,11 +415,32 @@ export class UserService {
               };
             }
             
-            progress.courses[courseId].modules[moduleId].lessons[lessonId] = {
-              completed: true,
-              completedAt: new Date(),
-              completionType
-            };
+            // Bestehenden Fortschritt abrufen oder initialisieren
+            const lessonProgress = progress.courses[courseId].modules[moduleId].lessons[lessonId] || {
+              completed: false,
+              videoProgress: 0,
+              quizCompleted: false,
+              completedAt: null,
+              completionType: null
+            } as LessonProgress;
+
+            // Update basierend auf dem Completion Type
+            if (completionType === 'video') {
+              lessonProgress.videoProgress = 100;
+            } else if (completionType === 'quiz') {
+              lessonProgress.quizCompleted = true;
+            }
+
+            // Lektion ist nur abgeschlossen, wenn Video gesehen UND Quiz bestanden wurde (falls vorhanden)
+            lessonProgress.completed = lessonProgress.videoProgress === 100 && 
+              (lessonProgress.quizCompleted || completionType === 'video');
+            
+            if (lessonProgress.completed && !lessonProgress.completedAt) {
+              lessonProgress.completedAt = new Date();
+              lessonProgress.completionType = completionType;
+            }
+            
+            progress.courses[courseId].modules[moduleId].lessons[lessonId] = lessonProgress;
             
             return from(userRef.update({ progress }));
           })
@@ -414,14 +461,21 @@ export class UserService {
   }
 
   getModuleProgress(courseId: string, moduleId: string): Observable<number> {
-    return this.getCurrentUser().pipe(
-      map(user => {
-        const moduleProgress = user?.progress?.courses[courseId]?.modules[moduleId]?.lessons || {};
-        const lessons = Object.values(moduleProgress) as LessonProgress[];
-        const completedLessons = lessons.filter(lesson => lesson.completed).length;
-        const totalLessons = lessons.length;
+    return combineLatest([
+      this.getCurrentUser(),
+      this.firestore.doc<any>(`courses/${courseId}`).valueChanges()
+    ]).pipe(
+      map(([user, course]) => {
+        if (!course || !user) return 0;
         
-        return totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
+        const module = course.modules.find((m: any) => m.id === moduleId);
+        if (!module) return 0;
+
+        const moduleProgress = user?.progress?.courses[courseId]?.modules[moduleId]?.lessons || {};
+        const completedLessons = Object.values(moduleProgress).filter(lesson => lesson.completed).length;
+        const totalLessons = module.lessons.length;
+        
+        return totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
       })
     );
   }
@@ -455,13 +509,27 @@ export class UserService {
 
   // Migration method for old purchase system to new system
   async migratePurchasedCourses(userId: string): Promise<void> {
+    console.log(`🔄 Starte Migration für Benutzer: ${userId}`);
+    
     const userRef = this.firestore.doc(`users/${userId}`);
     const userDoc = await userRef.get().toPromise();
     
-    if (!userDoc?.exists) return;
+    if (!userDoc?.exists) {
+      console.error(`❌ Benutzer ${userId} nicht gefunden`);
+      return;
+    }
     
-    const userData = userDoc.data() as User;
-    if (!userData) return;
+    const userData = userDoc.data() as OldUser;
+    if (!userData) {
+      console.error(`❌ Keine Benutzerdaten für ${userId} gefunden`);
+      return;
+    }
+
+    console.log(`📊 Alte Struktur:`, {
+      purchased: userData.purchased?.length || 0,
+      coursesPurchased: userData.courses?.purchased?.length || 0,
+      hasProgress: !!userData.courses?.progress
+    });
 
     // Collect courses from both old structures
     const oldPurchased = Array.isArray(userData?.purchased) ? userData.purchased : [];
@@ -469,6 +537,7 @@ export class UserService {
     
     // Combine all purchased courses
     const allPurchasedCourses = [...new Set([...oldPurchased, ...coursesPurchased])];
+    console.log(`📚 Gefundene Kurse: ${allPurchasedCourses.length}`, allPurchasedCourses);
     
     // Initialize progress structure with correct types
     const progress: Progress = {
@@ -481,18 +550,92 @@ export class UserService {
       }, {} as { [courseId: string]: CourseProgress })
     };
 
+    // Übertrage existierenden Fortschritt, falls vorhanden
+    if (userData.courses?.progress) {
+      console.log(`🔄 Übertrage existierenden Kursfortschritt`);
+      Object.entries(userData.courses.progress).forEach(([courseId, courseProgress]: [string, any]) => {
+        if (progress.courses[courseId]) {
+          progress.courses[courseId].modules = courseProgress.modules || {};
+          progress.courses[courseId].startedAt = courseProgress.startedAt || new Date();
+          console.log(`✅ Fortschritt für Kurs ${courseId} übertragen`);
+        }
+      });
+    }
+
     // Prepare update object
     const updateData = {
+      // Behalte die Basis-Benutzerinformationen
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      email: userData.email,
+      street: userData.street,
+      streetNumber: userData.streetNumber,
+      zipCode: userData.zipCode,
+      city: userData.city,
+      country: userData.country,
+      mobile: userData.mobile,
+      firebaseUid: userData.firebaseUid,
+      
+      // Aktualisiere die wichtigen Felder
       purchasedCourses: allPurchasedCourses,
-      progress,
-      ...(userData.purchased && { purchased: firebase.firestore.FieldValue.delete() }),
-      ...(userData.courses && { courses: firebase.firestore.FieldValue.delete() })
+      progress: progress,
+      
+      // Status und Aktivierung
+      accountActivated: userData.accountActivated || false,
+      keyActivated: userData.keyActivated || false,
+      activatedAt: userData.activatedAt || null,
+      status: userData.status || 'active',
+      
+      // Produkt-Informationen
+      productKey: userData.productKey,
+      paymentPlan: userData.paymentPlan || 0,
+      
+      // Consent-Daten
+      consent: userData.consent || null,
+
+      // Lösche alte Felder
+      purchased: firebase.firestore.FieldValue.delete(),
+      courses: firebase.firestore.FieldValue.delete(),
+      products: firebase.firestore.FieldValue.delete()
     };
 
     // Update the user document
-    await userRef.update(updateData);
+    await userRef.set(updateData, { merge: true });
+    console.log(`✅ Migration erfolgreich für Benutzer: ${userId}`);
+    console.log(`🔍 Neue Struktur:`, {
+      purchasedCourses: allPurchasedCourses.length,
+      progressCourses: Object.keys(progress.courses).length
+    });
+  }
+
+  // Hilfsfunktion zum Migrieren aller Benutzer
+  async migrateAllPurchasedCourses(): Promise<void> {
+    console.log(`🚀 Starte Migration für alle Benutzer`);
+    const usersSnapshot = await this.firestore.collection('users').get().toPromise();
     
-    console.log('Migration completed for user:', userId);
+    const totalUsers = usersSnapshot?.docs.length || 0;
+    console.log(`👥 Gefundene Benutzer: ${totalUsers}`);
+    
+    let successCount = 0;
+    let errorCount = 0;
+    
+    for (const doc of usersSnapshot?.docs || []) {
+      try {
+        await this.migratePurchasedCourses(doc.id);
+        successCount++;
+        console.log(`✅ Migration erfolgreich (${successCount}/${totalUsers}): ${doc.id}`);
+      } catch (error) {
+        errorCount++;
+        console.error(`❌ Fehler bei Benutzer ${doc.id} (${errorCount} Fehler insgesamt):`, error);
+      }
+    }
+    
+    console.log(`
+🎉 Migration abgeschlossen:
+✅ Erfolgreich: ${successCount}
+❌ Fehler: ${errorCount}
+👥 Gesamt: ${totalUsers}
+    `);
   }
 
   // Helper method to check if user has access to course
@@ -506,5 +649,105 @@ export class UserService {
                false;
       })
     );
+  }
+
+  async migrateUserToNewStructure(userId: string): Promise<void> {
+    const userRef = this.firestore.doc(`users/${userId}`);
+    const userDoc = await userRef.get().toPromise();
+    
+    if (!userDoc?.exists) return;
+    
+    const userData = userDoc.data() as any;
+    if (!userData) return;
+
+    // Sammle alle gekauften Kurse aus verschiedenen Quellen
+    const purchasedFromArray = Array.isArray(userData.purchased) ? userData.purchased : [];
+    const purchasedFromCourses = Array.isArray(userData.courses?.purchased) ? userData.courses.purchased : [];
+    
+    // Kombiniere alle Kurs-IDs ohne Duplikate
+    const allPurchasedCourses = [...new Set([...purchasedFromArray, ...purchasedFromCourses])];
+
+    // Initialisiere die neue Progress-Struktur
+    const progress: Progress = {
+      courses: {}
+    };
+
+    // Übertrage den alten Fortschritt in die neue Struktur
+    if (userData.courses?.progress) {
+      Object.entries(userData.courses.progress).forEach(([courseId, courseProgress]: [string, any]) => {
+        progress.courses[courseId] = {
+          modules: courseProgress.modules || {},
+          startedAt: courseProgress.startedAt || new Date()
+        };
+      });
+    }
+
+    // Stelle sicher, dass jeder gekaufte Kurs einen Progress-Eintrag hat
+    allPurchasedCourses.forEach(courseId => {
+      if (!progress.courses[courseId]) {
+        progress.courses[courseId] = {
+          modules: {},
+          startedAt: new Date()
+        };
+      }
+    });
+
+    // Erstelle das Update-Objekt
+    const updateData = {
+      // Behalte die Basis-Benutzerinformationen
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      email: userData.email,
+      street: userData.street,
+      streetNumber: userData.streetNumber,
+      zipCode: userData.zipCode,
+      city: userData.city,
+      country: userData.country,
+      mobile: userData.mobile,
+      firebaseUid: userData.firebaseUid,
+      
+      // Aktualisiere die wichtigen Felder
+      purchasedCourses: allPurchasedCourses,
+      progress: progress,
+      
+      // Status und Aktivierung
+      accountActivated: userData.accountActivated || false,
+      keyActivated: userData.keyActivated || false,
+      activatedAt: userData.activatedAt || null,
+      status: userData.status || 'active',
+      
+      // Produkt-Informationen
+      productKey: userData.productKey,
+      paymentPlan: userData.paymentPlan || 0,
+      
+      // Consent-Daten
+      consent: userData.consent || null,
+
+      // Lösche alte Felder
+      purchased: firebase.firestore.FieldValue.delete(),
+      courses: firebase.firestore.FieldValue.delete(),
+      products: firebase.firestore.FieldValue.delete()
+    };
+
+    // Update des Benutzerdokuments
+    await userRef.set(updateData, { merge: true });
+    
+    console.log(`Migration completed for user: ${userId}`);
+  }
+
+  // Hilfsfunktion zum Migrieren aller Benutzer
+  async migrateAllUsers(): Promise<void> {
+    const usersSnapshot = await this.firestore.collection('users').get().toPromise();
+    
+    for (const doc of usersSnapshot?.docs || []) {
+      try {
+        await this.migrateUserToNewStructure(doc.id);
+        console.log(`Successfully migrated user: ${doc.id}`);
+      } catch (error) {
+        console.error(`Error migrating user ${doc.id}:`, error);
+      }
+    }
+    
+    console.log('Migration of all users completed');
   }
 } 

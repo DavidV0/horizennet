@@ -1,35 +1,18 @@
-export interface LessonProgress {
-  completed: boolean;
-  completedAt: Date;
-  completionType?: 'video' | 'quiz';
-}
-
-export interface ModuleProgress {
-  lessons: Record<string, LessonProgress>;
-}
-
-export interface CourseProgress {
-  modules: Record<string, ModuleProgress>;
-  startedAt: Date;
-}
-
-export interface Progress {
-  courses: Record<string, CourseProgress>;
-}
+import { Progress } from './progress.model';
 
 export interface User {
-  id?: string;
-  uid?: string;
-  firebaseUid?: string;
+  uid: string;
+  email: string;
+  displayName: string;
   firstName: string;
   lastName: string;
-  email: string;
   street: string;
   streetNumber: string;
   zipCode: string;
   city: string;
   country: string;
   mobile: string;
+  photoURL?: string;
   paymentPlan: number;
   purchaseDate: Date;
   productKey: string;
@@ -37,6 +20,7 @@ export interface User {
   keyActivated: boolean;
   accountActivated: boolean;
   activatedAt?: Date;
+  firebaseUid?: string;
   purchasedCourses?: string[];
   purchased?: string[];
   courses?: {
@@ -56,4 +40,11 @@ export interface User {
       productKey: string;
     };
   };
+  createdAt: Date;
+  updatedAt: Date;
+  role: 'user' | 'admin';
+  stripeCustomerId?: string;
+  activeMembership?: boolean;
+  membershipEndDate?: Date;
+  becomePartner?: boolean;
 } 

@@ -87,8 +87,7 @@ export class LessonComponent implements OnInit {
     this.courseService.markLessonAsCompleted(
       params['courseId'],
       params['moduleId'],
-      params['lessonId'],
-      'USER_ID' // TODO: Hier den echten User einsetzen
+      params['lessonId']
     );
   }
 

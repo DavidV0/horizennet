@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, NgZone } from '@angular/core';
+import { Component, OnInit, OnDestroy, NgZone, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -15,6 +15,16 @@ import { DashboardNavbarComponent } from '../../core/components/dashboard-navbar
 import { Course } from '../../shared/models/course.model';
 import { UserService } from '../../shared/services/user.service';
 import { User } from '../../shared/models/user.model';
+
+interface UserCourse {
+  title: string;
+  description: string;
+  image: string;
+  modules: any[];
+  isActive: boolean;
+  createdAt: any;
+  updatedAt: any;
+}
 
 interface CourseWithProgress extends Course {
   progress: number;
@@ -48,7 +58,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     private firestore: AngularFirestore,
     private router: Router,
     private userService: UserService,
-    private ngZone: NgZone
+    private ngZone: NgZone,
+    private cdr: ChangeDetectorRef
   ) {
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
@@ -68,70 +79,77 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private loadCourses() {
-    console.log('Starting to load courses...');
-    
     this.subscription = this.authService.user$.pipe(
       take(1),
       switchMap(user => {
-        console.log('Current user:', user?.uid);
         if (!user) return of(null);
         return this.firestore.doc<User>(`users/${user.uid}`).get();
-      }),
-      switchMap(userDoc => {
-        if (!userDoc) {
-          console.log('No user document found');
-          return of([]);
-        }
-
-        const userData = userDoc.data() as User;
-        console.log('User data:', userData);
-        console.log('Purchased courses:', userData?.purchasedCourses);
-        
-        this.ngZone.run(() => {
-          this.userData = userData;
-        });
-        
-        if (!userData?.purchasedCourses?.length) {
-          console.log('No purchased courses found');
-          return of([]);
-        }
-
-        console.log('Loading courses for user...');
-        return this.courseService.getCourses('USER').pipe(
-          tap(courses => console.log('Received courses:', courses))
-        );
-      }),
-      switchMap((courses: Course[]) => {
-        if (!courses.length) {
-          console.log('No courses received from service');
-          return of([]);
-        }
-
-        console.log('Loading progress for courses:', courses);
-        const progressPromises = courses.map(course => 
-          this.userService.getCourseProgress(course.id).pipe(
-            tap(progress => console.log(`Progress for course ${course.id}:`, progress)),
-            map(progress => ({
-              ...course,
-              progress: progress || 0
-            }))
-          )
-        );
-
-        return forkJoin(progressPromises);
       })
     ).subscribe({
-      next: (coursesWithProgress) => {
-        console.log('Final courses with progress:', coursesWithProgress);
+      next: async (userDoc) => {
+        if (!userDoc) return;
+
+        let userData = userDoc.data() as User;
+        this.userData = userData;
+
+        // Prüfe ob der User die alte Struktur hat und migriere wenn nötig
+        if (userData?.courses || userData?.purchased) {
+          console.log('🔄 Alte Datenstruktur erkannt - starte Migration');
+          await this.userService.migratePurchasedCourses(userDoc.id);
+          
+          // Lade die aktualisierten Daten
+          const updatedUserDoc = await this.firestore.doc<User>(`users/${userDoc.id}`).get().toPromise();
+          if (!updatedUserDoc?.exists) return;
+          userData = updatedUserDoc.data() as User;
+          this.userData = userData;
+        }
+
+        if (!userData?.purchasedCourses?.length) {
+          this.courses = [];
+          return;
+        }
+
+        const coursesPromises = userData.purchasedCourses.map(courseId => 
+          this.firestore.doc<Course>(`courses/${courseId}`).get().toPromise()
+        );
+
+        const courseDocs = await Promise.all(coursesPromises);
+        
+        const coursesArray = courseDocs
+          .filter(doc => doc?.exists)
+          .map(doc => {
+            const course = doc!.data() as Course;
+            const courseId = doc!.id;
+            
+            let completedLessons = 0;
+            let totalLessons = 0;
+
+            course.modules.forEach(module => {
+              module.lessons.forEach(lesson => {
+                totalLessons++;
+                const lessonProgress = userData.progress?.courses[courseId]?.modules[module.id]?.lessons[lesson.id];
+                if (lessonProgress?.completed) {
+                  completedLessons++;
+                  lesson.completed = true;
+                }
+              });
+            });
+
+            return {
+              ...course,
+              id: courseId,
+              progress: totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0
+            } as CourseWithProgress;
+          });
+
         this.ngZone.run(() => {
-          this.courses = coursesWithProgress || [];
+          this.courses = coursesArray;
+          this.cdr.detectChanges();
         });
       },
       error: (error) => {
-        console.error('Error loading courses:', error);
-        this.ngZone.run(() => {
-          this.courses = [];
-        });
+        this.courses = [];
+        this.cdr.detectChanges();
       }
     });
   }

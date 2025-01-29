@@ -54,7 +54,16 @@ export class CourseService {
   getCourse(id: string): Observable<Course> {
     return this.firestore
       .doc<Course>(`${this.COURSES_COLLECTION}/${id}`)
-      .valueChanges({ idField: 'id' }) as Observable<Course>;
+      .snapshotChanges()
+      .pipe(
+        map(snapshot => {
+          const data = snapshot.payload.data() as Course;
+          return {
+            ...data,
+            id: snapshot.payload.id
+          };
+        })
+      );
   }
 
   async createCourse(course: Partial<Course>, imageFile?: File): Promise<void> {
@@ -283,12 +292,12 @@ export class CourseService {
       });
   }
 
-  markLessonAsCompleted(courseId: string, moduleId: string, lessonId: string): Observable<void> {
+  markLessonAsCompleted(courseId: string, moduleId: string, lessonId: string, completionType: 'video' | 'quiz' = 'video'): Observable<void> {
     return this.authService.user$.pipe(
       take(1),
       switchMap(user => {
         if (!user) throw new Error('User not authenticated');
-        return this.userService.markLessonAsCompleted(courseId, moduleId, lessonId, 'video');
+        return this.userService.markLessonAsCompleted(courseId, moduleId, lessonId, completionType);
       })
     );
   }
@@ -316,6 +325,30 @@ export class CourseService {
       switchMap(user => {
         if (!user) return of(0);
         return this.userService.getCourseProgress(courseId);
+      })
+    );
+  }
+
+  getModule(courseId: string, moduleId: string): Observable<Module> {
+    return this.firestore
+      .doc<Course>(`courses/${courseId}`)
+      .snapshotChanges()
+      .pipe(
+        map(snapshot => {
+          const course = snapshot.payload.data() as Course;
+          const module = course?.modules.find(m => m.id === moduleId);
+          if (!module) throw new Error('Module not found');
+          return module;
+        })
+      );
+  }
+
+  getLesson(courseId: string, moduleId: string, lessonId: string): Observable<Lesson> {
+    return this.getModule(courseId, moduleId).pipe(
+      map(module => {
+        const lesson = module.lessons.find(l => l.id === lessonId);
+        if (!lesson) throw new Error('Lesson not found');
+        return lesson;
       })
     );
   }
