@@ -3,9 +3,9 @@ import { Progress } from './progress.model';
 export interface User {
   uid: string;
   email: string;
+  firstName?: string;
+  lastName?: string;
   displayName: string;
-  firstName: string;
-  lastName: string;
   street: string;
   streetNumber: string;
   zipCode: string;
@@ -13,20 +13,21 @@ export interface User {
   country: string;
   mobile: string;
   photoURL?: string;
+  purchasedCourses: string[];
+  isSalesPartner: boolean;
+  progress: Progress;
+  status?: 'active' | 'inactive';
+  accountActivated?: boolean;
   paymentPlan: number;
   purchaseDate: Date;
   productKey: string;
-  status: string;
   keyActivated: boolean;
-  accountActivated: boolean;
   activatedAt?: Date;
   firebaseUid?: string;
-  purchasedCourses?: string[];
   purchased?: string[];
   courses?: {
     purchased?: string[];
   };
-  progress?: Progress;
   consent?: {
     acceptTerms: boolean;
     consent1: boolean;
@@ -40,11 +41,11 @@ export interface User {
       productKey: string;
     };
   };
-  createdAt: Date;
-  updatedAt: Date;
   role: 'user' | 'admin';
   stripeCustomerId?: string;
   activeMembership?: boolean;
   membershipEndDate?: Date;
   becomePartner?: boolean;
+  createdAt?: any;
+  updatedAt?: any;
 } 

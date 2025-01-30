@@ -31,6 +31,30 @@ export interface SubscriptionStatus {
   };
 }
 
+interface PurchaseConfirmationData {
+  email: string;
+  firstName: string;
+  lastName: string;
+  orderId: string;
+  amount: number;
+  paymentPlan: number;
+  billingDetails: {
+    street: string;
+    streetNumber: string;
+    zipCode: string;
+    city: string;
+    country: string;
+  };
+  purchasedCourseIds: string[];
+  purchasedProducts: {
+    id: string;
+    name: string;
+    courseIds: string[];
+  }[];
+  isSalesPartner?: boolean;
+  isSubscription?: boolean;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -168,6 +192,10 @@ export class PaymentService {
     ).pipe(
       catchError(this.handleError)
     );
+  }
+
+  sendPurchaseConfirmation(data: PurchaseConfirmationData): Observable<any> {
+    return this.http.post(`${this.apiUrl}/api/sendPurchaseConfirmation`, data);
   }
 
   private handleError(error: any) {

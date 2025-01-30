@@ -645,45 +645,50 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
       // Clear cart first
       this.cartService.clearCart();
       
-      // Get purchased course IDs
-      const purchasedCourses = this.cartProducts.map(product => product.courseIds);
-      
+      // Sammle alle Kurs-IDs aus den gekauften Produkten
+      const purchasedCourseIds = new Set<string>();
+      this.cartProducts.forEach(product => {
+        if (product.courseIds) {
+          product.courseIds.forEach(courseId => purchasedCourseIds.add(courseId));
+        }
+      });
 
-    
-      
-      // Send purchase confirmation email only after successful payment and activation
+      // Send purchase confirmation email
+      const purchasedProducts = this.cartProducts.map(product => ({
+        id: product.id,
+        name: product.name,
+        courseIds: product.courseIds
+      }));
+
+      const confirmationData = {
+        email: formValues.email,
+        firstName: formValues.firstName,
+        lastName: formValues.lastName,
+        orderId: orderId,
+        amount: this.calculatePriceWithVAT(this.fullTotal),
+        paymentPlan: this.checkoutForm.get('paymentPlan')?.value || 0,
+        billingDetails: {
+          street: formValues.street,
+          streetNumber: formValues.streetNumber,
+          zipCode: formValues.zipCode,
+          city: formValues.city,
+          country: this.getCountryCode(formValues.country)
+        },
+        purchasedCourseIds: Array.from(purchasedCourseIds),
+        purchasedProducts: purchasedProducts,
+        isSalesPartner: formValues.becomePartner,
+        isSubscription: this.isSubscription
+      };
+
       try {
-        const emailData = {
-          email: formValues.email,
-          firstName: formValues.firstName,
-          lastName: formValues.lastName,
-          productType: this.hasHorizonAcademy() ? 'academy' : 'crypto',
-          isSalesPartner: formValues.becomePartner,
-          orderId: orderId,
-          amount: this.calculatePriceWithVAT(this.fullTotal),
-          paymentPlan: this.checkoutForm.get('paymentPlan')?.value || 0,
-          billingDetails: {
-            street: formValues.street,
-            streetNumber: formValues.streetNumber,
-            zipCode: formValues.zipCode,
-            city: formValues.city,
-            country: formValues.country
-          },
-          purchasedCourses: purchasedCourses,
-          isSubscription: this.isSubscription
-        };
-
-        
         await firstValueFrom(
-          this.http.post(`${this.apiUrl}/api/sendPurchaseConfirmation`, emailData)
+          this.http.post(`${this.apiUrl}/api/sendPurchaseConfirmation`, confirmationData)
         );
-        
       } catch (emailError) {
         console.error('Error sending purchase confirmation email:', emailError);
         // Continue with redirection even if email fails
       }
 
-      
       // Redirect to success page
       await this.router.navigate(['/success'], { 
         queryParams: { 
@@ -694,7 +699,7 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
       
     } catch (error: any) {
       console.error('Error completing order:', error);
-      throw error; // Fehler weiterleiten, damit die Bestellung nicht als erfolgreich markiert wird
+      throw error;
     }
   }
 
@@ -760,5 +765,43 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   goBack() {
     this.setCurrentStep(1, false);
+  }
+
+  async onPaymentSuccess(paymentIntent: any) {
+    try {
+      const purchasedProducts = this.cartProducts.map(product => ({
+        id: product.id,
+        name: product.name,
+        courseIds: product.courseIds
+      }));
+
+      const confirmationData = {
+        email: this.checkoutForm.get('email')?.value,
+        firstName: this.checkoutForm.get('firstName')?.value,
+        lastName: this.checkoutForm.get('lastName')?.value,
+        orderId: paymentIntent.id,
+        amount: this.calculatePriceWithVAT(this.fullTotal),
+        paymentPlan: this.checkoutForm.get('paymentPlan')?.value || 0,
+        billingDetails: {
+          street: this.checkoutForm.get('street')?.value,
+          streetNumber: this.checkoutForm.get('streetNumber')?.value,
+          zipCode: this.checkoutForm.get('zipCode')?.value,
+          city: this.checkoutForm.get('city')?.value,
+          country: this.getCountryCode(this.checkoutForm.get('country')?.value)
+        },
+        purchasedCourseIds: this.cartProducts.flatMap(product => product.courseIds),
+        purchasedProducts: purchasedProducts,
+        isSalesPartner: this.checkoutForm.get('becomePartner')?.value,
+        isSubscription: this.isSubscription
+      };
+
+      await this.paymentService.sendPurchaseConfirmation(confirmationData);
+      
+      // Rest des Codes...
+    } catch (error) {
+      console.error('Error in onPaymentSuccess:', error);
+      this.paymentError = 'Ein Fehler ist aufgetreten. Bitte kontaktieren Sie den Support.';
+      this.cdr.detectChanges();
+    }
   }
 } 

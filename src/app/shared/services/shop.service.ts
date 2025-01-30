@@ -90,7 +90,7 @@ export class ShopService {
 
     // Create Stripe product and price points
     const response = await firstValueFrom(this.http.post<StripeProductResponse>(
-      `${this.apiUrl}/api/stripe/products`,
+      `${this.apiUrl}/stripe/products`,
       {
         name: product.name,
         description: product.description,
@@ -130,7 +130,7 @@ export class ShopService {
         (product.description && product.description !== existingData.description)) {
       try {
         await firstValueFrom(this.http.post<StripeProductResponse>(
-          `${this.apiUrl}/api/stripe/products/${existingData.stripeProductId}/prices`,
+          `${this.apiUrl}/stripe/products/${existingData.stripeProductId}/prices`,
           {
             price: product.price || existingData.price,
             name: product.name,
@@ -149,7 +149,7 @@ export class ShopService {
       console.log('Updating Stripe prices for product:', existingData.stripeProductId);
       try {
         const response = await firstValueFrom(this.http.post<StripeProductResponse>(
-          `${this.apiUrl}/api/stripe/products/${existingData.stripeProductId}/prices`,
+          `${this.apiUrl}/stripe/products/${existingData.stripeProductId}/prices`,
           {
             price: product.price,
             name: product.name || existingData.name,

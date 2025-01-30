@@ -7,15 +7,22 @@
     "functions": {
       "port": 5002
     },
+    "firestore": {
+      "port": 5003
+    },
+    "hosting": {
+      "port": 5000
+    },
     "ui": {
       "port": 4242
     },
-    "hub": {
-      "port": 4245
+    "auth": {
+      "port": 9099
     },
-    "logging": {
-      "port": 4246
-    }
+    "storage": {
+      "port": 9199
+    },
+    "singleProjectMode": true
   },
   "firestore": {
     "rules": "firestore.rules",
@@ -34,5 +41,8 @@
         "destination": "/index.html"
       }
     ]
+  },
+  "storage": {
+    "rules": "storage.rules"
   }
 }

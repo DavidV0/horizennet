@@ -8,7 +8,7 @@ export interface CourseProgress {
   modules: {
     [moduleId: string]: ModuleProgress;
   };
-  startedAt: Date;
+  startedAt: any;
 }
 
 export interface ModuleProgress {
@@ -19,8 +19,8 @@ export interface ModuleProgress {
 
 export interface LessonProgress {
   completed: boolean;
-  completedAt: Date | null;
-  completionType: 'video' | 'quiz' | null;
-  videoProgress: number;
-  quizCompleted: boolean;
+  completedAt: any | null;
+  completionType: string | null;
+  videoProgress: number | null;
+  quizCompleted: boolean | null;
 } 
