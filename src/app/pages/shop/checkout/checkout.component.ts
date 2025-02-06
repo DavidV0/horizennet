@@ -440,8 +440,12 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   private getCountryCode(country: string | undefined): string {
     const countryMap: { [key: string]: string } = {
-      'Austria': 'AT',
-      'Österreich': 'AT'
+      'AT': 'AT',
+      'DE': 'DE',
+      'CH': 'CH',
+      'US': 'US',
+      'CA': 'CA',
+      'GB': 'GB'
     };
     return countryMap[country || ''] || 'AT';
   }
