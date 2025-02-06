@@ -1,10 +1,16 @@
 <div class="page-container">
   <section class="shop-section">
-    <div class="welcome-text">
-      <h2>Willkommen in unserem exklusiven Shop</h2>
-      <p>Entdecken Sie unsere sorgfältig ausgewählten Produkte, die Ihnen den Weg zum finanziellen Erfolg ebnen. 
-         Mit unseren bewährten Strategien und Tools haben bereits zahlreiche Menschen ihre finanziellen Ziele erreicht. 
-         Werden auch Sie Teil unserer Erfolgsgeschichte!</p>
+    <div class="welcome-section">
+      <div class="welcome-text">
+        <h2>Willkommen in unserem exklusiven Shop</h2>
+        <p>Entdecken Sie unsere sorgfältig ausgewählten Produkte, die Ihnen den Weg zum finanziellen Erfolg ebnen. 
+           Mit unseren bewährten Strategien und Tools haben bereits zahlreiche Menschen ihre finanziellen Ziele erreicht. 
+           Werden auch Sie Teil unserer Erfolgsgeschichte!</p>
+      </div>
+      <div class="guarantee-seal">
+        <img src="assets/images/money-back.png" alt="100% Geld-zurück-Garantie" class="money-back-seal">
+        <p class="guarantee-text">100% Zufriedenheitsgarantie</p>
+      </div>
     </div>
     <div class="products-grid">
       <div class="product-card" *ngFor="let product of products$ | async">
