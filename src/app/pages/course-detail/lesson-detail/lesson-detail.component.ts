@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -33,6 +33,9 @@ interface QuizResult {
   styleUrls: ['./lesson-detail.component.scss']
 })
 export class LessonDetailComponent implements OnInit {
+  @ViewChild('videoPlayer') videoPlayer!: ElementRef<HTMLVideoElement>;
+  private readonly SKIP_SECONDS = 10;
+
   lesson$!: Observable<Lesson>;
   currentModule$ = new BehaviorSubject<Module | null>(null);
   selectedAnswers: { [questionIndex: number]: number[] } = {};
@@ -264,5 +267,21 @@ export class LessonDetailComponent implements OnInit {
       .subscribe({
         error: (error) => console.error('Error completing quiz:', error)
       });
+  }
+
+  skipForward() {
+    if (this.videoPlayer?.nativeElement) {
+      const video = this.videoPlayer.nativeElement;
+      const newTime = Math.min(video.currentTime + this.SKIP_SECONDS, video.duration);
+      video.currentTime = newTime;
+    }
+  }
+
+  skipBackward() {
+    if (this.videoPlayer?.nativeElement) {
+      const video = this.videoPlayer.nativeElement;
+      const newTime = Math.max(video.currentTime - this.SKIP_SECONDS, 0);
+      video.currentTime = newTime;
+    }
   }
 } 
