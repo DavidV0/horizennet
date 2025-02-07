@@ -518,17 +518,17 @@ const createSubscription = async (req: Request, res: Response) => {
     const subscription = await stripe.subscriptions.create({
       customer: customerId,
       items: [{ price: priceId }],
+      payment_behavior: "allow_incomplete", // Charges instantly
+      collection_method: "charge_automatically", // Automatically charge
+      expand: ["latest_invoice.payment_intent"],
       payment_settings: {
-        payment_method_types: ['card'],
-        save_default_payment_method: 'on_subscription'
-      },
-      payment_behavior: 'default_incomplete',
-      expand: ['latest_invoice.payment_intent']
+        save_default_payment_method: "on_subscription"
+      }
     });
-
+    console.log("Created subscription:", subscription.id);
     const latestInvoice = subscription.latest_invoice as Stripe.Invoice;
     const paymentIntent = latestInvoice?.payment_intent as Stripe.PaymentIntent;
-
+      
     res.json({
       id: subscription.id,
       status: subscription.status,
@@ -693,7 +693,7 @@ const updatePaymentMethod = async (req: ExtendedRequest, res: Response) => {
 
 const handleSubscriptionWebhook = async (event: Stripe.Event) => {
   try {
-    switch (event.type) {
+    switch (event.type) {   
       case 'invoice.payment_failed': {
         const invoiceObject = event.data.object as Stripe.Invoice;
         if (invoiceObject.subscription) {
@@ -705,7 +705,7 @@ const handleSubscriptionWebhook = async (event: Stripe.Event) => {
         }
         break;
       }
-
+    
       case 'customer.subscription.updated': {
         const updatedSubscription = event.data.object as Stripe.Subscription;
         // Check if subscription is about to renew
@@ -1057,7 +1057,9 @@ router.post("/webhook", express.raw({type: 'application/json'}), async (req: Str
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || 
       (functions.config().stripe?.webhook_secret as string) || 
       '';
-    const event = stripe.webhooks.constructEvent(req.rawBody || '', sig, webhookSecret);
+   // const event = stripe.webhooks.constructEvent(req.rawBody || '', sig, webhookSecret);
+    const event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+
 
     if (event.type.startsWith('invoice.') || event.type.startsWith('customer.subscription.')) {
       await handleSubscriptionWebhook(event);
