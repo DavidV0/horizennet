@@ -522,6 +522,7 @@ const createSubscription = async (req: Request, res: Response) => {
       collection_method: "charge_automatically", // Automatically charge
       expand: ["latest_invoice.payment_intent"],
       payment_settings: {
+        payment_method_types: ['card'],
         save_default_payment_method: "on_subscription"
       }
     });
