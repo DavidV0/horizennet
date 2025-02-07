@@ -48,7 +48,9 @@ export class ShopService {
 
   getAllProducts(): Observable<ShopProduct[]> {
     const productsCollection = collection(this.firestore, this.collectionName);
-    return collectionData(productsCollection, { idField: 'id' }) as Observable<ShopProduct[]>;
+    return collectionData(productsCollection, { idField: 'id' }).pipe(
+      map(products => products as ShopProduct[])
+    );
   }
 
   getProduct(id: string): Observable<ShopProduct | undefined> {
@@ -129,7 +131,7 @@ export class ShopService {
     if ((product.name && product.name !== existingData.name) || 
         (product.description && product.description !== existingData.description)) {
       try {
-        await firstValueFrom(this.http.post<StripeProductResponse>(
+        const response = await firstValueFrom(this.http.post<StripeProductResponse>(
           `${this.apiUrl}/api/stripe/products/${existingData.stripeProductId}/prices`,
           {
             price: product.price || existingData.price,
@@ -138,6 +140,7 @@ export class ShopService {
             existingPriceIds: existingData.stripePriceIds
           }
         ));
+        product.stripePriceIds = response.priceIds;
       } catch (error) {
         console.error('Error updating Stripe product:', error);
         throw new Error('Fehler beim Aktualisieren des Stripe-Produkts');
@@ -148,16 +151,37 @@ export class ShopService {
     if (typeof product.price === 'number' && existingData.price !== product.price && existingData.stripeProductId) {
       console.log('Updating Stripe prices for product:', existingData.stripeProductId);
       try {
+        // Deaktiviere zuerst alle existierenden Preise
+        if (existingData.stripePriceIds) {
+          await firstValueFrom(this.http.post(
+            `${this.apiUrl}/api/stripe/products/${existingData.stripeProductId}/deactivate-prices`,
+            {
+              priceIds: Object.values(existingData.stripePriceIds)
+            }
+          ));
+        }
+
+        // Erstelle neue aktive Preise
         const response = await firstValueFrom(this.http.post<StripeProductResponse>(
           `${this.apiUrl}/api/stripe/products/${existingData.stripeProductId}/prices`,
           {
             price: product.price,
             name: product.name || existingData.name,
             description: product.description || existingData.description,
-            existingPriceIds: existingData.stripePriceIds
+            existingPriceIds: existingData.stripePriceIds,
+            activate: true,
+            forceActivate: true
           }
         ));
         product.stripePriceIds = response.priceIds;
+
+        // Aktiviere die neuen Preise explizit
+        await firstValueFrom(this.http.post(
+          `${this.apiUrl}/api/stripe/products/${existingData.stripeProductId}/activate-prices`,
+          {
+            priceIds: Object.values(response.priceIds)
+          }
+        ));
       } catch (error) {
         console.error('Error updating Stripe prices:', error);
         throw new Error('Fehler beim Aktualisieren der Stripe-Preise');
