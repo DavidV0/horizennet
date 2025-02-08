@@ -453,7 +453,7 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
     try {
       if (this.isSubscription) {
         const priceId = this.getStripePriceId(selectedPlan);
-        
+        console.log('priceId**************',priceId)
         this.stripeSubscription = await firstValueFrom(
           this.paymentService.createSubscription(
             priceId,
@@ -465,7 +465,7 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
 
         // Setup Intent für 3D-Secure erzwingen
         const setupIntentSecret = await this.getSetupIntentSecret(customerId, paymentMethodId);
-        
+        console.log("setupIntentSecret********",setupIntentSecret)
         const { error: setupError, setupIntent } = await this.stripe!.confirmCardSetup(
           setupIntentSecret,
           {
@@ -629,9 +629,9 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
         const subscription = await firstValueFrom(
           this.paymentService.getSubscriptionStatus(orderId)
         );
-        if (subscription.status !== 'active' && subscription.status !== 'trialing') {
-          throw new Error('Zahlung wurde nicht bestätigt');
-        }
+        // if (subscription.status !== 'active' && subscription.status !== 'trialing') {
+        //   throw new Error('Zahlung wurde nicht bestätigt');
+        // }
       } else {
         const paymentIntent = await firstValueFrom(
           this.paymentService.getPaymentIntent(orderId)
