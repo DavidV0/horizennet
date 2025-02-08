@@ -1161,7 +1161,9 @@ router.post("/webhook", express.raw({type: 'application/json'}), async (req: Str
    // const event = stripe.webhooks.constructEvent(req.rawBody || '', sig, webhookSecret);
     const event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
 
-
+    console.log("Received Webhook Signature:", sig);
+    console.log("Using Stripe Webhook Secret:", webhookSecret);
+    console.log("event****************:", event);
     if (event.type.startsWith('invoice.') || event.type.startsWith('customer.subscription.')) {
       await handleSubscriptionWebhook(event);
     }
