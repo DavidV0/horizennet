@@ -151,22 +151,6 @@
           </mat-form-field>
         </div>
 
-        <div class="card-payment-section">
-          <h3>Kartenzahlung</h3>
-          <mat-form-field appearance="outline">
-            <mat-label>Name des Karteninhabers</mat-label>
-            <input matInput formControlName="cardholderName" required>
-          </mat-form-field>
-
-          <div class="card-element-container">
-            <div #cardElement class="stripe-card-element"></div>
-          </div>
-
-          <div class="error-message" *ngIf="paymentError">
-            {{paymentError}}
-          </div>
-        </div>
-
         <div class="payment-actions">
           <mat-checkbox formControlName="acceptTerms" required>
             Ich habe die <a href="/agb" target="_blank">Allgemeinen Geschäftsbedingungen</a>, die <a href="/datenschutz" target="_blank">Datenschutzbestimmung</a> und die <a href="/widerruf" target="_blank">Widerrufsbelehrung</a> für digitale Inhalte gelesen und akzeptiert.
@@ -180,13 +164,12 @@
             Ja, ich möchte Vertriebspartner werden
           </mat-checkbox>
 
-          <div class="notice-text">
-            <mat-icon>info</mat-icon>
-            <p>Hinweis: Digitale Inhalte sind solche, die nicht auf einem körperlichen Datenträger geliefert werden (Software-Downloads, E-Books, etc.).</p>
+          <div class="error-message" *ngIf="paymentError">
+            {{paymentError}}
           </div>
 
-          <button mat-raised-button color="primary" (click)="onSubmit()" [disabled]="isProcessing">
-            <span *ngIf="!isProcessing">Zahlungspflichtig bestellen</span>
+          <button mat-raised-button color="primary" (click)="onSubmit()" [disabled]="isProcessing || !checkoutForm.valid || !checkoutForm.get('acceptTerms')?.value">
+            <span *ngIf="!isProcessing">Weiter zur sicheren Bezahlung</span>
             <span *ngIf="isProcessing">Bitte warten...</span>
           </button>
         </div>
