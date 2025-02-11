@@ -172,6 +172,11 @@
     padding: var(--spacing-lg);
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(255, 255, 255, 0.02);
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
 
     .price-summary {
       margin-bottom: var(--spacing-lg);
@@ -201,20 +206,28 @@
     .checkout-button {
       width: 100%;
       padding: var(--spacing-md) var(--spacing-lg);
-      background: transparent;
-      color: var(--color-accent);
-      border: 2px solid var(--color-accent);
+      background: var(--color-accent);
+      color: var(--color-text-dark);
+      border: none;
       border-radius: 4px;
       font-size: var(--font-size-lg);
       font-weight: var(--font-weight-medium);
       cursor: pointer;
       transition: all 0.3s ease;
       letter-spacing: 0.5px;
+      -webkit-appearance: none;
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
+      position: relative;
+      z-index: 1;
+      display: block;
+      text-align: center;
+      text-decoration: none;
 
       &:hover {
-        background: var(--color-accent);
-        color: var(--color-text-light);
         transform: translateY(-2px);
+        -webkit-transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
       }
     }
   }

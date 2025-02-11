@@ -8,6 +8,14 @@
     <div class="module-info">
       <h1>{{module.title}}</h1>
       <p class="description">{{module.description}}</p>
+      
+      <!-- Fortschrittsanzeige -->
+      <div class="progress-info" *ngIf="moduleProgress$ | async as progress">
+        <div class="progress-bar">
+          <div class="progress" [style.width.%]="progress"></div>
+        </div>
+        <div class="progress-text">{{progress}}% geschafft</div>
+      </div>
     </div>
   </div>
 
@@ -42,7 +50,7 @@
               {{lesson.completed ? 'check_circle' : 'radio_button_unchecked'}}
             </mat-icon>
             <button mat-flat-button (click)="startLesson(lesson)" [disabled]="!canAccessLesson(i)">
-              {{lesson.completed ? 'Wiederholen' : 'Starten'}}
+              {{lesson.completed ? 'Wiederholen' : 'Jetzt starten'}}
             </button>
           </div>
         </div>

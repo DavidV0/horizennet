@@ -67,55 +67,54 @@
     <!-- Middle Column: Courses -->
     <div class="dashboard-column courses-section">
       <h2 class="section-title">Meine Kurse</h2>
-      
-      <!-- Loading State -->
-      <div class="loading-container" *ngIf="isLoading">
-        <mat-spinner diameter="40"></mat-spinner>
-      </div>
 
       <!-- Empty State -->
-      <div class="empty-state" *ngIf="!(courses$ | async)?.length && !isLoading">
+      <div class="empty-state" *ngIf="!courses || courses.length === 0">
         <mat-icon>school</mat-icon>
         <h3>Keine Kurse gefunden</h3>
         <p>Sie haben noch keine Kurse aktiviert.</p>
-        <button mat-flat-button class="empty-state-btn">
+        <button mat-flat-button class="empty-state-btn" routerLink="/shop">
           <mat-icon>shopping_cart</mat-icon>
           Zum Shop
         </button>
       </div>
 
       <!-- Courses Grid -->
-      <div class="courses-grid" *ngIf="(courses$ | async)?.length">
-        <mat-card class="course-card" *ngFor="let course of courses$ | async">
-          <img [src]="course.image" [alt]="course.title" class="course-image">
-          <mat-card-content>
-            <div class="course-header">
-              <h3>{{course.title}}</h3>
-              <div class="course-stats">
-                <span class="stat">
-                  <mat-icon>folder</mat-icon>
-                  {{getModuleCount(course)}} Module
-                </span>
-                <span class="stat">
-                  <mat-icon>school</mat-icon>
-                  {{getLessonCount(course)}} Lektionen
-                </span>
+      <div class="courses-grid" *ngIf="courses && courses.length > 0">
+        <mat-card class="course-card" *ngFor="let course of courses">
+          <div class="course-image">
+            <img [src]="course.image" [alt]="course.title">
+          </div>
+          <div class="course-content">
+            <h2>{{ course.title }}</h2>
+            <p>{{ course.description }}</p>
+
+            <!-- Course Stats -->
+            <div class="course-stats">
+              <div class="stat">
+                <mat-icon>school</mat-icon>
+                {{ course.modules?.length || 0 }} Module
+              </div>
+              <div class="stat">
+                <mat-icon>play_circle</mat-icon>
+                {{ getTotalLessons(course) }} Lektionen
               </div>
             </div>
-            <div class="course-progress">
+
+            <!-- Progress Section -->
+            <div class="progress-section">
               <div class="progress-bar">
-                <div class="progress" [style.width.%]="getCourseProgress(course)"></div>
+                <div class="progress-fill" [style.width.%]="course.progress"></div>
               </div>
-              <span class="progress-text">{{getCourseProgress(course)}}% abgeschlossen</span>
+              <div class="progress-text">{{ course.progress }}% abgeschlossen</div>
+
+              <!-- Action Button -->
+              <button mat-flat-button class="start-button" (click)="continueCourse(course.id)">
+                <mat-icon>{{ course.progress > 0 ? 'play_circle' : 'play_arrow' }}</mat-icon>
+                {{ course.progress > 0 ? 'Weitermachen' : 'Jetzt starten' }}
+              </button>
             </div>
-            <button mat-flat-button 
-                    color="accent" 
-                    class="continue-btn"
-                    (click)="startCourse(course)">
-              <mat-icon>play_arrow</mat-icon>
-              <span>Jetzt starten</span>
-            </button>
-          </mat-card-content>
+          </div>
         </mat-card>
       </div>
     </div>
@@ -141,3 +140,4 @@
     </div>
   </div>
 </div>
+

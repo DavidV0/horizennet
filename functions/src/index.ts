@@ -39,15 +39,22 @@ interface ExtendedRequest extends Request {
 }
 
 interface StripeRequest extends Request {
-  rawBody?: string;
+  rawBody?: Buffer;
 }
 
 dotenv.config();
 
 // Initialize Firebase Admin
 if (!admin.apps.length) {
-  admin.initializeApp();
+  admin.initializeApp({
+    projectId: 'horizonnet-ed13d',
+    storageBucket: 'horizonnet-ed13d.firebasestorage.app',
+    credential: admin.credential.applicationDefault()
+  });
 }
+
+// Ensure we're using production email settings in emulator
+process.env.FUNCTIONS_EMULATOR = "false";
 
 // Add this helper function at the top of the file
 function escapeHtml(unsafe: string): string {
@@ -63,184 +70,161 @@ function escapeHtml(unsafe: string): string {
 const sendPurchaseConfirmationHandler = async (req: Request, res: Response) => {
   try {
     const data = req.body as PurchaseConfirmationData;
-    console.log('Received purchase confirmation request with data:', JSON.stringify(data, null, 2));
+    console.log('Received purchase confirmation data:', {
+      email: data.email,
+      purchasedCourseIds: data.purchasedCourseIds,
+      isSalesPartner: data.isSalesPartner
+    });
+    const attachments: EmailAttachment[] = [];
+    const bucket = admin.storage().bucket();
     
-    // Validate required fields
-    if (!data.email || !data.firstName || !data.lastName || !data.orderId) {
-      console.error('Missing required fields in request data');
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
-    
-    // Generate product key first
     try {
-      const productKey = await generateProductKey(data.productType || 'crypto');
-      console.log('Generated product key:', productKey);
+      // Get product names for purchased courses first
+      console.log('Received data:', {
+        email: data.email,
+        purchasedCourseIds: data.purchasedCourseIds,
+        isSalesPartner: data.isSalesPartner
+      });
+
+      // Debug: Log the Firestore query
+      const productsRef = admin.firestore().collection('shop-products');
+      console.log('Querying Firestore collection:', 'shop-products');
       
-      // Store customer data with the product key
+      // First get all products to see what's available
+      const allProducts = await productsRef.get();
+      console.log('All available products:', allProducts.docs.map(doc => ({
+        id: doc.id,
+        name: doc.data().name,
+        courseIds: doc.data().courseIds
+      })));
+
+      // Suche nach Produkten basierend auf den gekauften Kurs-IDs
+      const purchasedProducts = allProducts.docs.filter(doc => {
+        const productData = doc.data();
+        return data.purchasedCourseIds.some(courseId => 
+          productData.courseIds && productData.courseIds.includes(courseId)
+        );
+      });
+
+      // Prüfe ob HORIZON Academy dabei ist (case-insensitive)
+      const hasAcademy = purchasedProducts.some(doc => 
+        doc.data().name.toLowerCase() === 'horizon academy'.toLowerCase()
+      );
+
+      console.log('Found purchased products:', purchasedProducts.map(doc => ({
+        id: doc.id,
+        name: doc.data().name,
+        courseIds: doc.data().courseIds
+      })));
+
+      console.log('Has HORIZON Academy:', hasAcademy);
+      console.log('Is Sales Partner:', data.isSalesPartner);
+      console.log('Products in cart:', purchasedProducts.map(doc => doc.data().name));
+
+      // Try to get AGB
       try {
-        await storeInitialProductKey(productKey, data);
-        console.log('Successfully stored initial product key data');
-      } catch (storeError) {
-        console.error('Error storing product key:', storeError);
-        return res.status(500).json({ error: 'Failed to store product key', details: storeError });
-      }
-      
-      // Prepare attachments array
-      const attachments: EmailAttachment[] = [];
-
-      // Try to get invoice if it's a one-time payment
-      if (!data.isSubscription && data.orderId) {
-        try {
-          console.log('Attempting to get invoice for one-time payment, orderId:', data.orderId);
-          // Get the payment intent to find the invoice
-          const paymentIntent = await stripe.paymentIntents.retrieve(data.orderId);
-          console.log('Retrieved payment intent:', paymentIntent.id);
-          
-          if (paymentIntent.metadata?.invoice_id) {
-            const invoice = await stripe.invoices.retrieve(paymentIntent.metadata.invoice_id);
-            console.log('Retrieved invoice:', invoice.id);
-
-            // Add invoice URL if available
-            if (invoice.invoice_pdf) {
-              attachments.push({
-                filename: 'rechnung.pdf',
-                path: invoice.invoice_pdf
-              });
-              console.log('Added invoice PDF to attachments');
-            }
-          } else {
-            console.log('No invoice ID found in payment intent metadata');
-          }
-        } catch (error) {
-          console.warn('Error getting invoice:', error);
-          // Continue without invoice
-        }
-      } else if (data.isSubscription && data.orderId) {
-        try {
-          console.log('Attempting to get invoice for subscription, subscriptionId:', data.orderId);
-          // For subscriptions, get the subscription first to find the latest invoice
-          const subscription = await stripe.subscriptions.retrieve(data.orderId);
-          console.log('Retrieved subscription:', subscription.id);
-
-          // Get the latest invoice for this subscription
-          const latestInvoice = await stripe.invoices.retrieve(subscription.latest_invoice as string);
-          console.log('Retrieved latest invoice:', latestInvoice.id);
-
-          if (latestInvoice && latestInvoice.invoice_pdf) {
-            attachments.push({
-              filename: 'rechnung.pdf',
-              path: latestInvoice.invoice_pdf
-            });
-            console.log('Added subscription invoice PDF to attachments');
-          } else {
-            console.log('No invoice PDF found in latest invoice');
-          }
-        } catch (error) {
-          console.warn('Error getting subscription invoice:', error);
-          // Continue without invoice
-        }
-      } else {
-        console.log('No orderId provided or invalid payment type');
-      }
-
-      // Try to get additional attachments from storage
-      try {
-        console.log('Getting additional attachments from storage');
-        const bucket = admin.storage().bucket();
-        
-        // Try to get AGB
-        try {
-          console.log('Attempting to download AGB');
-          const [agbFile] = await bucket.file('documents/agb.pdf').download();
-          attachments.push({
-            filename: 'agb.pdf',
-            content: agbFile
-          });
-          console.log('Successfully added AGB to attachments');
-        } catch (error) {
-          console.warn('AGB file not found:', error);
-        }
-
-        // Try to get Datenschutz
-        try {
-          console.log('Attempting to download Datenschutz');
-          const [datenschutzFile] = await bucket.file('documents/datenschutz.pdf').download();
-          attachments.push({
-            filename: 'datenschutz.pdf',
-            content: datenschutzFile
-          });
-          console.log('Successfully added Datenschutz to attachments');
-        } catch (error) {
-          console.warn('Datenschutz file not found:', error);
-        }
-
-        // Try to get Widerruf
-        try {
-          console.log('Attempting to download Widerruf');
-          const [widerrufFile] = await bucket.file('documents/widerrufsbelehrung.pdf').download();
-          attachments.push({
-            filename: 'widerrufsbelehrung.pdf',
-            content: widerrufFile
-          });
-          console.log('Successfully added Widerruf to attachments');
-        } catch (error) {
-          console.warn('Widerruf file not found:', error);
-        }
-
-        // Try to get sales partner agreement if applicable
-        if (data.productType === 'academy' && data.isSalesPartner) {
-          try {
-            console.log('Attempting to download Vertriebspartnervertrag');
-            const [vertragFile] = await bucket.file('documents/vertriebspartnervertrag.pdf').download();
-            attachments.push({
-              filename: 'vertriebspartnervertrag.pdf',
-              content: vertragFile
-            });
-            console.log('Successfully added Vertriebspartnervertrag to attachments');
-          } catch (error) {
-            console.warn('Vertriebspartnervertrag file not found:', error);
-          }
-        }
-      } catch (error) {
-        console.error('Error getting attachments from storage:', error);
-        // Continue without attachments
-      }
-
-      // Send email with all attachments
-      try {
-        console.log('Preparing to send email with attachments:', attachments.map(a => a.filename));
-        const emailResult = await transporter.sendMail({
-          from: `"HorizonNet Consulting" <${process.env.EMAIL_USER || functions.config().email.user}>`,
-          to: data.email,
-          subject: 'Ihre Bestellung bei HorizonNet',
-          html: `
-            <h1>Vielen Dank für Ihre Bestellung!</h1>
-            <p>Sehr geehrte(r) ${data.firstName} ${data.lastName},</p>
-            <p>vielen Dank für Ihre Bestellung bei HorizonNet. Im Anhang finden Sie:</p>
-            <ul>
-              ${!data.isSubscription ? '<li>Ihre Rechnung</li>' : ''}
-              <li>Unsere AGB</li>
-              <li>Datenschutzerklärung</li>
-              <li>Widerrufsbelehrung</li>
-              ${data.productType === 'academy' && data.isSalesPartner ? '<li>Vertriebspartnervertrag (bitte unterschrieben zurücksenden)</li>' : ''}
-            </ul>
-            <p><strong>Ihr Produktschlüssel: ${productKey}</strong></p>
-            <p>Um Ihren Zugang zu aktivieren, klicken Sie bitte auf folgenden Link:</p>
-            <p><a href="${BASE_URL}/activate?key=${productKey}">Zugang aktivieren</a></p>
-            <p>Bei Fragen stehen wir Ihnen gerne zur Verfügung.</p>
-            <p>Mit freundlichen Grüßen<br>Ihr HorizonNet Team</p>
-          `,
-          attachments
+        console.log('Attempting to download AGB');
+        const [agbFile] = await bucket.file('documents/agb.pdf').download();
+        attachments.push({
+          filename: 'agb.pdf',
+          content: agbFile
         });
-        console.log('Email sent successfully:', emailResult);
-        return res.json({ success: true, productKey });
-      } catch (emailError) {
-        console.error('Error sending email:', emailError);
-        return res.status(500).json({ error: 'Failed to send email', details: emailError });
+        console.log('Successfully added AGB to attachments');
+      } catch (error) {
+        console.warn('AGB file not found:', error);
       }
-    } catch (error) {
-      console.error('Error generating product key:', error);
-      return res.status(500).json({ error: 'Failed to generate product key', details: error });
+
+      // Try to get Datenschutz
+      try {
+        console.log('Attempting to download Datenschutz');
+        const [datenschutzFile] = await bucket.file('documents/datenschutz.pdf').download();
+        attachments.push({
+          filename: 'datenschutz.pdf',
+          content: datenschutzFile
+        });
+        console.log('Successfully added Datenschutz to attachments');
+      } catch (error) {
+        console.warn('Datenschutz file not found:', error);
+      }
+
+      // Try to get Widerruf
+      try {
+        console.log('Attempting to download Widerruf');
+        const [widerrufFile] = await bucket.file('documents/widerrufsbelehrung.pdf').download();
+        attachments.push({
+          filename: 'widerrufsbelehrung.pdf',
+          content: widerrufFile
+        });
+        console.log('Successfully added Widerruf to attachments');
+      } catch (error) {
+        console.warn('Widerruf file not found:', error);
+      }
+
+      // Try to get sales partner agreement if applicable
+      if (hasAcademy && data.isSalesPartner) {
+        try {
+          console.log('Attempting to download Vertriebspartnervertrag');
+          const [vertragFile] = await bucket.file('documents/vertriebspartnervertrag.pdf').download();
+          attachments.push({
+            filename: 'vertriebspartnervertrag.pdf',
+            content: vertragFile
+          });
+          console.log('Successfully added Vertriebspartnervertrag to attachments');
+        } catch (error) {
+          console.warn('Vertriebspartnervertrag file not found:', error);
+        }
+      }
+
+      // Generate product key
+      const productKey = await generateProductKey();
+      await storeInitialProductKey(productKey, data);
+
+      // Generate and send email
+      const emailHtml = `
+        <h1>Vielen Dank für Ihre Bestellung!</h1>
+        <p>Sehr geehrte(r) ${data.firstName} ${data.lastName},</p>
+        <p>vielen Dank für Ihre Bestellung bei HorizonNet. Im Anhang finden Sie:</p>
+        <ul>
+          ${!data.isSubscription ? '<li>Ihre Rechnung</li>' : ''}
+          <li>Unsere AGB</li>
+          <li>Datenschutzerklärung</li>
+          <li>Widerrufsbelehrung</li>
+          ${hasAcademy && data.isSalesPartner ? '<li>Vertriebspartnervertrag (bitte unterschrieben zurücksenden)</li>' : ''}
+        </ul>
+        <p><strong>Ihr Produktschlüssel: ${productKey}</strong></p>
+        <p>Um Ihren Zugang zu aktivieren, klicken Sie bitte auf folgenden Link:</p>
+        <p><a href="${BASE_URL}/activate?key=${productKey}">Zugang aktivieren</a></p>
+        <p>Bei Fragen stehen wir Ihnen gerne zur Verfügung.</p>
+        <p>Mit freundlichen Grüßen<br>Ihr HorizonNet Team</p>
+      `;
+
+      console.log('Preparing to send email with attachments:', attachments.map(a => a.filename));
+      const emailResult = await transporter.sendMail({
+        from: {
+          name: "HorizonNet Consulting",
+          address: process.env.EMAIL_USER || ''
+        },
+        to: data.email,
+        subject: 'Ihre Bestellung bei HorizonNet',
+        html: emailHtml,
+        text: emailHtml.replace(/<[^>]*>/g, ''),
+        attachments: attachments.map(attachment => ({
+          ...attachment,
+          contentType: 'application/pdf',
+          contentDisposition: 'attachment'
+        })),
+        headers: {
+          'List-Unsubscribe': `<mailto:${process.env.EMAIL_USER}>`,
+          'Feedback-ID': `purchase:horizonnet:${data.orderId}`,
+          'X-Entity-Ref-ID': data.orderId
+        }
+      });
+
+      console.log('Email sent successfully:', emailResult);
+      return res.json({ success: true, productKey });
+    } catch (emailError) {
+      console.error('Error sending email:', emailError);
+      return res.status(500).json({ error: 'Failed to send email', details: emailError });
     }
   } catch (error: unknown) {
     console.error('Error in purchase confirmation handler:', error);
@@ -270,7 +254,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Konfiguriere body-parser für raw bodies
+// Configure body-parser for raw bodies
 app.use((req, res, next) => {
   if (req.originalUrl === '/webhook') {
     next();
@@ -279,7 +263,33 @@ app.use((req, res, next) => {
   }
 });
 
-// Health check endpoint for Cloud Run
+// Mount the router with /api prefix
+app.use('/api', router);
+
+// Register webhook route on router
+router.post("/webhook", express.raw({type: 'application/json'}), async (req: StripeRequest, res: Response) => {
+  try {
+    const sig = req.headers['stripe-signature'] as string;
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || 
+      (functions.config().stripe?.webhook_secret as string) || 
+      '';
+    const event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+
+    console.log("Received Webhook Signature:", sig);
+    console.log("Using Stripe Webhook Secret:", webhookSecret);
+    console.log("event****************:", event);
+    if (event.type.startsWith('invoice.') || event.type.startsWith('customer.subscription.')) {
+      await handleSubscriptionWebhook(event);
+    }
+
+    res.json({ received: true });
+  } catch (err: any) {
+    console.error("Webhook error:", err);
+    res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+});
+
+// Health check endpoint
 app.get('/', (req, res) => {
   res.status(200).send('OK');
 });
@@ -293,22 +303,26 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || functions.config().st
 const stripeKey = process.env.STRIPE_SECRET_KEY || functions.config().stripe.secret_key || '';
 console.log('Using Stripe key:', stripeKey ? stripeKey.substring(0, 8) + '...' : 'No key found');
 
-// Nodemailer Transport
+// Initialize nodemailer transporter
 const transporter = nodemailer.createTransport({
   host: "w01ef01f.kasserver.com",
   port: 587,
   secure: false,
-  name: 'm07462fe',
+  name: process.env.EMAIL_NAME,
   auth: {
-    user: 'office@horizonnet-consulting.at',
-    pass: process.env.EMAIL_PASSWORD || functions.config().email.password,
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASSWORD
   },
   tls: {
     rejectUnauthorized: false
-  }
+  },
+  pool: true,
+  maxConnections: 1,
+  rateDelta: 20000,
+  rateLimit: 5
 });
 
-// Verify transporter connection
+// Verify transporter
 transporter.verify(function(error, success) {
   if (error) {
     console.error('Transporter verification failed:', error);
@@ -327,7 +341,7 @@ const sendEmail = async (options: EmailOptions): Promise<void> => {
   // Implementation remains the same
 };
 
-// Handler declarations
+// Customer Management Handlers
 const createCustomer = async (req: Request, res: Response) => {
   try {
     const { email, name, payment_method } = req.body;
@@ -724,120 +738,12 @@ const handleSubscriptionWebhook = async (event: Stripe.Event) => {
   }
 };
 
-// Mount the router with /api prefix
-app.use('/api', router);
-
-// Register all routes
-router.post("/sendPurchaseConfirmation", async (req: Request, res: Response) => {
-  await sendPurchaseConfirmationHandler(req, res);
-});
-
-// Stripe Product Endpoints
-const createStripeProduct = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { name, description, price } = req.body;
-    console.log('Creating Stripe product with data:', { name, description, price });
-
-    // Validate input
-    if (!name || !description || !price) {
-      res.status(400).json({ 
-        error: 'Name, description and price are required' 
-      });
-      return;
-    }
-
-    // Create the product in Stripe
-    const product = await stripe.products.create({
-      name,
-      description,
-      default_price_data: {
-        currency: 'eur',
-        unit_amount: Math.round(price * 100)
-      }
-    });
-
-    console.log('Created Stripe product:', product.id);
-
-    // Create price points for different payment plans
-    const pricePromises = [
-      // Full payment price (already created with product)
-      Promise.resolve(product.default_price),
-      
-      // 6 months payment plan
-      stripe.prices.create({
-        product: product.id,
-        currency: 'eur',
-        unit_amount: Math.round(price * 100 / 6),
-        recurring: {
-          interval: 'month',
-          interval_count: 1
-        },
-        metadata: {
-          plan: 'sixMonths'
-        }
-      }),
-
-      // 12 months payment plan
-      stripe.prices.create({
-        product: product.id,
-        currency: 'eur',
-        unit_amount: Math.round(price * 100 / 12),
-        recurring: {
-          interval: 'month',
-          interval_count: 1
-        },
-        metadata: {
-          plan: 'twelveMonths'
-        }
-      }),
-
-      // 18 months payment plan
-      stripe.prices.create({
-        product: product.id,
-        currency: 'eur',
-        unit_amount: Math.round(price * 100 / 18),
-        recurring: {
-          interval: 'month',
-          interval_count: 1
-        },
-        metadata: {
-          plan: 'eighteenMonths'
-        }
-      })
-    ];
-
-    const [fullPayment, sixMonths, twelveMonths, eighteenMonths] = await Promise.all(pricePromises);
-
-    const response = {
-      productId: product.id,
-      priceIds: {
-        fullPayment: typeof fullPayment === 'string' ? fullPayment : (fullPayment as Stripe.Price).id,
-        sixMonths: (sixMonths as Stripe.Price).id,
-        twelveMonths: (twelveMonths as Stripe.Price).id,
-        eighteenMonths: (eighteenMonths as Stripe.Price).id
-      }
-    };
-
-    console.log('Created all price points:', response);
-    res.json(response);
-  } catch (error) {
-    console.error('Error creating Stripe product:', error);
-    res.status(500).json({ 
-      error: 'Failed to create Stripe product',
-      details: error instanceof Error ? error.message : String(error)
-    });
-  }
-};
-
-// Get payment intent
+// Get payment intent handler
 const getPaymentIntent = async (req: Request, res: Response): Promise<void> => {
   try {
     const { paymentIntentId } = req.params;
-    console.log('Getting payment intent:', paymentIntentId);
-
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-    console.log('Retrieved payment intent:', paymentIntent.id, 'with status:', paymentIntent.status);
-
+    
     res.json({
       id: paymentIntent.id,
       status: paymentIntent.status,
@@ -845,10 +751,7 @@ const getPaymentIntent = async (req: Request, res: Response): Promise<void> => {
     });
   } catch (error) {
     console.error('Error getting payment intent:', error);
-    res.status(500).json({ 
-      error: 'Failed to get payment intent',
-      details: error instanceof Error ? error.message : String(error)
-    });
+    res.status(500).json({ error: 'Failed to get payment intent' });
   }
 };
 
@@ -1108,10 +1011,11 @@ const updateProductPrices = async (req: Request, res: Response): Promise<void> =
   }
 };
 
-const createSetupIntent = async (req: Request, res: Response) => {
+// Setup intent handler
+const createSetupIntent = async (req: Request, res: Response): Promise<void> => {
   try {
     const { customer, payment_method } = req.body;
-
+    
     if (!customer || !payment_method) {
       res.status(400).json({ error: "Customer and payment_method are required" });
       return;
@@ -1130,16 +1034,12 @@ const createSetupIntent = async (req: Request, res: Response) => {
       status: setupIntent.status
     });
   } catch (error) {
-    console.error("Error creating setup intent:", error);
-    res.status(500).json({ 
-      error: "Error creating setup intent",
-      details: error instanceof Error ? error.message : String(error)
-    });
+    console.error('Error creating setup intent:', error);
+    res.status(500).json({ error: 'Failed to create setup intent' });
   }
 };
 
-router.post("/stripe/products", createStripeProduct);
-router.post("/stripe/products/:productId/prices", updateProductPrices);
+// Register all routes on router instead of app
 router.post("/stripe/customers", createCustomer);
 router.get("/stripe/customers/:customerId", getCustomer);
 router.post("/stripe/payments", createPaymentIntent);
@@ -1152,42 +1052,14 @@ router.post("/stripe/subscriptions/:subscriptionId/handle-failed-payment", handl
 router.post("/stripe/subscriptions/:subscriptionId/reminder", sendRenewalReminder);
 router.post("/stripe/subscriptions/:subscriptionId/payment-method", updatePaymentMethod);
 router.post("/stripe/setup-intent", createSetupIntent);
-router.post("/webhook", express.raw({type: 'application/json'}), async (req: StripeRequest, res: Response) => {
-  try {
-    const sig = req.headers['stripe-signature'] as string;
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || 
-      (functions.config().stripe?.webhook_secret as string) || 
-      '';
-   // const event = stripe.webhooks.constructEvent(req.rawBody || '', sig, webhookSecret);
-    const event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
 
-    console.log("Received Webhook Signature:", sig);
-    console.log("Using Stripe Webhook Secret:", webhookSecret);
-    console.log("event****************:", event);
-    if (event.type.startsWith('invoice.') || event.type.startsWith('customer.subscription.')) {
-      await handleSubscriptionWebhook(event);
-    }
-
-    res.json({ received: true });
-  } catch (err: any) {
-    console.error("Webhook error:", err);
-    res.status(400).send(`Webhook Error: ${err.message}`);
-  }
+// Register purchase confirmation route
+router.post("/purchase-confirmation", async (req: Request, res: Response) => {
+  await sendPurchaseConfirmationHandler(req, res);
 });
 
-// Die sendContactForm Funktion als Express-Route
+// Register contact form route
 router.post('/sendContactForm', async (req: Request, res: Response) => {
-  // Set CORS headers
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', 'GET, POST');
-  res.set('Access-Control-Allow-Headers', 'Content-Type');
-
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    res.status(204).send('');
-    return;
-  }
-
   try {
     const data = req.body as ContactFormData;
     console.log('Received contact form data:', data);
@@ -1211,60 +1083,46 @@ router.post('/sendContactForm', async (req: Request, res: Response) => {
       return;
     }
 
-    try {
-      // Send email to admin
-      console.log('Sending email to admin...');
-      const adminMailResult = await transporter.sendMail({
-        from: '"HorizonNet Kontaktformular" <office@horizonnet-consulting.at>',
-        to: 'office@horizonnet-consulting.at',
-        subject: 'Neue Kontaktanfrage',
-        html: `
-          <h2>Neue Kontaktanfrage von ${escapeHtml(data.firstName)} ${escapeHtml(data.lastName)}</h2>
-          <p><strong>Name:</strong> ${escapeHtml(data.firstName)} ${escapeHtml(data.lastName)}</p>
-          <p><strong>E-Mail:</strong> ${escapeHtml(data.email)}</p>
-          <p><strong>Nachricht:</strong></p>
-          <p>${escapeHtml(data.message)}</p>
-          <p><strong>Zeitpunkt:</strong> ${new Date().toLocaleString('de-AT')}</p>
-        `
-      });
-      console.log('Admin email sent:', adminMailResult);
+    // Send email to admin
+    await transporter.sendMail({
+      from: '"HorizonNet Kontaktformular" <office@horizonnet-consulting.at>',
+      to: 'office@horizonnet-consulting.at',
+      subject: 'Neue Kontaktanfrage',
+      html: `
+        <h2>Neue Kontaktanfrage von ${escapeHtml(data.firstName)} ${escapeHtml(data.lastName)}</h2>
+        <p><strong>Name:</strong> ${escapeHtml(data.firstName)} ${escapeHtml(data.lastName)}</p>
+        <p><strong>E-Mail:</strong> ${escapeHtml(data.email)}</p>
+        <p><strong>Nachricht:</strong></p>
+        <p>${escapeHtml(data.message)}</p>
+        <p><strong>Zeitpunkt:</strong> ${new Date().toLocaleString('de-AT')}</p>
+      `
+    });
 
-      // Send confirmation email to user
-      console.log('Sending confirmation email to user...');
-      const userMailResult = await transporter.sendMail({
-        from: '"HorizonNet Consulting" <office@horizonnet-consulting.at>',
-        to: data.email,
-        subject: 'Ihre Kontaktanfrage bei HorizonNet',
-        html: `
-          <h2>Vielen Dank für Ihre Kontaktanfrage!</h2>
-          <p>Sehr geehrte(r) ${escapeHtml(data.firstName)} ${escapeHtml(data.lastName)},</p>
-          <p>wir haben Ihre Nachricht erhalten und werden uns schnellstmöglich bei Ihnen melden.</p>
-          <p>Ihre Nachricht:</p>
-          <blockquote style="border-left: 2px solid #ccc; padding-left: 10px; margin: 10px 0;">
-            ${escapeHtml(data.message)}
-          </blockquote>
-          <p>Mit freundlichen Grüßen,<br>Ihr HorizonNet Team</p>
-        `
-      });
-      console.log('User confirmation email sent:', userMailResult);
+    // Send confirmation email to user
+    await transporter.sendMail({
+      from: '"HorizonNet Consulting" <office@horizonnet-consulting.at>',
+      to: data.email,
+      subject: 'Ihre Kontaktanfrage bei HorizonNet',
+      html: `
+        <h2>Vielen Dank für Ihre Kontaktanfrage!</h2>
+        <p>Sehr geehrte(r) ${escapeHtml(data.firstName)} ${escapeHtml(data.lastName)},</p>
+        <p>wir haben Ihre Nachricht erhalten und werden uns schnellstmöglich bei Ihnen melden.</p>
+        <p>Ihre Nachricht:</p>
+        <blockquote style="border-left: 2px solid #ccc; padding-left: 10px; margin: 10px 0;">
+          ${escapeHtml(data.message)}
+        </blockquote>
+        <p>Mit freundlichen Grüßen,<br>Ihr HorizonNet Team</p>
+      `
+    });
 
-      // Store in Firestore
-      console.log('Storing contact request in Firestore...');
-      await admin.firestore().collection('contactRequests').add({
-        ...data,
-        timestamp: admin.firestore.FieldValue.serverTimestamp(),
-        status: 'new'
-      });
-      console.log('Contact request stored in Firestore');
+    // Store in Firestore
+    await admin.firestore().collection('contactRequests').add({
+      ...data,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      status: 'new'
+    });
 
-      res.status(200).json({ success: true });
-    } catch (error) {
-      console.error('Detailed error in sendContactForm:', error);
-      res.status(500).json({
-        error: 'Ein Fehler ist aufgetreten beim Verarbeiten Ihrer Anfrage.',
-        details: error instanceof Error ? error.message : String(error)
-      });
-    }
+    res.status(200).json({ success: true });
   } catch (error) {
     console.error('Error in sendContactForm:', error);
     res.status(500).json({
@@ -1297,7 +1155,12 @@ interface PurchaseConfirmationData {
     city: string;
     country: string;
   };
-  productType?: 'academy' | 'crypto';
+  purchasedCourseIds: string[];
+  purchasedProducts: {
+    id: string;
+    name: string;
+    courseIds: string[];
+  }[];
   isSalesPartner?: boolean;
   isSubscription?: boolean;
 }
@@ -1318,20 +1181,18 @@ interface EmailAttachment {
 }
 
 // Generate unique product key
-const generateProductKey = async (productType: string): Promise<string> => {
-  const prefix = productType === 'academy' ? 'ACAD' : 'CRYP';
+const generateProductKey = async (): Promise<string> => {
   const timestamp = Date.now().toString(36);
   const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-  return `${prefix}-${timestamp}-${random}`;
+  return `HN-${timestamp}-${random}`;
 };
 
 // Store initial product key in Firestore
 const storeInitialProductKey = async (productKey: string, data: PurchaseConfirmationData) => {
   const productKeyData = {
     productKey,
-    productType: data.productType || 'crypto',
     customerEmail: data.email,
-    email: data.email,  // Keep both for compatibility
+    email: data.email,
     firstName: data.firstName,
     lastName: data.lastName,
     street: data.billingDetails.street,
@@ -1340,14 +1201,27 @@ const storeInitialProductKey = async (productKey: string, data: PurchaseConfirma
     city: data.billingDetails.city,
     country: data.billingDetails.country,
     paymentPlan: data.paymentPlan,
-    purchaseDate: admin.firestore.FieldValue.serverTimestamp(),
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    purchaseDate: new Date(),
+    createdAt: new Date(),
     isActivated: false,
     isSalesPartner: data.isSalesPartner || false,
+    courseIds: data.purchasedCourseIds,
+    products: data.purchasedProducts.reduce((acc, product) => ({
+      ...acc,
+      [product.id]: {
+        name: product.name,
+        courseIds: product.courseIds,
+        activated: false,
+        activatedAt: null
+      }
+    }), {}),
     status: 'active'
   };
 
+  // Store in Firestore
   await admin.firestore().collection('productKeys').doc(productKey).set(productKeyData);
+
+  return productKeyData;
 };
 
 // Send activation confirmation
@@ -1362,48 +1236,17 @@ export const sendActivationConfirmation = onCall<ActivationConfirmationData>({
     'http://localhost:4200'
   ]
 }, async (request) => {
-  const {email, password, firstName, lastName, userId, productType} = request.data;
-
   try {
-    // Update the product key with user information
-    const productKeyDoc = await admin.firestore()
-      .collection('productKeys')
-      .where('customerEmail', '==', email)
-      .where('isActivated', '==', false)
-      .where('productType', '==', productType)
-      .limit(1)
-      .get();
-
-    if (productKeyDoc.empty) {
-      throw new Error('No valid product key found for this email and product type');
-    }
-
-    const productKey = productKeyDoc.docs[0].id;
-
-    // Update product key with user information
-    await admin.firestore().collection('productKeys').doc(productKey).update({
-      userId,
-      isActivated: true,
-      activatedAt: admin.firestore.FieldValue.serverTimestamp()
-    });
-
-    // Update user's document with the product access
-    await admin.firestore().collection('users').doc(userId).update({
-      [`products.${productType}`]: {
-        activated: true,
-        productKey,
-        activatedAt: admin.firestore.FieldValue.serverTimestamp()
-      }
-    });
-
-    // Send activation email with login credentials
+    const { email, password, firstName, lastName } = request.data;
+    
+    // Sende Aktivierungs-E-Mail
     await transporter.sendMail({
       from: '"HorizonNet Consulting" <office@horizonnet-consulting.at>',
       to: email,
       subject: "Ihr Account wurde aktiviert",
       html: `
         <h1>Ihr Account wurde erfolgreich aktiviert!</h1>
-        <p>Hallo ${firstName || ''} ${lastName || ''},</p>
+        <p>Hallo ${firstName || ''} ${lastName || ''}</p>
         <p>Sie können sich nun mit folgenden Zugangsdaten einloggen:</p>
         <p><strong>E-Mail:</strong> ${email}</p>
         <p><strong>Passwort:</strong> ${password}</p>
@@ -1415,11 +1258,207 @@ export const sendActivationConfirmation = onCall<ActivationConfirmationData>({
       `
     });
 
-    console.log('Activation confirmation email sent successfully');
     return { success: true };
   } catch (error) {
-    console.error('Error sending activation confirmation:', error);
-    return { error: 'Failed to send activation confirmation' };
+    console.error('Error in activation:', error);
+    return { error: 'Failed to activate products' };
+  }
+});
+
+interface ConsentData {
+  acceptTerms: boolean;
+  consent1: boolean;
+  consent2: boolean;
+  timestamp: string;
+}
+
+const checkIfUserExists = async (email: string): Promise<boolean> => {
+  const usersSnapshot = await admin.firestore()
+    .collection('users')
+    .where('email', '==', email)
+    .get();
+  return !usersSnapshot.empty;
+};
+
+const activateProductKey = async (productKey: string, consent: ConsentData) => {
+  if (!consent.acceptTerms || !consent.consent1 || !consent.consent2) {
+    throw new Error('Alle Zustimmungen müssen akzeptiert werden');
+  }
+
+  try {
+    // Check if product key exists and is valid
+    const keyDoc = await admin.firestore().collection('productKeys').doc(productKey).get();
+    if (!keyDoc?.exists) {
+      throw new Error('Invalid product key');
+    }
+
+    const keyData = keyDoc.data() as any;
+    
+    if (keyData.isActivated) {
+      throw new Error('Dieser Produktschlüssel wurde bereits aktiviert.');
+    }
+
+    // Check for email in customerEmail field first, then fall back to email field
+    const email = keyData.customerEmail || keyData.email;
+    
+    if (!email) {
+      throw new Error('Keine E-Mail-Adresse für diesen Produktschlüssel gefunden.');
+    }
+
+    // Generate password and create or get Firebase Auth user
+    const password = Math.random().toString(36).slice(-8);
+    let user;
+    let isNewUser = true;
+
+    try {
+      // Versuche zuerst, den Benutzer zu erstellen
+      const userRecord = await admin.auth().createUser({
+        email: email,
+        password: password,
+        emailVerified: false
+      });
+      user = userRecord;
+    } catch (authError: any) {
+      isNewUser = false;
+      if (authError.code === 'auth/email-already-exists') {
+        // Prüfe ob der Benutzer in unserer Datenbank existiert
+        const existingUser = await checkIfUserExists(email);
+        if (existingUser) {
+          throw new Error('Diese E-Mail-Adresse wurde bereits aktiviert. Bitte verwenden Sie die Anmeldedaten aus Ihrer Aktivierungs-E-Mail.');
+        }
+        
+        // Wenn der Benutzer nur in Auth existiert, hole die User-Daten
+        const userRecord = await admin.auth().getUserByEmail(email);
+        user = userRecord;
+      } else {
+        throw authError;
+      }
+    }
+
+    if (!user) {
+      throw new Error('Failed to create or get user account');
+    }
+
+    // Create user document with consent data and course IDs
+    const userData = {
+      firstName: keyData.firstName || '',
+      lastName: keyData.lastName || '',
+      email: email,
+      street: keyData.street || '',
+      streetNumber: keyData.streetNumber || '',
+      zipCode: keyData.zipCode || '',
+      city: keyData.city || '',
+      country: keyData.country || '',
+      mobile: keyData.mobile || '',
+      paymentPlan: keyData.paymentPlan || 0,
+      purchaseDate: keyData.purchaseDate || new Date(),
+      productKey: productKey,
+      status: 'active',
+      keyActivated: true,
+      accountActivated: false,
+      firebaseUid: user.uid,
+      activatedAt: new Date(),
+      consent: {
+        acceptTerms: consent.acceptTerms,
+        consent1: consent.consent1,
+        consent2: consent.consent2,
+        timestamp: consent.timestamp
+      },
+      courses: {
+        purchased: keyData.courseIds,
+        progress: {}
+      },
+      products: keyData.products || {},
+      isSalesPartner: keyData.isSalesPartner || false
+    };
+
+    // Create user document
+    await admin.firestore().collection('users').doc(user.uid).set(userData);
+
+    // Update product key status with consent data
+    await admin.firestore().collection('productKeys').doc(productKey).update({
+      status: 'active',
+      isActivated: true,
+      activatedAt: new Date(),
+      firebaseUid: user.uid,
+      email: email,
+      consent: {
+        acceptTerms: consent.acceptTerms,
+        consent1: consent.consent1,
+        consent2: consent.consent2,
+        timestamp: consent.timestamp
+      }
+    });
+
+    // Send confirmation email with login credentials only if new user was created
+    if (isNewUser) {
+      try {
+        const productValues = keyData.products && typeof keyData.products === 'object' 
+          ? Object.values(keyData.products) as ProductData[]
+          : [];
+          
+        if (productValues.length === 0) {
+          throw new Error('Keine Produkte für diesen Benutzer gefunden');
+        }
+
+        // E-Mail direkt senden
+        await transporter.sendMail({
+          from: '"HorizonNet Consulting" <office@horizonnet-consulting.at>',
+          to: email,
+          subject: "Ihr Account wurde aktiviert",
+          html: `
+            <h1>Ihr Account wurde erfolgreich aktiviert!</h1>
+            <p>Hallo ${keyData.firstName || ''} ${keyData.lastName || ''}</p>
+            <p>Sie können sich nun mit folgenden Zugangsdaten einloggen:</p>
+            <p><strong>E-Mail:</strong> ${email}</p>
+            <p><strong>Passwort:</strong> ${password}</p>
+            <p><strong>Wichtig:</strong> Bitte ändern Sie Ihr Passwort nach dem ersten Login.</p>
+            <p>Zum Login gelangen Sie hier:</p>
+            <p><a href="${BASE_URL}/login">Zum Login</a></p>
+            <p>In Ihrem Kundendashboard finden Sie alle wichtigen Informationen und Dokumente.</p>
+            <p>Mit freundlichen Grüßen,<br>Ihr HorizonNet Team</p>
+          `
+        });
+      } catch (error: any) {
+        console.error('Error sending activation email:', error);
+      }
+    }
+
+    return user;
+  } catch (error) {
+    throw error;
+  }
+};
+
+interface ProductData {
+  name: string;
+  courseIds: string[];
+  activated: boolean;
+  activatedAt: Date | null;
+}
+
+// Export the activateProduct function
+export const activateProduct = onCall<{productKey: string, consent: ConsentData}>({
+  timeoutSeconds: 300,
+  memory: '256MiB',
+  minInstances: 0,
+  maxInstances: 10,
+  cors: [
+    'https://horizonnet-ed13d.web.app',
+    'https://horizonnet-consulting.at',
+    'http://localhost:4200'
+  ]
+}, async (request) => {
+  try {
+    const { productKey, consent } = request.data;
+    const user = await activateProductKey(productKey, consent);
+    return { success: true, user };
+  } catch (error) {
+    console.error('Error in product activation:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to activate product' 
+    };
   }
 });
 

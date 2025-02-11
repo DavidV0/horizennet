@@ -1,15 +1,16 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CourseService } from '../../../shared/services/course.service';
-import { Observable, switchMap, map, BehaviorSubject, take, combineLatest } from 'rxjs';
+import { Observable, switchMap, map, BehaviorSubject, take, combineLatest, tap } from 'rxjs';
 import { Course, Module, Lesson, Question } from '../../../shared/models/course.model';
 import { SafePipe } from '../../../shared/pipes/safe.pipe';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { AuthService } from '../../../shared/services/auth.service';
+import { UserService } from '../../../shared/services/user.service';
 
 interface QuizResult {
   totalQuestions: number;
@@ -32,41 +33,59 @@ interface QuizResult {
   styleUrls: ['./lesson-detail.component.scss']
 })
 export class LessonDetailComponent implements OnInit {
+  @ViewChild('videoPlayer') videoPlayer!: ElementRef<HTMLVideoElement>;
+  private readonly SKIP_SECONDS = 10;
+
   lesson$!: Observable<Lesson>;
-  selectedAnswers: { [key: number]: number[] } = {};
+  currentModule$ = new BehaviorSubject<Module | null>(null);
+  selectedAnswers: { [questionIndex: number]: number[] } = {};
   quizSubmitted = false;
   quizResult: QuizResult | null = null;
-  private currentModule$ = new BehaviorSubject<Module | null>(null);
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private courseService: CourseService,
     private firestore: AngularFirestore,
-    private authService: AuthService
+    private authService: AuthService,
+    private userService: UserService
   ) {}
 
   ngOnInit() {
-    this.lesson$ = combineLatest([
-      this.route.parent!.parent!.params,
-      this.route.params
-    ]).pipe(
-      switchMap(([parentParams, routeParams]) => {
-        return this.courseService.getCourse(parentParams['id']).pipe(
-          map(course => {
-            const moduleId = routeParams['moduleId'];
-            const lessonId = routeParams['lessonId'];
-            
-            const module = course.modules.find(m => m.id === moduleId);
-            if (!module) throw new Error('Module not found');
-            
-            this.currentModule$.next(module);
-            const lesson = module.lessons.find(l => l.id === lessonId);
-            if (!lesson) throw new Error('Lesson not found');
-            
-            return lesson;
-          })
-        );
+    // Auf Route-Parameter-Änderungen reagieren
+    this.route.params.pipe(
+      switchMap(params => {
+        const courseId = this.route.parent!.parent!.snapshot.params['id'];
+        const moduleId = params['moduleId'];
+        const lessonId = params['lessonId'];
+
+        // Zuerst das Modul laden
+        this.courseService.getModule(courseId, moduleId).subscribe(module => {
+          this.currentModule$.next(module);
+        });
+
+        // Dann die Lektion laden und automatisch als abgeschlossen markieren, wenn es ein Artikel ist
+        this.courseService.getLesson(courseId, moduleId, lessonId).subscribe(lesson => {
+          if (lesson.type === 'article') {
+            this.userService.markLessonAsCompleted(courseId, moduleId, lessonId, 'video')
+              .subscribe({
+                error: (error) => console.error('Error completing article lesson:', error)
+              });
+          }
+        });
+
+        // Observable für die Lektion setzen
+        return this.courseService.getLesson(courseId, moduleId, lessonId);
+      })
+    ).subscribe();
+
+    // Observable für die Lektion setzen
+    this.lesson$ = this.route.params.pipe(
+      switchMap(params => {
+        const courseId = this.route.parent!.parent!.snapshot.params['id'];
+        const moduleId = params['moduleId'];
+        const lessonId = params['lessonId'];
+        return this.courseService.getLesson(courseId, moduleId, lessonId);
       })
     );
   }
@@ -166,7 +185,7 @@ export class LessonDetailComponent implements OnInit {
         this.resetQuiz();
         
         const nextLesson = module.lessons[currentIndex + 1];
-        this.router.navigate(['dashboard', 'courses', courseId, 'modules', moduleId, 'lessons', nextLesson.id]);
+        this.router.navigate(['/dashboard', 'courses', courseId, 'modules', moduleId, 'lessons', nextLesson.id]);
       }
     });
   }
@@ -229,54 +248,40 @@ export class LessonDetailComponent implements OnInit {
   }
 
   async completeLesson() {
-    const user = await this.authService.user$.pipe(take(1)).toPromise();
-    if (!user) {
-      return;
-    }
-
     const courseId = this.route.parent!.parent!.snapshot.params['id'];
     const moduleId = this.route.parent!.snapshot.params['moduleId'];
     const lessonId = this.route.snapshot.params['lessonId'];
 
-    // Hole den Kurs direkt
-    const courseRef = this.firestore.collection('courses').doc(courseId);
-    const courseDoc = await courseRef.get().toPromise();
-
-    if (!courseDoc?.exists) {
-      return;
-    }
-
-    const courseData = courseDoc.data() as Course;
-    const modules = courseData.modules || [];
-
-    // Finde das richtige Modul
-    const moduleIndex = modules.findIndex(m => m.id === moduleId);
-    if (moduleIndex === -1) {
-      return;
-    }
-
-    // Finde die richtige Lektion
-    const lessonIndex = modules[moduleIndex].lessons.findIndex(l => l.id === lessonId);
-    if (lessonIndex === -1) {
-      return;
-    }
-
-    // Update die Lektion
-    modules[moduleIndex].lessons[lessonIndex] = {
-      ...modules[moduleIndex].lessons[lessonIndex],
-      completed: true,
-      completedAt: new Date(),
-      completedBy: user.uid,
-      completionType: 'video'
-    } as Lesson;
-
-    // Update den gesamten Kurs
-    await courseRef.update({
-      modules: modules
-    });
+    this.userService.markLessonAsCompleted(courseId, moduleId, lessonId, 'video')
+      .subscribe({
+        error: (error) => console.error('Error completing lesson:', error)
+      });
   }
 
   async onQuizCompleted() {
-    await this.completeLesson();
+    const courseId = this.route.parent!.parent!.snapshot.params['id'];
+    const moduleId = this.route.parent!.snapshot.params['moduleId'];
+    const lessonId = this.route.snapshot.params['lessonId'];
+
+    this.userService.markLessonAsCompleted(courseId, moduleId, lessonId, 'quiz')
+      .subscribe({
+        error: (error) => console.error('Error completing quiz:', error)
+      });
+  }
+
+  skipForward() {
+    if (this.videoPlayer?.nativeElement) {
+      const video = this.videoPlayer.nativeElement;
+      const newTime = Math.min(video.currentTime + this.SKIP_SECONDS, video.duration);
+      video.currentTime = newTime;
+    }
+  }
+
+  skipBackward() {
+    if (this.videoPlayer?.nativeElement) {
+      const video = this.videoPlayer.nativeElement;
+      const newTime = Math.max(video.currentTime - this.SKIP_SECONDS, 0);
+      video.currentTime = newTime;
+    }
   }
 } 

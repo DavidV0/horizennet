@@ -3,23 +3,53 @@
   max-width: 1200px;
   margin: 0 auto;
 
-  .welcome-text {
-    text-align: center;
-    max-width: 900px;
-    margin: 0 auto var(--spacing-xl);
-    padding: 0 var(--spacing-lg);
+  .welcome-section {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xl);
+    margin-bottom: var(--spacing-xl);
+    padding: var(--spacing-xl);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
     
-    h2 {
-      font-size: calc(var(--font-size-2xl) * 1.2);
-      font-weight: var(--font-weight-bold);
-      color: var(--color-accent);
-      margin-bottom: var(--spacing-lg);
+    .welcome-text {
+      flex: 1;
+      
+      h2 {
+        color: var(--color-accent);
+        font-size: 2rem;
+        margin-bottom: var(--spacing-md);
+      }
+      
+      p {
+        color: var(--color-text-secondary);
+        font-size: 1.1rem;
+        line-height: 1.6;
+      }
     }
 
-    p {
-      font-size: calc(var(--font-size-lg) * 1.1);
-      line-height: 1.6;
-      color: var(--color-text-light);
+    .guarantee-seal {
+      flex-shrink: 0;
+      text-align: center;
+      
+      .money-back-seal {
+        width: 180px;
+        height: 180px;
+        object-fit: contain;
+        filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.3));
+        transition: transform 0.3s ease;
+        
+        &:hover {
+          transform: scale(1.05);
+        }
+      }
+      
+      .guarantee-text {
+        margin-top: var(--spacing-sm);
+        color: var(--color-accent);
+        font-weight: 500;
+        font-size: 1.1rem;
+      }
     }
   }
 
@@ -182,13 +212,15 @@
   .shop-section {
     padding: calc(var(--spacing-xl) * 1.5) var(--spacing-lg);
 
-    .welcome-text {
-      h2 {
-        font-size: calc(var(--font-size-2xl) * 1.1);
-      }
+    .welcome-section {
+      .welcome-text {
+        h2 {
+          font-size: calc(var(--font-size-2xl) * 1.1);
+        }
 
-      p {
-        font-size: var(--font-size-lg);
+        p {
+          font-size: var(--font-size-lg);
+        }
       }
     }
   }
@@ -199,13 +231,22 @@
   .shop-section {
     padding: var(--spacing-xl) var(--spacing-md);
 
-    .welcome-text {
-      h2 {
-        font-size: var(--font-size-2xl);
+    .welcome-section {
+      flex-direction: column;
+      text-align: center;
+      padding: var(--spacing-lg);
+      
+      .welcome-text {
+        h2 {
+          font-size: 1.8rem;
+        }
       }
-
-      p {
-        font-size: var(--font-size-md);
+      
+      .guarantee-seal {
+        .money-back-seal {
+          width: 150px;
+          height: 150px;
+        }
       }
     }
 

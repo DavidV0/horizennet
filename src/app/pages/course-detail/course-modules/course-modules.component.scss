@@ -1,0 +1,26 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.mat-expansion-panel {
+  margin-bottom: 1rem;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.mat-expansion-panel-header {
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+}
+
+.lesson-item {
+  transition: all 0.2s ease-in-out;
+  
+  &:hover {
+    transform: translateX(4px);
+  }
+} 

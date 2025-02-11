@@ -70,6 +70,11 @@ export const routes: Routes = [
         path: 'support',
         loadComponent: () => import('./pages/support/support.component').then(m => m.SupportComponent),
         data: { ssr: false }
+      },
+      {
+        path: 'shop',
+        loadComponent: () => import('./pages/shop/shop.component').then(m => m.ShopComponent),
+        title: 'Shop'
       }
     ]
   },

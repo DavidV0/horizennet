@@ -1,7 +1,10 @@
 import { Injectable } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
+import { Observable, of } from 'rxjs';
+import { map, switchMap } from 'rxjs/operators';
 import { AuthService } from './auth.service';
-import { Observable, map, of, from, switchMap, take } from 'rxjs';
+import { User } from '../models/user.model';
+import { Progress, CourseProgress } from '../models/progress.model';
 
 @Injectable({
   providedIn: 'root'
@@ -12,23 +15,49 @@ export class CourseAccessService {
     private authService: AuthService
   ) {}
 
-  // Check if user has access to a specific course
+  private calculateCourseProgress(courseProgress: CourseProgress | undefined): number {
+    if (!courseProgress?.modules) return 0;
+
+    let completedLessons = 0;
+    let totalLessons = 0;
+
+    Object.values(courseProgress.modules).forEach(module => {
+      Object.values(module.lessons).forEach(lesson => {
+        if (lesson.completed) completedLessons++;
+        totalLessons++;
+      });
+    });
+
+    return totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
+  }
+
   hasAccessToCourse(courseId: string): Observable<boolean> {
+    return this.getCourseAccess(courseId).pipe(
+      map(result => result.hasAccess)
+    );
+  }
+
+  getCourseAccess(courseId: string): Observable<{ hasAccess: boolean; progress: number }> {
     return this.authService.user$.pipe(
       switchMap(user => {
-        if (!user) return of(false);
-        
-        return from(
-          this.firestore
-            .collection('user_courses')
-            .doc(user.uid)
-            .get()
-            .toPromise()
-        ).pipe(
-          map(doc => {
-            if (!doc?.exists) return false;
-            const userData = doc.data() as any;
-            return userData?.courseIds?.includes(courseId) || false;
+        if (!user) {
+          return of({ hasAccess: false, progress: 0 });
+        }
+
+        return this.firestore.doc<User>(`users/${user.uid}`).valueChanges().pipe(
+          map(userData => {
+            if (!userData) return { hasAccess: false, progress: 0 };
+
+            const hasAccess = 
+              userData.purchasedCourses?.includes(courseId) || 
+              userData.purchased?.includes(courseId) || 
+              userData.courses?.purchased?.includes(courseId) || 
+              false;
+
+            const courseProgress = userData?.progress?.courses[courseId];
+            const progress = courseProgress ? this.calculateCourseProgress(courseProgress) : 0;
+
+            return { hasAccess, progress };
           })
         );
       })
@@ -41,18 +70,8 @@ export class CourseAccessService {
       switchMap(user => {
         if (!user) return of([]);
         
-        return from(
-          this.firestore
-            .collection('user_courses')
-            .doc(user.uid)
-            .get()
-            .toPromise()
-        ).pipe(
-          map(doc => {
-            if (!doc?.exists) return [];
-            const userData = doc.data() as any;
-            return userData?.courseIds || [];
-          })
+        return this.firestore.doc<User>(`users/${user.uid}`).valueChanges().pipe(
+          map(userData => userData?.purchasedCourses || [])
         );
       })
     );
@@ -64,33 +83,13 @@ export class CourseAccessService {
       switchMap(user => {
         if (!user) return of(0);
         
-        return from(
-          this.firestore
-            .collection('users')
-            .doc(user.uid)
-            .get()
-            .toPromise()
-        ).pipe(
-          map(doc => {
-            if (!doc?.exists) return 0;
-            const userData = doc.data() as any;
-            return userData?.courses?.progress?.[courseId] || 0;
+        return this.firestore.doc<User>(`users/${user.uid}`).valueChanges().pipe(
+          map(userData => {
+            const courseProgress = userData?.progress?.courses[courseId];
+            return courseProgress ? this.calculateCourseProgress(courseProgress) : 0;
           })
         );
       })
     );
-  }
-
-  // Update course progress
-  async updateCourseProgress(courseId: string, progress: number): Promise<void> {
-    const user = await this.authService.user$.pipe(take(1)).toPromise();
-    if (!user?.uid) throw new Error('User not authenticated');
-
-    return this.firestore
-      .collection('users')
-      .doc(user.uid)
-      .update({
-        [`courses.progress.${courseId}`]: progress
-      });
   }
 } 

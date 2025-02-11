@@ -1,41 +1,69 @@
 import { Injectable } from '@angular/core';
 import { AngularFirestore, DocumentData } from '@angular/fire/compat/firestore';
 import { AngularFireStorage } from '@angular/fire/compat/storage';
-import { Observable, from, switchMap, map, combineLatest, take } from 'rxjs';
+import { Observable, from, switchMap, map, combineLatest, take, of, firstValueFrom } from 'rxjs';
 import { Course, Module, Lesson } from '../models/course.model';
-
-interface UserCourses {
-  courseIds: string[];
-}
+import { AuthService } from '../services/auth.service';
+import { UserService } from '../services/user.service';
+import { User } from '../models/user.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class CourseService {
   private readonly COURSES_COLLECTION = 'courses';
-  private readonly USER_COURSES_COLLECTION = 'user_courses';
 
   constructor(
     private firestore: AngularFirestore,
-    private storage: AngularFireStorage
+    private storage: AngularFireStorage,
+    private authService: AuthService,
+    private userService: UserService
   ) {}
 
-  getCourses(role: string): Observable<Course[]> {
-    if (role === 'ADMIN') {
-      return this.firestore
-        .collection<Course>(this.COURSES_COLLECTION)
-        .valueChanges({ idField: 'id' });
-    }
-    return this.firestore
-      .collection<Course>(this.COURSES_COLLECTION, ref => 
-        ref.where('isActive', '==', true))
-      .valueChanges({ idField: 'id' });
+  getCourses(role: 'ADMIN' | 'USER'): Observable<Course[]> {
+    return this.authService.user$.pipe(
+      take(1),
+      switchMap(user => {
+        if (!user) return of([]);
+        
+        return this.firestore.collection<Course>('courses').get().pipe(
+          switchMap(async snapshot => {
+            const courses = snapshot.docs.map(doc => {
+              const data = doc.data();
+              return {
+                ...data,
+                id: doc.id
+              } as Course;
+            });
+
+            if (role === 'ADMIN') return courses;
+
+            // For regular users, filter courses based on access
+            const accessPromises = courses.map(course => 
+              firstValueFrom(this.userService.hasAccessToCourse(course.id))
+            );
+            
+            const accessResults = await Promise.all(accessPromises);
+            return courses.filter((_, index) => accessResults[index]);
+          })
+        );
+      })
+    );
   }
 
   getCourse(id: string): Observable<Course> {
     return this.firestore
       .doc<Course>(`${this.COURSES_COLLECTION}/${id}`)
-      .valueChanges({ idField: 'id' }) as Observable<Course>;
+      .snapshotChanges()
+      .pipe(
+        map(snapshot => {
+          const data = snapshot.payload.data() as Course;
+          return {
+            ...data,
+            id: snapshot.payload.id
+          };
+        })
+      );
   }
 
   async createCourse(course: Partial<Course>, imageFile?: File): Promise<void> {
@@ -203,16 +231,15 @@ export class CourseService {
 
   getUserCourses(userId: string): Observable<Course[]> {
     return this.firestore
-      .collection(this.USER_COURSES_COLLECTION)
-      .doc<UserCourses>(userId)
+      .doc<User>(`users/${userId}`)
       .valueChanges()
       .pipe(
-        switchMap((userCourses) => {
-          if (!userCourses?.courseIds || userCourses.courseIds.length === 0) {
+        switchMap((user) => {
+          if (!user?.purchasedCourses || user.purchasedCourses.length === 0) {
             return new Observable<Course[]>(subscriber => subscriber.next([]));
           }
 
-          const courseObservables = userCourses.courseIds.map(courseId =>
+          const courseObservables = user.purchasedCourses.map(courseId =>
             this.firestore
               .doc<Course>(`${this.COURSES_COLLECTION}/${courseId}`)
               .valueChanges({ idField: 'id' })
@@ -227,36 +254,34 @@ export class CourseService {
   }
 
   async activateCourseForUser(userId: string, courseId: string): Promise<void> {
-    const userCoursesRef = this.firestore.collection(this.USER_COURSES_COLLECTION).doc(userId);
+    const userRef = this.firestore.doc(`users/${userId}`);
     
-    const doc = await userCoursesRef.get().toPromise();
-    const data = doc?.data() as UserCourses | undefined;
+    const doc = await userRef.get().toPromise();
+    const data = doc?.data() as User | undefined;
     
     if (doc?.exists && data) {
-      return userCoursesRef.update({
-        courseIds: [...new Set([...data.courseIds, courseId])]
+      return userRef.update({
+        purchasedCourses: [...new Set([...(data.purchasedCourses || []), courseId])]
       });
     } else {
-      return userCoursesRef.set({
-        courseIds: [courseId]
-      });
+      return userRef.set({
+        purchasedCourses: [courseId]
+      }, { merge: true });
     }
   }
 
   isActivatedForUser(userId: string, courseId: string): Observable<boolean> {
     return this.firestore
-      .collection(this.USER_COURSES_COLLECTION)
-      .doc<UserCourses>(userId)
+      .doc<User>(`users/${userId}`)
       .valueChanges()
       .pipe(
-        map(userCourses => 
-          userCourses?.courseIds?.includes(courseId) || false
+        map(user => 
+          user?.purchasedCourses?.includes(courseId) || false
         )
       );
   }
 
   refreshCourse(courseId: string) {
-    // Hole den Kurs neu aus Firestore und aktualisiere den Cache
     this.firestore.collection('courses').doc(courseId).get()
       .pipe(take(1))
       .subscribe(doc => {
@@ -265,5 +290,66 @@ export class CourseService {
           // Je nachdem, wie dein Service implementiert ist
         }
       });
+  }
+
+  markLessonAsCompleted(courseId: string, moduleId: string, lessonId: string, completionType: 'video' | 'quiz' = 'video'): Observable<void> {
+    return this.authService.user$.pipe(
+      take(1),
+      switchMap(user => {
+        if (!user) throw new Error('User not authenticated');
+        return this.userService.markLessonAsCompleted(courseId, moduleId, lessonId, completionType);
+      })
+    );
+  }
+
+  getLessonProgress(courseId: string, moduleId: string, lessonId: string): Observable<boolean> {
+    return this.authService.user$.pipe(
+      switchMap(user => {
+        if (!user) return of(false);
+        return this.userService.getLessonProgress(courseId, moduleId, lessonId);
+      })
+    );
+  }
+
+  getModuleProgress(courseId: string, moduleId: string): Observable<number> {
+    return this.authService.user$.pipe(
+      switchMap(user => {
+        if (!user) return of(0);
+        return this.userService.getModuleProgress(courseId, moduleId);
+      })
+    );
+  }
+
+  getCourseProgress(courseId: string): Observable<number> {
+    return this.authService.user$.pipe(
+      switchMap(user => {
+        if (!user) return of(0);
+        return this.userService.getCourseProgress(courseId);
+      })
+    );
+  }
+
+  getModule(courseId: string, moduleId: string): Observable<Module> {
+    return this.firestore
+      .doc<Course>(`courses/${courseId}`)
+      .snapshotChanges()
+      .pipe(
+        map(snapshot => {
+          const course = snapshot.payload.data() as Course;
+          const module = course?.modules.find(m => m.id === moduleId);
+          if (!module) throw new Error('Module not found');
+          return module;
+        })
+      );
+  }
+
+  getLesson(courseId: string, moduleId: string, lessonId: string): Observable<Lesson> {
+    return this.getModule(courseId, moduleId).pipe(
+      map(module => {
+        const lesson = module.lessons.find(l => l.id === lessonId);
+        if (!lesson) throw new Error('Lesson not found');
+        return lesson;
+      })
+    );
   }
 } 

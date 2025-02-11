@@ -1,4 +1,12 @@
 <div class="course-detail-container" *ngIf="course$ | async as course">
+  <!-- Zurück Button -->
+  <div class="navigation-buttons">
+    <button mat-flat-button (click)="backToCourses()">
+      <mat-icon>arrow_back</mat-icon>
+      <span>Zurück zu meinen Kursen</span>
+    </button>
+  </div>
+
   <div class="course-header">
     <h1>{{course.title}}</h1>
     <p class="subtitle" *ngIf="course.subtitle">{{course.subtitle}}</p>
@@ -17,13 +25,11 @@
         <h3>{{module.title}}</h3>
         <p class="module-description">{{module.description}}</p>
         
-        
-
         <div class="progress-info">
           <div class="progress-bar">
-            <div class="progress" [style.width.%]="calculateModuleProgress(module)"></div>
+            <div class="progress" [style.width.%]="module.progress$ | async"></div>
           </div>
-          <span class="progress-text">{{calculateModuleProgress(module)}}% GESCHAFFT</span>
+          <span class="progress-text">{{module.progress$ | async}}% GESCHAFFT</span>
         </div>
 
         <div class="module-footer">

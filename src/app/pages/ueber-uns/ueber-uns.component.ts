@@ -94,11 +94,11 @@ export class UeberUnsComponent implements AfterViewInit {
       image: 'assets/HorizonNet_tHwL.png'
     },
     {
-      name: 'Tim Otterle',
+      name: 'Tim Gitterle',
       position: 'CMO',
       image: 'assets/HorizonNet_tHwL.png'
     },
-
+    
     {
       name: 'Manuel Rosenberger',
       position: 'Sales Manager',
@@ -111,15 +111,15 @@ export class UeberUnsComponent implements AfterViewInit {
     },
     {
       name: 'Robin Berger',
-      position: 'Onboarding Manager',
+      position: 'Vertriebspartner',
       image: 'assets/HorizonNet_tHwL.png'
     },
 
     {
       name: 'John Bamoura',
-      position: 'Vertriebspartner',
+      position: 'Onboarding Manager',
       image: 'assets/HorizonNet_tHwL.png'
     },
- 
+
   ];
 }

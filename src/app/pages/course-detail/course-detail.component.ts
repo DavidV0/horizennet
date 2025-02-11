@@ -5,12 +5,14 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { CourseService } from '../../shared/services/course.service';
+import { UserService } from '../../shared/services/user.service';
 import { Course, Module } from '../../shared/models/course.model';
-import { Observable, switchMap, map } from 'rxjs';
+import { Observable, switchMap, map, combineLatest } from 'rxjs';
 
 interface ModuleWithProgress extends Module {
   image?: string;
   isUnlocked: boolean;
+  progress$: Observable<number>;
 }
 
 interface CourseWithModules extends Course {
@@ -35,20 +37,26 @@ export class CourseDetailComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private courseService: CourseService
+    private courseService: CourseService,
+    private userService: UserService
   ) {}
 
   ngOnInit() {
     this.course$ = this.route.params.pipe(
-      switchMap(params => this.courseService.getCourse(params['id'])),
-      map(course => ({
-        ...course,
-        modules: course.modules.map((module, index) => ({
-          ...module,
-          image: `assets/images/module-${index + 1}.jpg`,
-          isUnlocked: true // All modules are unlocked
-        }))
-      }))
+      switchMap(params => {
+        const courseId = params['id'];
+        return this.courseService.getCourse(courseId).pipe(
+          map(course => ({
+            ...course,
+            modules: course.modules.map((module, index) => ({
+              ...module,
+              image: `assets/images/module-${index + 1}.jpg`,
+              isUnlocked: true,
+              progress$: this.userService.getModuleProgress(courseId, module.id)
+            }))
+          }))
+        );
+      })
     );
   }
 
@@ -66,5 +74,9 @@ export class CourseDetailComponent implements OnInit {
 
   getLessonCount(module: any): number {
     return module.lessons ? module.lessons.length : 0;
+  }
+
+  backToCourses() {
+    this.router.navigate(['dashboard', 'courses']);
   }
 } 

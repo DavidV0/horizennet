@@ -3,6 +3,7 @@
   <div class="video-section" *ngIf="lesson.videoUrl">
     <div class="video-container">
       <video 
+        #videoPlayer
         controls
         controlsList="nodownload" 
         preload="metadata"
@@ -11,6 +12,15 @@
         (ended)="onVideoCompleted()">
         <p>Ihr Browser unterstützt das Video-Tag nicht.</p>
       </video>
+
+      <div class="video-controls">
+        <button class="skip-button rewind" (click)="skipBackward()">
+          <mat-icon>replay_10</mat-icon>
+        </button>
+        <button class="skip-button" (click)="skipForward()">
+          <mat-icon>forward_10</mat-icon>
+        </button>
+      </div>
     </div>
   </div>
 
