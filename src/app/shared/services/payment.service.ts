@@ -1,8 +1,10 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, throwError, of } from 'rxjs';
+import { Observable, throwError, of, from } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
+import { Functions } from '@angular/fire/functions';
+import { httpsCallable } from '@angular/fire/functions';
 
 export interface PaymentIntent {
   clientSecret: string;
@@ -59,11 +61,11 @@ interface PurchaseConfirmationData {
   providedIn: 'root'
 })
 export class PaymentService {
-  private apiUrl = environment.apiUrl;
+  private readonly apiUrl = environment.apiUrl;
   private readonly GRACE_PERIOD_DAYS = 7; // 7 days grace period for failed payments
   private readonly REMINDER_DAYS = [7, 3, 1]; // Send reminders 7, 3, and 1 day before renewal
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private functions: Functions) {}
 
   // One-time payment
   createPaymentIntent(amount: number, options: any = {}): Observable<PaymentIntent> {
@@ -195,7 +197,8 @@ export class PaymentService {
   }
 
   sendPurchaseConfirmation(data: PurchaseConfirmationData): Observable<any> {
-    return this.http.post(`${this.apiUrl}/api/sendPurchaseConfirmation`, data);
+    const sendEmail = httpsCallable(this.functions, 'sendPurchaseConfirmation');
+    return from(sendEmail(data));
   }
 
   private handleError(error: any) {

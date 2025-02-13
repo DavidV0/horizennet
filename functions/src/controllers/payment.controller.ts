@@ -1,7 +1,20 @@
 import { Request, Response } from 'express';
 import { stripeService } from '../services/stripe.service';
+import Stripe from 'stripe';
+import { stripe } from '../config/stripe';
 
 type CountryCode = 'AT' | 'DE' | 'CH' | 'GB' | 'US' | 'CA' | 'default';
+
+interface PriceData {
+  currency: string;
+  unit_amount: number;
+  type: 'one_time' | 'recurring';
+  recurring?: {
+    interval: 'day' | 'week' | 'month' | 'year';
+    interval_count: number;
+    usage_type: 'licensed' | 'metered';
+  };
+}
 
 // VAT rates by country code
 const VAT_RATES: Record<CountryCode, number> = {
@@ -252,41 +265,321 @@ export const paymentController = {
     }
   },
 
-  createCheckoutSession: async (req: Request, res: Response): Promise<void> => {
+  createCheckoutSession: async (req: Request, res: Response) => {
     try {
-      const { priceId, successUrl, cancelUrl, customerEmail } = req.body;
-      
-      if (!priceId || !successUrl || !cancelUrl) {
-        res.status(400).json({ error: "Price ID, success URL and cancel URL are required" });
-        return;
+      const { priceId, successUrl, cancelUrl, customerData } = req.body;
+
+      if (!priceId) {
+        return res.status(400).json({ error: 'Price ID is required' });
       }
 
-      const session = await stripeService.checkout.sessions.create({
-        mode: 'subscription',
-        payment_method_types: ['card'],
-        line_items: [{
-          price: priceId,
-          quantity: 1,
-        }],
-        success_url: successUrl,
-        cancel_url: cancelUrl,
-        customer_email: customerEmail,
-        payment_method_collection: 'always',
-        allow_promotion_codes: true,
-        billing_address_collection: 'required',
-        metadata: {
-          source: 'horizennet_web'
-        }
-      });
+      console.log('Creating checkout session with:', { priceId, customerData });
 
-      res.json({
+      // Get the price to determine if it's a one-time or recurring payment
+      let price;
+      try {
+        price = await stripe.prices.retrieve(priceId);
+        console.log('Retrieved price:', { id: price.id, type: price.type });
+      } catch (error) {
+        console.error('Error retrieving price:', error);
+        return res.status(400).json({ 
+          error: 'Invalid price ID',
+          details: error instanceof Error ? error.message : String(error)
+        });
+      }
+
+      // Create customer first
+      let customer;
+      try {
+        customer = await stripe.customers.create({
+          email: customerData?.email,
+          name: customerData ? `${customerData.firstName} ${customerData.lastName}` : undefined,
+          phone: customerData?.mobile,
+          address: customerData ? {
+            line1: `${customerData.street} ${customerData.streetNumber}`,
+            postal_code: customerData.zipCode,
+            city: customerData.city,
+            country: customerData.country,
+          } : undefined,
+          metadata: {
+            firstName: customerData?.firstName,
+            lastName: customerData?.lastName
+          }
+        });
+        console.log('Created customer:', { id: customer.id });
+      } catch (error) {
+        console.error('Error creating customer:', error);
+        return res.status(400).json({ 
+          error: 'Failed to create customer',
+          details: error instanceof Error ? error.message : String(error)
+        });
+      }
+
+      const mode = price.type === 'recurring' ? 'subscription' : 'payment';
+      console.log('Session mode:', mode);
+
+      // Ensure paymentPlan is a string
+      const paymentPlan = (customerData?.paymentPlan || '0').toString();
+      console.log('Payment plan:', paymentPlan);
+
+      // Calculate tax based on country
+      const country = customerData?.country || 'AT';
+      const vatRate = VAT_RATES[country as CountryCode] ?? VAT_RATES.default;
+      const unitAmount = price.unit_amount || 0;
+      const taxAmount = Math.round(unitAmount * vatRate);
+
+      const sessionConfig: Stripe.Checkout.SessionCreateParams = {
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price: priceId,
+            quantity: 1,
+            tax_rates: [], // We'll handle tax manually
+          },
+        ],
+        mode: mode as Stripe.Checkout.SessionCreateParams.Mode,
+        success_url: successUrl || `${req.headers.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: cancelUrl || `${req.headers.origin}/cancel`,
+        customer: customer.id,
+        ...(mode === 'subscription' ? {
+          payment_method_collection: 'always',
+          subscription_data: {
+            metadata: {
+              paymentPlan
+            },
+            trial_end: Math.floor(Date.now() / 1000)
+          }
+        } : {}),
+        billing_address_collection: 'required',
+        phone_number_collection: { enabled: true },
+        metadata: {
+          firstName: customerData?.firstName,
+          lastName: customerData?.lastName,
+          vatRate: vatRate.toString(),
+          taxAmount: taxAmount.toString(),
+          paymentPlan,
+          paymentMode: mode,
+          paymentType: mode
+        },
+        custom_text: {
+          submit: {
+            message: 'Mit der Zahlung fortfahren'
+          }
+        },
+        locale: 'de',
+        allow_promotion_codes: true,
+        customer_update: {
+          address: 'auto',
+          name: 'auto'
+        }
+      };
+
+      console.log('Creating session with config:', sessionConfig);
+
+      const session = await stripe.checkout.sessions.create(sessionConfig);
+
+      console.log('Session created:', { id: session.id, url: session.url });
+
+      return res.json({
         sessionId: session.id,
         url: session.url
       });
     } catch (error) {
-      console.error('Error creating checkout session:', error);
-      res.status(500).json({ 
+      console.error('Stripe checkout session error:', error);
+      return res.status(500).json({
         error: 'Failed to create checkout session',
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  },
+
+  createProduct: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { name, description, price, metadata, prices } = req.body;
+
+      if (!name || !price) {
+        res.status(400).json({ error: "Name and price are required" });
+        return;
+      }
+
+      // Create the product in Stripe
+      const product = await stripe.products.create({
+        name,
+        description,
+        metadata,
+        active: true
+      });
+
+      // Create all the price points
+      const priceIds: Record<string, string> = {};
+      
+      for (const [key, priceData] of Object.entries(prices as Record<string, PriceData>)) {
+        const price = await stripe.prices.create({
+          product: product.id,
+          currency: priceData.currency,
+          unit_amount: priceData.unit_amount,
+          recurring: priceData.recurring,
+          active: true,
+          metadata: {
+            type: priceData.type,
+            plan: key,
+            status: 'active',
+            createdAt: new Date().toISOString()
+          }
+        });
+        priceIds[key] = price.id;
+      }
+
+      // Set the default price to the full payment option if it exists
+      if (priceIds.fullPayment) {
+        await stripe.products.update(product.id, {
+          default_price: priceIds.fullPayment
+        });
+      }
+
+      res.json({
+        productId: product.id,
+        priceIds
+      });
+    } catch (error) {
+      console.error("Error creating product:", error);
+      res.status(500).json({
+        error: "Error creating product",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  },
+
+  updateProductPrices: async (req: Request, res: Response) => {
+    try {
+      const { productId } = req.params;
+      const { prices, existingPriceIds } = req.body;
+
+      // Deactivate existing prices if provided
+      if (existingPriceIds) {
+        for (const priceId of Object.values(existingPriceIds)) {
+          if (typeof priceId === 'string') {
+            try {
+              await stripe.prices.update(priceId, { 
+                active: false,
+                metadata: {
+                  status: 'archived',
+                  archivedAt: new Date().toISOString()
+                }
+              });
+              console.log('Successfully archived price:', priceId);
+            } catch (error) {
+              console.error('Error archiving price:', priceId, error);
+            }
+          }
+        }
+      }
+
+      // Create new prices
+      const priceIds: Record<string, string> = {};
+
+      // Create one-time payment price
+      if (prices.fullPayment) {
+        const fullPaymentPrice = await stripe.prices.create({
+          product: productId,
+          currency: prices.fullPayment.currency,
+          unit_amount: prices.fullPayment.unit_amount,
+          active: true,
+          metadata: {
+            type: 'one_time',
+            plan: 'fullPayment',
+            status: 'active',
+            createdAt: new Date().toISOString()
+          }
+        });
+        priceIds.fullPayment = fullPaymentPrice.id;
+      }
+
+      // Create recurring payment prices
+      const recurringPrices = ['sixMonths', 'twelveMonths', 'eighteenMonths'];
+      for (const key of recurringPrices) {
+        if (prices[key]) {
+          const recurringPrice = await stripe.prices.create({
+            product: productId,
+            currency: prices[key].currency,
+            unit_amount: prices[key].unit_amount,
+            recurring: prices[key].recurring,
+            active: true,
+            metadata: {
+              type: 'recurring',
+              plan: key,
+              status: 'active',
+              createdAt: new Date().toISOString()
+            }
+          });
+          priceIds[key] = recurringPrice.id;
+        }
+      }
+
+      // Set the default price to the full payment option if it exists
+      if (priceIds.fullPayment) {
+        await stripe.products.update(productId, {
+          default_price: priceIds.fullPayment,
+          metadata: {
+            lastUpdated: new Date().toISOString(),
+            currentPriceVersion: new Date().toISOString()
+          }
+        });
+      }
+
+      res.json({ priceIds });
+    } catch (error) {
+      console.error('Error updating Stripe prices:', error);
+      res.status(500).json({
+        error: 'Failed to update Stripe prices',
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  },
+
+  deactivatePrices: async (req: Request, res: Response) => {
+    try {
+      const { priceIds } = req.body;
+
+      if (!Array.isArray(priceIds)) {
+        return res.status(400).json({ error: 'Price IDs must be an array' });
+      }
+
+      for (const priceId of priceIds) {
+        if (typeof priceId === 'string') {
+          await stripe.prices.update(priceId, { active: false });
+        }
+      }
+
+      return res.json({ success: true });
+    } catch (error) {
+      console.error('Error deactivating prices:', error);
+      return res.status(500).json({
+        error: 'Failed to deactivate prices',
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  },
+
+  activatePrices: async (req: Request, res: Response) => {
+    try {
+      const { priceIds } = req.body;
+
+      if (!Array.isArray(priceIds)) {
+        return res.status(400).json({ error: 'Price IDs must be an array' });
+      }
+
+      for (const priceId of priceIds) {
+        if (typeof priceId === 'string') {
+          await stripe.prices.update(priceId, { active: true });
+        }
+      }
+
+      return res.json({ success: true });
+    } catch (error) {
+      console.error('Error activating prices:', error);
+      return res.status(500).json({
+        error: 'Failed to activate prices',
         details: error instanceof Error ? error.message : String(error)
       });
     }

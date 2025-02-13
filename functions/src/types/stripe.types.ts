@@ -12,6 +12,22 @@ export type StripePrice = Stripe.Price;
 export type StripePaymentMethod = Stripe.PaymentMethod;
 export type StripeSetupIntent = Stripe.SetupIntent;
 export type StripeWebhookEndpoint = Stripe.WebhookEndpoint;
+export type StripeCheckoutSession = Stripe.Checkout.Session & {
+  promotion_code?: string;
+  discount?: {
+    coupon: {
+      id: string;
+      name?: string;
+      percent_off?: number;
+      amount_off?: number;
+    };
+  };
+  total_details?: {
+    amount_discount?: number;
+    amount_shipping?: number;
+    amount_tax?: number;
+  };
+};
 
 // Custom request type for Stripe webhooks
 export interface StripeRequest extends Request {

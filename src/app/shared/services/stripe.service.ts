@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
-import { Observable, catchError, throwError, retry, timeout } from 'rxjs';
+import { Observable, catchError, throwError, retry, timeout, map, timer } from 'rxjs';
 import { 
   StripeCustomer, 
   StripePaymentIntent, 
@@ -44,7 +44,7 @@ export class StripeService {
   // Customer Management
   createCustomer(customerData: CustomerData): Observable<StripeCustomer> {
     return this.http.post<StripeCustomer>(
-      `${this.apiUrl}/api/stripe/customers`,
+      `${this.apiUrl}/stripe/customers`,
       customerData,
       { headers: this.headers }
     ).pipe(
@@ -56,7 +56,7 @@ export class StripeService {
 
   getCustomer(customerId: string): Observable<StripeCustomer> {
     return this.http.get<StripeCustomer>(
-      `${this.apiUrl}/api/stripe/customers/${customerId}`,
+      `${this.apiUrl}/stripe/customers/${customerId}`,
       { headers: this.headers }
     ).pipe(
       timeout(30000),
@@ -68,7 +68,7 @@ export class StripeService {
   // Payment Intents
   createPaymentIntent(amount: number, options: any = {}): Observable<StripePaymentIntent> {
     return this.http.post<StripePaymentIntent>(
-      `${this.apiUrl}/api/stripe/payments`,
+      `${this.apiUrl}/stripe/payments`,
       { amount, ...options },
       { headers: this.headers }
     ).pipe(
@@ -78,7 +78,7 @@ export class StripeService {
 
   getPaymentIntent(paymentIntentId: string): Observable<StripePaymentIntent> {
     return this.http.get<StripePaymentIntent>(
-      `${this.apiUrl}/api/stripe/payments/${paymentIntentId}`,
+      `${this.apiUrl}/stripe/payments/${paymentIntentId}`,
       { headers: this.headers }
     ).pipe(
       catchError(this.handleError)
@@ -87,7 +87,7 @@ export class StripeService {
 
   retryPayment(paymentIntentId: string, paymentMethodId?: string): Observable<StripePaymentIntent> {
     return this.http.post<StripePaymentIntent>(
-      `${this.apiUrl}/api/stripe/payments/${paymentIntentId}/retry`,
+      `${this.apiUrl}/stripe/payments/${paymentIntentId}/retry`,
       { paymentMethodId },
       { headers: this.headers }
     ).pipe(
@@ -97,7 +97,7 @@ export class StripeService {
 
   capturePayment(paymentIntentId: string): Observable<StripePaymentIntent> {
     return this.http.post<StripePaymentIntent>(
-      `${this.apiUrl}/api/stripe/payments/${paymentIntentId}/capture`,
+      `${this.apiUrl}/stripe/payments/${paymentIntentId}/capture`,
       {},
       { headers: this.headers }
     ).pipe(
@@ -108,7 +108,7 @@ export class StripeService {
   // Subscriptions
   createSubscription(priceId: string, customerId: string, paymentMethodId: string): Observable<StripeSubscription> {
     return this.http.post<StripeSubscription>(
-      `${this.apiUrl}/api/stripe/subscriptions`,
+      `${this.apiUrl}/stripe/subscriptions`,
       { priceId, customerId, paymentMethodId },
       { headers: this.headers }
     ).pipe(
@@ -118,7 +118,7 @@ export class StripeService {
 
   getSubscriptionStatus(subscriptionId: string): Observable<StripeSubscription> {
     return this.http.get<StripeSubscription>(
-      `${this.apiUrl}/api/stripe/subscriptions/${subscriptionId}`,
+      `${this.apiUrl}/stripe/subscriptions/${subscriptionId}`,
       { headers: this.headers }
     ).pipe(
       catchError(this.handleError)
@@ -127,7 +127,7 @@ export class StripeService {
 
   cancelSubscription(subscriptionId: string): Observable<StripeSubscription> {
     return this.http.delete<StripeSubscription>(
-      `${this.apiUrl}/api/stripe/subscriptions/${subscriptionId}`,
+      `${this.apiUrl}/stripe/subscriptions/${subscriptionId}`,
       { headers: this.headers }
     ).pipe(
       catchError(this.handleError)
@@ -136,7 +136,7 @@ export class StripeService {
 
   updateSubscriptionPaymentMethod(subscriptionId: string, paymentMethodId: string): Observable<StripeSubscription> {
     return this.http.post<StripeSubscription>(
-      `${this.apiUrl}/api/stripe/subscriptions/${subscriptionId}/payment-method`,
+      `${this.apiUrl}/stripe/subscriptions/${subscriptionId}/payment-method`,
       { paymentMethodId },
       { headers: this.headers }
     ).pipe(
@@ -147,7 +147,7 @@ export class StripeService {
   // Setup Intents
   createSetupIntent(customerId: string, paymentMethodId: string): Observable<StripeSetupIntent> {
     return this.http.post<StripeSetupIntent>(
-      `${this.apiUrl}/api/stripe/setup-intent`,
+      `${this.apiUrl}/stripe/setup-intent`,
       { customer: customerId, payment_method: paymentMethodId },
       { headers: this.headers }
     ).pipe(
@@ -158,7 +158,7 @@ export class StripeService {
   // Product Prices
   updateProductPrices(productId: string, price: number, options: any = {}): Observable<StripePriceResponse> {
     return this.http.post<StripePriceResponse>(
-      `${this.apiUrl}/api/stripe/products/${productId}/prices`,
+      `${this.apiUrl}/stripe/products/${productId}/prices`,
       { price, ...options },
       { headers: this.headers }
     ).pipe(
@@ -168,7 +168,7 @@ export class StripeService {
 
   deactivatePrices(productId: string, priceIds: string[]): Observable<{ success: boolean }> {
     return this.http.post<{ success: boolean }>(
-      `${this.apiUrl}/api/stripe/products/${productId}/deactivate-prices`,
+      `${this.apiUrl}/stripe/products/${productId}/deactivate-prices`,
       { priceIds },
       { headers: this.headers }
     ).pipe(
@@ -178,7 +178,7 @@ export class StripeService {
 
   activatePrices(productId: string, priceIds: string[]): Observable<{ success: boolean }> {
     return this.http.post<{ success: boolean }>(
-      `${this.apiUrl}/api/stripe/products/${productId}/activate-prices`,
+      `${this.apiUrl}/stripe/products/${productId}/activate-prices`,
       { priceIds },
       { headers: this.headers }
     ).pipe(
@@ -187,21 +187,72 @@ export class StripeService {
   }
 
   // Checkout Sessions
-  createCheckoutSession(priceId: string, customerEmail?: string): Observable<{ sessionId: string; url: string }> {
-    const successUrl = `${window.location.origin}/payment/success?session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = `${window.location.origin}/payment/cancel`;
+  createCheckoutSession(priceId: string, customerData?: {
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+    street?: string;
+    streetNumber?: string;
+    zipCode?: string;
+    city?: string;
+    country?: string;
+    mobile?: string;
+  }): Observable<{ sessionId: string; url: string }> {
+    const successUrl = `${window.location.origin}/success?session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${window.location.origin}/cancel`;
+
+    const headers = new HttpHeaders()
+      .set('Content-Type', 'application/json')
+      .set('Accept', 'application/json');
+
+    // Format the address for Stripe
+    const address = customerData ? {
+      line1: `${customerData.street} ${customerData.streetNumber}`,
+      postal_code: customerData.zipCode,
+      city: customerData.city,
+      country: customerData.country
+    } : undefined;
+
+    // Prepare customer data for Stripe
+    const customer = customerData ? {
+      email: customerData.email,
+      name: `${customerData.firstName} ${customerData.lastName}`,
+      phone: customerData.mobile,
+      address
+    } : undefined;
 
     return this.http.post<{ sessionId: string; url: string }>(
-      `${this.apiUrl}/api/stripe/checkout-session`,
+      `${this.apiUrl}/stripe/checkout-session`,
       {
         priceId,
         successUrl,
         cancelUrl,
-        customerEmail
+        customer,
+        customerData // Keep original data for our backend
       },
-      { headers: this.headers }
+      { headers }
     ).pipe(
-      catchError(this.handleError)
+      timeout(60000), // Increase timeout to 60 seconds
+      retry({
+        count: 3,
+        delay: (error, retryCount) => {
+          console.log(`Retry attempt ${retryCount}`, error);
+          return timer(1000 * retryCount); // Exponential backoff
+        }
+      }),
+      catchError(error => {
+        console.error('Checkout session error:', error);
+        if (error.name === 'TimeoutError') {
+          return throwError(() => new Error('Die Verbindung zum Zahlungssystem ist derzeit nicht möglich. Bitte versuchen Sie es in einigen Minuten erneut.'));
+        }
+        if (error.status === 404) {
+          return throwError(() => new Error('Der Zahlungsendpunkt wurde nicht gefunden. Bitte kontaktieren Sie den Support.'));
+        }
+        if (error.status === 500) {
+          return throwError(() => new Error('Ein Serverfehler ist aufgetreten. Bitte versuchen Sie es später erneut.'));
+        }
+        return this.handleError(error);
+      })
     );
   }
 

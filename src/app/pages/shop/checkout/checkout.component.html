@@ -196,17 +196,17 @@
           <div class="summary-totals">
             <div class="total-row">
               <span>NETTO:</span>
-              <span>€ {{ monthlyTotal | number:'1.2-2' }}</span>
+              <span>€ {{ getBasePrice() | number:'1.2-2' }}</span>
             </div>
 
             <div class="total-row">
-              <span>USt. (20%):</span>
-              <span>€ {{ monthlyTotal * 0.2 | number:'1.2-2' }}</span>
+              <span>{{ getVatLabel() }}:</span>
+              <span>€ {{ getVatAmount() | number:'1.2-2' }}</span>
             </div>
 
             <div class="total-row grand-total">
               <span>BRUTTO:</span>
-              <span>€ {{ calculatePriceWithVAT(monthlyTotal) | number:'1.2-2' }}</span>
+              <span>€ {{ fullTotal | number:'1.2-2' }}</span>
             </div>
 
             <div class="total-row" *ngIf="checkoutForm.get('paymentPlan')?.value > 0">
@@ -223,22 +223,22 @@
 
             <div class="total-row" *ngIf="checkoutForm.get('paymentPlan')?.value > 0">
               <span>GESAMTBETRAG NETTO:</span>
-              <span>€ {{ fullTotal | number:'1.2-2' }}</span>
+              <span>€ {{ getBasePrice() | number:'1.2-2' }}</span>
             </div>
 
             <div class="total-row" *ngIf="checkoutForm.get('paymentPlan')?.value > 0">
-              <span>USt. (20%):</span>
-              <span>€ {{ fullTotal * 0.2 | number:'1.2-2' }}</span>
+              <span>{{ getVatLabel() }}:</span>
+              <span>€ {{ getVatAmount() | number:'1.2-2' }}</span>
             </div>
 
             <div class="total-row grand-total" *ngIf="checkoutForm.get('paymentPlan')?.value > 0">
               <span>GESAMTBETRAG BRUTTO:</span>
-              <span>€ {{ calculatePriceWithVAT(fullTotal) | number:'1.2-2' }}</span>
+              <span>€ {{ fullTotal | number:'1.2-2' }}</span>
             </div>
 
             <div class="total-row grand-total" *ngIf="checkoutForm.get('paymentPlan')?.value > 0">
               <span>MONATLICHE RATE (BRUTTO):</span>
-              <span>€ {{ calculatePriceWithVAT(monthlyTotal) | number:'1.2-2' }}</span>
+              <span>€ {{ monthlyTotal | number:'1.2-2' }}</span>
             </div>
           </div>
         </div>

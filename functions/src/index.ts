@@ -12,4 +12,5 @@ if (!admin.apps.length) {
 
 // Export all cloud functions
 export { api } from './routes/api';
-export { sendActivationConfirmation, activateProduct } from './functions/activation.functions'; 
+export { sendActivationConfirmation, activateProduct } from './functions/activation.functions';
+export { sendPurchaseConfirmation } from './functions/purchase.functions'; 

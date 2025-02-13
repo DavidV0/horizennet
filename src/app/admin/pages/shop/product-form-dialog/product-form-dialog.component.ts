@@ -102,7 +102,8 @@ export class ProductFormDialogComponent implements OnInit {
             fullPayment: '',
             sixMonths: '',
             twelveMonths: '',
-            eighteenMonths: ''
+            eighteenMonths: '',
+            thirtyMonths: ''
           }
         };
 

@@ -28,6 +28,7 @@ interface StripeProductResponse {
     sixMonths: string;
     twelveMonths: string;
     eighteenMonths: string;
+    thirtyMonths: string;
   };
 }
 
@@ -65,6 +66,10 @@ export class ShopService {
     const docRef = doc(productsCollection);
     let imageUrl = '';
 
+    if (!product.price) {
+      throw new Error('Product price is required');
+    }
+
     if (imageFile) {
       const imagePath = `${this.storagePath}/${docRef.id}/${imageFile.name}`;
       try {
@@ -96,7 +101,58 @@ export class ShopService {
       {
         name: product.name,
         description: product.description,
-        price: product.price
+        price: product.price,
+        metadata: {
+          type: 'one_time',
+          courseIds: product.courseIds?.join(','),
+        },
+        prices: {
+          fullPayment: {
+            type: 'one_time',
+            currency: 'eur',
+            unit_amount: product.price * 100,
+          },
+          sixMonths: {
+            type: 'recurring',
+            currency: 'eur',
+            unit_amount: Math.round((product.price / 6) * 100),
+            recurring: {
+              interval: 'month',
+              interval_count: 1,
+              usage_type: 'licensed'
+            }
+          },
+          twelveMonths: {
+            type: 'recurring',
+            currency: 'eur',
+            unit_amount: Math.round((product.price / 12) * 100),
+            recurring: {
+              interval: 'month',
+              interval_count: 1,
+              usage_type: 'licensed'
+            }
+          },
+          eighteenMonths: {
+            type: 'recurring',
+            currency: 'eur',
+            unit_amount: Math.round((product.price / 18) * 100),
+            recurring: {
+              interval: 'month',
+              interval_count: 1,
+              usage_type: 'licensed'
+            }
+          },
+          thirtyMonths: {
+            type: 'recurring',
+            currency: 'eur',
+            unit_amount: Math.round((product.price / 30) * 100),
+            recurring: {
+              interval: 'month',
+              interval_count: 1,
+              usage_type: 'licensed'
+            }
+          }
+        }
       }
     ));
 
@@ -127,6 +183,16 @@ export class ShopService {
     const existingProduct = await getDoc(docRef);
     const existingData = existingProduct.data() as ShopProduct;
 
+    if (!existingData) {
+      throw new Error('Product not found');
+    }
+
+    // Ensure we have a valid price, either from update or existing product
+    const updatedPrice = product.price ?? existingData.price;
+    if (typeof updatedPrice !== 'number') {
+      throw new Error('Valid price is required');
+    }
+
     // Aktualisiere Stripe-Produkt wenn Name oder Beschreibung geändert wurden
     if ((product.name && product.name !== existingData.name) || 
         (product.description && product.description !== existingData.description)) {
@@ -134,10 +200,61 @@ export class ShopService {
         const response = await firstValueFrom(this.http.post<StripeProductResponse>(
           `${this.apiUrl}/stripe/products/${existingData.stripeProductId}/prices`,
           {
-            price: product.price || existingData.price,
+            price: updatedPrice,
             name: product.name,
             description: product.description,
-            existingPriceIds: existingData.stripePriceIds
+            existingPriceIds: existingData.stripePriceIds,
+            metadata: {
+              type: 'one_time',
+              courseIds: product.courseIds?.join(','),
+            },
+            prices: {
+              fullPayment: {
+                type: 'one_time',
+                currency: 'eur',
+                unit_amount: updatedPrice * 100,
+              },
+              sixMonths: {
+                type: 'recurring',
+                currency: 'eur',
+                unit_amount: Math.round((updatedPrice / 6) * 100),
+                recurring: {
+                  interval: 'month',
+                  interval_count: 1,
+                  usage_type: 'licensed'
+                }
+              },
+              twelveMonths: {
+                type: 'recurring',
+                currency: 'eur',
+                unit_amount: Math.round((updatedPrice / 12) * 100),
+                recurring: {
+                  interval: 'month',
+                  interval_count: 1,
+                  usage_type: 'licensed'
+                }
+              },
+              eighteenMonths: {
+                type: 'recurring',
+                currency: 'eur',
+                unit_amount: Math.round((updatedPrice / 18) * 100),
+                recurring: {
+                  interval: 'month',
+                  interval_count: 1,
+                  usage_type: 'licensed'
+                }
+              },
+              thirtyMonths: {
+                type: 'recurring',
+                currency: 'eur',
+                unit_amount: Math.round((updatedPrice / 30) * 100),
+                recurring: {
+                  interval: 'month',
+                  interval_count: 1,
+                  usage_type: 'licensed'
+                }
+              }
+            }
           }
         ));
         product.stripePriceIds = response.priceIds;
@@ -151,13 +268,11 @@ export class ShopService {
     if (typeof product.price === 'number' && existingData.price !== product.price && existingData.stripeProductId) {
       console.log('Updating Stripe prices for product:', existingData.stripeProductId);
       try {
-        // Deaktiviere zuerst alle existierenden Preise
+        // Deactivate existing prices
         if (existingData.stripePriceIds) {
           await firstValueFrom(this.http.post(
-            `${this.apiUrl}/api/stripe/products/${existingData.stripeProductId}/deactivate-prices`,
-            {
-              priceIds: Object.values(existingData.stripePriceIds)
-            }
+            `${this.apiUrl}/stripe/products/${existingData.stripeProductId}/deactivate-prices`,
+            { priceIds: Object.values(existingData.stripePriceIds) }
           ));
         }
 
@@ -170,14 +285,69 @@ export class ShopService {
             description: product.description || existingData.description,
             existingPriceIds: existingData.stripePriceIds,
             activate: true,
-            forceActivate: true
+            forceActivate: true,
+            prices: {
+              fullPayment: {
+                type: 'one_time',
+                currency: 'eur',
+                unit_amount: product.price * 100,
+              },
+              sixMonths: {
+                type: 'recurring',
+                currency: 'eur',
+                unit_amount: Math.round((product.price / 6) * 100),
+                recurring: {
+                  interval: 'month',
+                  interval_count: 1,
+                  usage_type: 'licensed'
+                }
+              },
+              twelveMonths: {
+                type: 'recurring',
+                currency: 'eur',
+                unit_amount: Math.round((product.price / 12) * 100),
+                recurring: {
+                  interval: 'month',
+                  interval_count: 1,
+                  usage_type: 'licensed'
+                }
+              },
+              eighteenMonths: {
+                type: 'recurring',
+                currency: 'eur',
+                unit_amount: Math.round((product.price / 18) * 100),
+                recurring: {
+                  interval: 'month',
+                  interval_count: 1,
+                  usage_type: 'licensed'
+                }
+              },
+              thirtyMonths: {
+                type: 'recurring',
+                currency: 'eur',
+                unit_amount: Math.round((product.price / 30) * 100),
+                recurring: {
+                  interval: 'month',
+                  interval_count: 1,
+                  usage_type: 'licensed'
+                }
+              }
+            }
           }
         ));
-        product.stripePriceIds = response.priceIds;
+
+        // Update the product with new price IDs
+        product.stripePriceIds = {
+          fullPayment: response.priceIds.fullPayment,
+          sixMonths: response.priceIds.sixMonths,
+          twelveMonths: response.priceIds.twelveMonths,
+          eighteenMonths: response.priceIds.eighteenMonths,
+          thirtyMonths: response.priceIds.thirtyMonths
+        };
 
         // Aktiviere die neuen Preise explizit
         await firstValueFrom(this.http.post(
-          `${this.apiUrl}/api/stripe/products/${existingData.stripeProductId}/activate-prices`,
+          `${this.apiUrl}/stripe/products/${existingData.stripeProductId}/activate-prices`,
           {
             priceIds: Object.values(response.priceIds)
           }
@@ -228,6 +398,7 @@ export class ShopService {
     if (product.stripeProductId) updateData['stripeProductId'] = product.stripeProductId;
     if (product.stripePriceIds) updateData['stripePriceIds'] = product.stripePriceIds;
 
+    console.log('Updating Firestore document with:', updateData);
     await updateDoc(docRef, updateData);
   }
 
@@ -252,17 +423,20 @@ export class ShopService {
     sixMonths?: string;
     twelveMonths?: string;
     eighteenMonths?: string;
+    thirtyMonths?: string;
   }): Promise<{
     fullPayment: string;
     sixMonths: string;
     twelveMonths: string;
     eighteenMonths: string;
+    thirtyMonths: string;
   }> {
     const response = await this.http.post<{
       fullPayment: string;
       sixMonths: string;
       twelveMonths: string;
       eighteenMonths: string;
+      thirtyMonths: string;
     }>(`${this.apiUrl}/stripe/products/${productId}/prices`, {
       basePrice,
       existingPriceIds

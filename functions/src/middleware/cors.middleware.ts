@@ -3,8 +3,10 @@ import { config } from '../config';
 
 export const corsMiddleware = cors({
   origin: config.cors.origins,
-  methods: config.cors.methods,
-  allowedHeaders: config.cors.allowedHeaders,
-  credentials: config.cors.credentials,
-  maxAge: config.cors.maxAge
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'Origin', 'X-Requested-With'],
+  credentials: true,
+  maxAge: 86400, // 24 hours
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }); 

@@ -62,6 +62,7 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
   formSubmitted = false;
   private eventsSubscription?: Subscription;
   paymentPlans = [
+    { months: 30, label: '30 Monatsraten' },
     { months: 18, label: '18 Monatsraten' },
     { months: 12, label: '12 Monatsraten' },
     { months: 6, label: '6 Monatsraten' },
@@ -73,6 +74,19 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
   isSubscription: boolean = false;
   customerId: string = '';
   private apiUrl: string;
+
+  // VAT rates by country code
+  private readonly VAT_RATES: { [key: string]: number } = {
+    'AT': 0.20, // Austria 20%
+    'DE': 0.19, // Germany 19%
+    'CH': 0.077, // Switzerland 7.7%
+    'GB': 0.20, // UK 20%
+    'US': 0, // USA no VAT
+    'CA': 0.05, // Canada 5% GST
+  };
+
+  // Default VAT rate (Austrian rate)
+  private readonly DEFAULT_VAT_RATE = 0.20;
 
   constructor(
     private fb: FormBuilder,
@@ -106,6 +120,11 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
       becomePartner: [false]
     });
 
+    // Subscribe to country changes to recalculate totals
+    this.checkoutForm.get('country')?.valueChanges.subscribe(() => {
+      this.calculateTotals();
+    });
+
     this.checkoutForm.get('paymentPlan')?.valueChanges.subscribe(() => {
       this.calculateTotals();
     });
@@ -116,7 +135,8 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
   async ngOnInit() {
     if (isPlatformBrowser(this.platformId)) {
       await this.loadCartProducts();
-      // Don't initialize Stripe here
+      this.calculateTotals();
+      this.initializeFormWithDummyData();
     }
   }
 
@@ -232,9 +252,11 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   private calculateTotals() {
-    this.fullTotal = this.cartProducts.reduce((sum, product) => sum + product.price, 0);
-    const selectedPlan = this.checkoutForm.get('paymentPlan')?.value;
+    const baseTotal = this.cartProducts.reduce((sum, product) => sum + product.price, 0);
+    const vatRate = this.getVatRate();
+    this.fullTotal = baseTotal * (1 + vatRate);
     
+    const selectedPlan = this.checkoutForm.get('paymentPlan')?.value;
     if (selectedPlan === 0) {
       this.monthlyTotal = this.fullTotal;
     } else {
@@ -242,9 +264,33 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
     }
   }
 
+  private getVatRate(): number {
+    const country = this.checkoutForm.get('country')?.value;
+    return this.VAT_RATES[country] ?? this.DEFAULT_VAT_RATE;
+  }
+
+  getVatAmount(): number {
+    const baseTotal = this.cartProducts.reduce((sum, product) => sum + product.price, 0);
+    const vatRate = this.getVatRate();
+    return baseTotal * vatRate;
+  }
+
+  getBasePrice(): number {
+    return this.cartProducts.reduce((sum, product) => sum + product.price, 0);
+  }
+
   getMonthlyPrice(price: number): number {
     const selectedPlan = this.checkoutForm.get('paymentPlan')?.value;
-    return selectedPlan === 0 ? price : price / selectedPlan;
+    const vatRate = this.getVatRate();
+    const priceWithVat = price * (1 + vatRate);
+    return selectedPlan === 0 ? priceWithVat : priceWithVat / selectedPlan;
+  }
+
+  getVatLabel(): string {
+    const country = this.checkoutForm.get('country')?.value;
+    const vatRate = this.getVatRate();
+    const percentage = (vatRate * 100).toFixed(1);
+    return country === 'CH' ? `MwSt. (${percentage}%)` : `USt. (${percentage}%)`;
   }
 
   getErrorMessage(fieldName: string): string {
@@ -347,8 +393,8 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     } catch (error: any) {
       console.error('Payment error:', error);
-      this.paymentError = error.message || 'Ein unerwarteter Fehler ist aufgetreten.';
-      this.cdr.detectChanges();
+    
+   
     }
   }
 
@@ -364,6 +410,10 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
           control.markAsTouched();
         }
       });
+      
+      if (!this.checkoutForm.get('acceptTerms')?.value) {
+        this.paymentError = 'Bitte akzeptieren Sie die Allgemeinen Geschäftsbedingungen.';
+      }
       return;
     }
 
@@ -379,23 +429,39 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
         throw new Error('Kein gültiger Zahlungsplan ausgewählt');
       }
 
+      // Prepare customer data
+      const customerData = {
+        email: this.checkoutForm.get('email')?.value,
+        firstName: this.checkoutForm.get('firstName')?.value,
+        lastName: this.checkoutForm.get('lastName')?.value,
+        street: this.checkoutForm.get('street')?.value,
+        streetNumber: this.checkoutForm.get('streetNumber')?.value,
+        zipCode: this.checkoutForm.get('zipCode')?.value,
+        city: this.checkoutForm.get('city')?.value,
+        country: this.checkoutForm.get('country')?.value,
+        mobile: this.checkoutForm.get('mobile')?.value
+      };
+
+      console.log('Creating checkout session with data:', { priceId, customerData });
+
       // Create checkout session
-      const response = await firstValueFrom(
-        this.stripeService.createCheckoutSession(
-          priceId, 
-          this.checkoutForm.get('email')?.value
-        )
+      const { url } = await firstValueFrom(
+        this.stripeService.createCheckoutSession(priceId, customerData)
       );
 
-      if (!response?.url) {
+      if (!url) {
         throw new Error('Keine Checkout-URL erhalten');
       }
 
-      // Redirect to Stripe Checkout page
-      window.location.href = response.url;
-    } catch (error) {
+      // Store acceptance of terms in local storage or your backend if needed
+      localStorage.setItem('terms_accepted', new Date().toISOString());
+
+      // Redirect to Stripe Checkout
+      window.location.href = url;
+    } catch (error: any) {
       console.error('Payment error:', error);
-      this.paymentError = error instanceof Error ? error.message : 'Ein Fehler ist aufgetreten';
+      this.paymentError = error.message || 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.';
+    } finally {
       this.isProcessing = false;
     }
   }
@@ -685,20 +751,12 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   private getStripePriceId(months: number): string {
-    // Get the product from cart
-    const product = this.cartProducts[0]; // Assuming only one product in cart at a time
-    
-    if (!product) {
-      console.error('No product found in cart');
-      return '';
+    if (!this.cartProducts[0]) {
+      throw new Error('No product in cart');
     }
 
-    if (!product.stripePriceIds) {
-      console.error('No stripe price IDs found for product');
-      return '';
-    }
-    
-    switch(months) {
+    const product = this.cartProducts[0];
+    switch (months) {
       case 0:
         return product.stripePriceIds.fullPayment;
       case 6:
@@ -707,9 +765,11 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
         return product.stripePriceIds.twelveMonths;
       case 18:
         return product.stripePriceIds.eighteenMonths;
+      case 30:
+        return product.stripePriceIds.thirtyMonths;
       default:
         console.error('Invalid payment plan selected');
-        return '';
+        throw new Error('Invalid payment plan selected');
     }
   }
 
@@ -761,5 +821,23 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
       this.paymentError = 'Ein Fehler ist aufgetreten. Bitte kontaktieren Sie den Support.';
       this.cdr.detectChanges();
     }
+  }
+
+  private initializeFormWithDummyData() {
+    this.checkoutForm.patchValue({
+      firstName: 'Max',
+      lastName: 'Mustermann',
+      email: 'office@atg-at.net',
+      street: 'Musterstraße',
+      streetNumber: '123',
+      zipCode: '1234',
+      city: 'Wien',
+      country: 'AT',
+      mobile: '+43 123 456789',
+      paymentPlan: 18,
+      acceptTerms: true,
+      newsletter: true,
+      becomePartner: false
+    });
   }
 } 

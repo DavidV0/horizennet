@@ -1,6 +1,6 @@
 export const environment = {
   production: false,
-  apiUrl: 'https://api-kwordus5wa-uc.a.run.app',
+  apiUrl: 'https://us-central1-horizonnet-ed13d.cloudfunctions.net/api',
   stripePublishableKey: 'pk_live_51Qh8EAGmKQzZmpXRWnyWScYgNZPTmnDJrJ1c2VmMIGU7o62WdWHt3rIt4Yn2Ob0VL0fip3QOmaiyoJ9Tqo7Ge3Qf00bQIyVqEe',
   firebase: {
     apiKey: "AIzaSyAALm7dx2_16lGXF-6SsBw9vQ8Pce038nE",

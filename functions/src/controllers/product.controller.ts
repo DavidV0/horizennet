@@ -149,15 +149,39 @@ export const productController = {
             createdAt: new Date().toISOString(),
             totalAmount: (price * 100).toString()
           }
+        }),
+
+        // 30-month installment
+        stripeService.prices.create({
+          product: productId,
+          currency: 'eur',
+          unit_amount: Math.round(price * 100 / 30),
+          nickname: '30 Monatsraten',
+          lookup_key: `${productId}_30_months`,
+          active: true,
+          recurring: {
+            interval: 'month',
+            interval_count: 1
+          },
+          metadata: {
+            type: 'recurring',
+            plan: 'thirtyMonths',
+            installments: '30',
+            displayName: '30 Monatsraten',
+            status: 'active',
+            createdAt: new Date().toISOString(),
+            totalAmount: (price * 100).toString()
+          }
         })
       ];
 
-      const [fullPayment, sixMonths, twelveMonths, eighteenMonths] = await Promise.all(pricePromises);
+      const [fullPayment, sixMonths, twelveMonths, eighteenMonths, thirtyMonths] = await Promise.all(pricePromises);
       console.log('Created new prices:', {
         fullPayment: { id: fullPayment.id, nickname: fullPayment.nickname },
         sixMonths: { id: sixMonths.id, nickname: sixMonths.nickname },
         twelveMonths: { id: twelveMonths.id, nickname: twelveMonths.nickname },
-        eighteenMonths: { id: eighteenMonths.id, nickname: eighteenMonths.nickname }
+        eighteenMonths: { id: eighteenMonths.id, nickname: eighteenMonths.nickname },
+        thirtyMonths: { id: thirtyMonths.id, nickname: thirtyMonths.nickname }
       });
 
       // Update old prices with references to new ones
@@ -170,6 +194,7 @@ export const productController = {
               case 'sixMonths': newPriceId = sixMonths.id; break;
               case 'twelveMonths': newPriceId = twelveMonths.id; break;
               case 'eighteenMonths': newPriceId = eighteenMonths.id; break;
+              case 'thirtyMonths': newPriceId = thirtyMonths.id; break;
             }
             if (newPriceId) {
               try {
@@ -197,13 +222,14 @@ export const productController = {
           sixMonthsPriceId: sixMonths.id,
           twelveMonthsPriceId: twelveMonths.id,
           eighteenMonthsPriceId: eighteenMonths.id,
+          thirtyMonthsPriceId: thirtyMonths.id,
           currentPriceVersion: new Date().toISOString()
         }
       });
       console.log('Updated product with new default price and metadata');
 
       // Check price statuses
-      const priceStatuses = await Promise.all([fullPayment, sixMonths, twelveMonths, eighteenMonths].map(async (price) => {
+      const priceStatuses = await Promise.all([fullPayment, sixMonths, twelveMonths, eighteenMonths, thirtyMonths].map(async (price) => {
         const updatedPrice = await stripeService.prices.retrieve(price.id);
         return {
           id: price.id,
@@ -221,7 +247,8 @@ export const productController = {
           fullPayment: fullPayment.id,
           sixMonths: sixMonths.id,
           twelveMonths: twelveMonths.id,
-          eighteenMonths: eighteenMonths.id
+          eighteenMonths: eighteenMonths.id,
+          thirtyMonths: thirtyMonths.id
         },
         priceDetails: {
           fullPayment: { 
@@ -243,6 +270,11 @@ export const productController = {
             nickname: eighteenMonths.nickname, 
             metadata: eighteenMonths.metadata,
             lookup_key: eighteenMonths.lookup_key
+          },
+          thirtyMonths: { 
+            nickname: thirtyMonths.nickname, 
+            metadata: thirtyMonths.metadata,
+            lookup_key: thirtyMonths.lookup_key
           }
         }
       };

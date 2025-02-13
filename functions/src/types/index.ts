@@ -52,6 +52,7 @@ export interface PurchaseConfirmationData {
   }[];
   isSalesPartner?: boolean;
   isSubscription?: boolean;
+  productType?: 'academy' | 'crypto';
 }
 
 export interface ActivationConfirmationData {

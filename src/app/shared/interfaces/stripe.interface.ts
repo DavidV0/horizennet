@@ -46,6 +46,7 @@ export interface StripePriceResponse {
     sixMonths: string;
     twelveMonths: string;
     eighteenMonths: string;
+    thirtyMonths: string;
   };
   priceDetails: {
     [key: string]: {
