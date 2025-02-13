@@ -277,7 +277,7 @@ const storePaymentDetails = async (data: {
     const cleanData = {
       sessionId: data.sessionId,
       customerId: data.customerId,
-      customerEmail: data.customerEmail || null,
+      customerEmail: data.customerEmail || '',
       amountPaid: data.amountPaid || 0,
       paymentStatus: data.paymentStatus || 'unknown',
       paymentType: data.paymentType,
@@ -406,22 +406,92 @@ export const webhookController = {
       switch (event.type) {
         case 'payment_intent.requires_action': {
           const paymentIntent = event.data.object as StripePaymentIntent;
-          console.log('Payment requires action:', {
-            id: paymentIntent.id,
-            status: paymentIntent.status,
-            nextAction: paymentIntent.next_action
-          });
+          console.log('Payment requires action - Full payment intent:', JSON.stringify(paymentIntent, null, 2));
+          console.log('Payment requires action - Raw metadata:', JSON.stringify(paymentIntent.metadata, null, 2));
+          
+          try {
+            // Clean metadata to prevent undefined values
+            const cleanMetadata = paymentIntent.metadata ? Object.entries(paymentIntent.metadata).reduce((acc, [key, value]) => {
+              console.log(`Cleaning metadata key: ${key}, value:`, value);
+              return {
+                ...acc,
+                [key]: value === undefined ? null : value
+              };
+            }, {}) : {};
+            
+            console.log('Cleaned metadata:', JSON.stringify(cleanMetadata, null, 2));
+
+            // Store initial payment record with requires_action status
+            const paymentData = {
+              paymentIntentId: paymentIntent.id,
+              customerId: paymentIntent.customer || null,
+              amount: paymentIntent.amount ? paymentIntent.amount / 100 : 0,
+              currency: paymentIntent.currency || 'eur',
+              paymentStatus: 'requires_action',
+              metadata: cleanMetadata,
+              nextAction: paymentIntent.next_action || null,
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+              updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            };
+
+            console.log('Payment data to store:', JSON.stringify(paymentData, (key, value) => 
+              value && value.constructor.name === 'FieldValue' ? '[ServerTimestamp]' : value, 2));
+
+            await admin.firestore()
+              .collection('payments')
+              .doc(paymentIntent.id)
+              .set(paymentData);
+            
+            console.log('Successfully stored payment record with requires_action status');
+          } catch (error) {
+            console.error('Error handling requires_action:', error);
+            console.error('Error stack:', error instanceof Error ? error.stack : '');
+          }
           break;
         }
 
         case 'payment_intent.created': {
           const paymentIntent = event.data.object as StripePaymentIntent;
-          console.log('Payment intent created:', {
-            id: paymentIntent.id,
-            status: paymentIntent.status,
-            amount: paymentIntent.amount,
-            currency: paymentIntent.currency
-          });
+          console.log('Payment intent created - Full payment intent:', JSON.stringify(paymentIntent, null, 2));
+          console.log('Payment intent created - Raw metadata:', JSON.stringify(paymentIntent.metadata, null, 2));
+          
+          try {
+            // Clean metadata to prevent undefined values
+            const cleanMetadata = paymentIntent.metadata ? Object.entries(paymentIntent.metadata).reduce((acc, [key, value]) => {
+              console.log(`Cleaning metadata key: ${key}, value:`, value);
+              return {
+                ...acc,
+                [key]: value === undefined ? null : value
+              };
+            }, {}) : {};
+            
+            console.log('Cleaned metadata:', JSON.stringify(cleanMetadata, null, 2));
+
+            // Store initial payment record
+            const paymentData = {
+              paymentIntentId: paymentIntent.id,
+              customerId: paymentIntent.customer || null,
+              amount: paymentIntent.amount ? paymentIntent.amount / 100 : 0,
+              currency: paymentIntent.currency || 'eur',
+              paymentStatus: paymentIntent.status || 'unknown',
+              metadata: cleanMetadata,
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+              updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            };
+
+            console.log('Payment data to store:', JSON.stringify(paymentData, (key, value) => 
+              value && value.constructor.name === 'FieldValue' ? '[ServerTimestamp]' : value, 2));
+
+            await admin.firestore()
+              .collection('payments')
+              .doc(paymentIntent.id)
+              .set(paymentData);
+            
+            console.log('Successfully stored initial payment record');
+          } catch (error) {
+            console.error('Error handling payment_intent.created:', error);
+            console.error('Error stack:', error instanceof Error ? error.stack : '');
+          }
           break;
         }
 
@@ -430,14 +500,27 @@ export const webhookController = {
           console.log('Checkout session completed. Session ID:', session.id);
           console.log('Session mode:', session.mode);
           console.log('Session payment status:', session.payment_status);
+          console.log('Session metadata:', session.metadata);
+          console.log('Session payment intent:', session.payment_intent);
           
           let customer;
           let products = [];
           let discountDetails = null;
           let taxDetails = null;
           let emailSent = false;
+          let paymentIntent = null;
+          let subscription = null;
 
           try {
+            // Get payment intent or subscription based on mode
+            if (session.mode === 'subscription' && session.subscription) {
+              subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+              console.log('Retrieved subscription:', JSON.stringify(subscription, null, 2));
+            } else if (session.payment_intent) {
+              paymentIntent = await stripe.paymentIntents.retrieve(session.payment_intent as string);
+              console.log('Retrieved payment intent:', JSON.stringify(paymentIntent, null, 2));
+            }
+
             // Get customer details
             customer = await stripe.customers.retrieve(session.customer as string);
             console.log('Retrieved customer data:', JSON.stringify(customer, null, 2));
@@ -478,42 +561,54 @@ export const webhookController = {
             taxDetails = session.total_details?.amount_tax ? {
               amount: session.total_details.amount_tax / 100,
               rate: session.total_details.amount_tax / (session.amount_subtotal || 1) * 100,
-              country: customer.address?.country || undefined
+              country: customer.address?.country || null,
+              tax_behavior: 'exclusive',
+              tax_type: 'vat',
+              tax_code: 'txcd_10201000'
             } : null;
             console.log('Tax details:', JSON.stringify(taxDetails, null, 2));
 
-            // Try to store payment details, but continue even if it fails
+            // Try to store payment details
             try {
-              // Store payment details
               console.log('Storing payment details...');
-              console.log('Session metadata:', session.metadata);
               
-              const paymentPlan = session.metadata?.paymentPlan || 
-                                customer.metadata?.paymentPlan || 
-                                '0';
+              // Get payment plan from various sources based on payment type
+              const paymentPlan = session.mode === 'subscription'
+                ? (subscription?.metadata?.paymentPlan || customer.metadata?.paymentPlan || '0')
+                : (paymentIntent?.metadata?.paymentPlan || session.metadata?.paymentPlan || customer.metadata?.paymentPlan || '0');
               console.log('Payment plan:', paymentPlan);
 
+              // Ensure clean billing address
               const billingAddress = customer.address ? {
-                line1: customer.address.line1 || '',
-                city: customer.address.city || '',
-                postal_code: customer.address.postal_code || '',
-                country: customer.address.country || ''
+                line1: customer.address.line1 || null,
+                city: customer.address.city || null,
+                postal_code: customer.address.postal_code || null,
+                country: customer.address.country || null
               } : null;
 
+              // Clean metadata
               const cleanMetadata = {
-                products: products.map(p => ({ 
-                  id: p.id || '', 
-                  name: p.name || '' 
+                products: products.map(p => ({
+                  id: p.id || null,
+                  name: p.name || null,
+                  courseIds: Array.isArray(p.courseIds) ? p.courseIds.filter(Boolean) : []
                 })).filter(p => p.id && p.name),
                 customerName: `${customer.metadata?.firstName || ''} ${customer.metadata?.lastName || ''}`.trim() || 'Unknown',
-                paymentPlan: (session.metadata?.paymentPlan || customer.metadata?.paymentPlan || '0').toString(),
+                paymentPlan: paymentPlan || '0',
                 paymentMode: session.mode || 'payment',
                 originalAmount: session.amount_subtotal ? session.amount_subtotal / 100 : 0,
                 totalAmount: session.amount_total ? session.amount_total / 100 : 0,
-                billingAddress: billingAddress,
-                customerMetadata: customer.metadata ? JSON.parse(JSON.stringify(customer.metadata)) : {}
+                billingAddress: billingAddress || null,
+                customerMetadata: customer.metadata ? JSON.parse(JSON.stringify(customer.metadata)) : {},
+                subscriptionId: subscription?.id || null,
+                invoiceNumber: subscription?.latest_invoice 
+                  ? typeof subscription.latest_invoice === 'string' 
+                    ? subscription.latest_invoice 
+                    : subscription.latest_invoice.number
+                  : (paymentIntent?.metadata?.invoice_id || null)
               };
 
+              // Clean payment details
               const paymentDetails = {
                 sessionId: session.id,
                 customerId: session.customer as string,
@@ -522,11 +617,12 @@ export const webhookController = {
                 paymentStatus: session.payment_status || 'unknown',
                 paymentType: session.mode === 'subscription' ? 'subscription' as const : 'one_time' as const,
                 metadata: cleanMetadata,
-                discountDetails: discountDetails || null,
-                taxDetails: taxDetails || null,
-                paymentIntentId: session.payment_intent as string || null
+                discountDetails: discountDetails ? JSON.parse(JSON.stringify(discountDetails)) : null,
+                taxDetails: taxDetails ? JSON.parse(JSON.stringify(taxDetails)) : null,
+                paymentIntentId: session.payment_intent ? String(session.payment_intent) : null
               };
 
+              console.log('Payment details to store:', JSON.stringify(paymentDetails, null, 2));
               await storePaymentDetails(paymentDetails);
               console.log('Payment details stored successfully');
             } catch (storeError) {
@@ -544,7 +640,6 @@ export const webhookController = {
                     timestamp: admin.firestore.FieldValue.serverTimestamp()
                   });
               }
-              // Don't throw the error, continue to send email
             }
 
             // Always try to send the email, even if payment storage failed

@@ -44,7 +44,7 @@ jobs:
           echo "API_URL=${{ secrets.API_URL }}" >> .env.production
         
       - name: Copy Production Environment
-        run: cp .env.production .env
+        run: cp .env .env
         
       - name: Deploy to Firebase
         run: firebase deploy --only functions

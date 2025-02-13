@@ -8,6 +8,9 @@ import { ShopProduct } from '../../../shared/interfaces/shop-product.interface';
 import { Subscription, BehaviorSubject, combineLatest } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
+import { CheckoutService } from '../../../shared/services/checkout.service';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-cart-sidebar',
@@ -22,12 +25,25 @@ export class CartSidebarComponent implements OnInit, OnDestroy {
   private productsMap = new Map<string, ShopProduct>();
   private productsMapSubject = new BehaviorSubject<Map<string, ShopProduct>>(new Map());
   products$ = this.productsMapSubject.asObservable();
+  cartProducts: ShopProduct[] = [];
+  private subscription: Subscription = new Subscription();
+  selectedCountry: string = 'AT';
 
   constructor(
     public cartService: CartService,
     public cartSidebarService: CartSidebarService,
-    private shopService: ShopService
-  ) {}
+    private shopService: ShopService,
+    private router: Router,
+    private checkoutService: CheckoutService
+  ) {
+    // Subscribe to country changes
+    this.subscription.add(
+      this.checkoutService.selectedCountry$.subscribe(country => {
+        this.selectedCountry = country;
+        this.updateTotals();
+      })
+    );
+  }
 
   ngOnInit() {
     // Subscribe to sidebar state
@@ -47,10 +63,46 @@ export class CartSidebarComponent implements OnInit, OnDestroy {
         this.productsMapSubject.next(this.productsMap);
       })
     );
+
+    this.loadCartProducts();
+  }
+
+  private async loadCartProducts() {
+    const cartItems = Array.from(this.cartService.getCartItems());
+    const products = await firstValueFrom(this.shopService.getAllProducts());
+    
+    if (products) {
+      this.cartProducts = products.filter(product => 
+        cartItems.includes(product.id)
+      );
+      this.updateTotals();
+    }
+  }
+
+  private updateTotals() {
+    this.cartProducts.forEach(product => {
+      const totalWithVat = this.checkoutService.calculateTotalWithVat(product.price);
+      product.priceWithVat = totalWithVat;
+    });
+  }
+
+  getTotal(): number {
+    const baseTotal = this.cartProducts.reduce((sum, product) => sum + product.price, 0);
+    return this.checkoutService.calculateTotalWithVat(baseTotal);
+  }
+
+  getBasePrice(): number {
+    return this.cartProducts.reduce((sum, product) => sum + product.price, 0);
+  }
+
+  getVatAmount(): number {
+    const baseTotal = this.getBasePrice();
+    return this.checkoutService.calculateVatAmount(baseTotal);
   }
 
   ngOnDestroy() {
     this.subscriptions.forEach(sub => sub?.unsubscribe());
+    this.subscription.unsubscribe();
   }
 
   removeFromCart(productId: string) {

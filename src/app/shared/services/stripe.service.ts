@@ -187,17 +187,35 @@ export class StripeService {
   }
 
   // Checkout Sessions
-  createCheckoutSession(priceId: string, customerData?: {
-    email?: string;
-    firstName?: string;
-    lastName?: string;
-    street?: string;
-    streetNumber?: string;
-    zipCode?: string;
-    city?: string;
-    country?: string;
-    mobile?: string;
-  }): Observable<{ sessionId: string; url: string }> {
+  createCheckoutSession(
+    priceId: string, 
+    customerData?: {
+      email?: string;
+      firstName?: string;
+      lastName?: string;
+      street?: string;
+      streetNumber?: string;
+      zipCode?: string;
+      city?: string;
+      country?: string;
+      mobile?: string;
+      paymentPlan?: number;
+      newsletter?: boolean;
+      becomePartner?: boolean;
+    },
+    taxData?: {
+      vatRate?: number;
+      basePrice?: number;
+      vatAmount?: number;
+      totalAmount?: number;
+      country?: string;
+      tax_behavior?: string;
+      tax_type?: string;
+      tax_code?: string;
+      product_type?: string;
+      eu_vat?: boolean;
+    }
+  ): Observable<{ sessionId: string; url: string }> {
     const successUrl = `${window.location.origin}/success?session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${window.location.origin}/cancel`;
 
@@ -205,39 +223,62 @@ export class StripeService {
       .set('Content-Type', 'application/json')
       .set('Accept', 'application/json');
 
-    // Format the address for Stripe
-    const address = customerData ? {
-      line1: `${customerData.street} ${customerData.streetNumber}`,
-      postal_code: customerData.zipCode,
-      city: customerData.city,
-      country: customerData.country
-    } : undefined;
+    // Prepare customer data in Stripe format
+    const customer = {
+      name: `${customerData?.firstName} ${customerData?.lastName}`,
+      email: customerData?.email,
+      phone: customerData?.mobile,
+      address: {
+        line1: `${customerData?.street} ${customerData?.streetNumber}`,
+        postal_code: customerData?.zipCode,
+        city: customerData?.city,
+        country: customerData?.country || 'AT'
+      },
+      metadata: {
+        firstName: customerData?.firstName,
+        lastName: customerData?.lastName,
+        paymentPlan: customerData?.paymentPlan?.toString(),
+        newsletter: customerData?.newsletter ? 'yes' : 'no',
+        becomePartner: customerData?.becomePartner ? 'yes' : 'no'
+      }
+    };
 
-    // Prepare customer data for Stripe
-    const customer = customerData ? {
-      email: customerData.email,
-      name: `${customerData.firstName} ${customerData.lastName}`,
-      phone: customerData.mobile,
-      address
-    } : undefined;
+    // Prepare tax data
+    const finalTaxData = {
+      tax_behavior: 'exclusive',
+      tax_type: 'vat',
+      tax_code: 'txcd_10201000',
+      country: customerData?.country || 'AT',
+      vatRate: taxData?.vatRate || 0.20,
+      basePrice: taxData?.basePrice || 0,
+      vatAmount: taxData?.vatAmount || 0,
+      totalAmount: taxData?.totalAmount || 0,
+      product_type: 'digital_goods',
+      eu_vat: customerData?.country !== 'CH',
+      use_price_data: true
+    };
+
+    const requestData = {
+      priceId,
+      successUrl,
+      cancelUrl,
+      customer,
+      taxData: finalTaxData
+    };
+
+    console.log('Sending checkout session request with:', requestData);
 
     return this.http.post<{ sessionId: string; url: string }>(
       `${this.apiUrl}/stripe/checkout-session`,
-      {
-        priceId,
-        successUrl,
-        cancelUrl,
-        customer,
-        customerData // Keep original data for our backend
-      },
+      requestData,
       { headers }
     ).pipe(
-      timeout(60000), // Increase timeout to 60 seconds
+      timeout(60000),
       retry({
         count: 3,
         delay: (error, retryCount) => {
           console.log(`Retry attempt ${retryCount}`, error);
-          return timer(1000 * retryCount); // Exponential backoff
+          return timer(1000 * retryCount);
         }
       }),
       catchError(error => {

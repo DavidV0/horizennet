@@ -26,6 +26,7 @@ import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../../shared/services/auth.service';
 import { User } from '@angular/fire/auth';
+import { CheckoutService } from '../../../shared/services/checkout.service';
 
 @Component({
   selector: 'app-checkout',
@@ -75,19 +76,6 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
   customerId: string = '';
   private apiUrl: string;
 
-  // VAT rates by country code
-  private readonly VAT_RATES: { [key: string]: number } = {
-    'AT': 0.20, // Austria 20%
-    'DE': 0.19, // Germany 19%
-    'CH': 0.077, // Switzerland 7.7%
-    'GB': 0.20, // UK 20%
-    'US': 0, // USA no VAT
-    'CA': 0.05, // Canada 5% GST
-  };
-
-  // Default VAT rate (Austrian rate)
-  private readonly DEFAULT_VAT_RATE = 0.20;
-
   constructor(
     private fb: FormBuilder,
     private cartService: CartService,
@@ -102,7 +90,8 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
     @Inject(PLATFORM_ID) private platformId: Object,
     private auth: AngularFireAuth,
     private http: HttpClient,
-    private authService: AuthService
+    private authService: AuthService,
+    private checkoutService: CheckoutService
   ) {
     this.checkoutForm = this.fb.group({
       firstName: ['', [Validators.required]],
@@ -112,7 +101,7 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
       streetNumber: ['', [Validators.required]],
       zipCode: ['', [Validators.required]],
       city: ['', [Validators.required]],
-      country: ['DE', [Validators.required]],
+      country: ['AT', [Validators.required]],
       mobile: ['', [Validators.required]],
       paymentPlan: [18],
       acceptTerms: [false, [Validators.requiredTrue]],
@@ -120,9 +109,12 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
       becomePartner: [false]
     });
 
-    // Subscribe to country changes to recalculate totals
-    this.checkoutForm.get('country')?.valueChanges.subscribe(() => {
-      this.calculateTotals();
+    // Subscribe to country changes to recalculate totals and update checkout service
+    this.checkoutForm.get('country')?.valueChanges.subscribe(country => {
+      if (country) {
+        this.checkoutService.setSelectedCountry(country);
+        this.calculateTotals();
+      }
     });
 
     this.checkoutForm.get('paymentPlan')?.valueChanges.subscribe(() => {
@@ -136,7 +128,6 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
     if (isPlatformBrowser(this.platformId)) {
       await this.loadCartProducts();
       this.calculateTotals();
-      this.initializeFormWithDummyData();
     }
   }
 
@@ -253,8 +244,7 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   private calculateTotals() {
     const baseTotal = this.cartProducts.reduce((sum, product) => sum + product.price, 0);
-    const vatRate = this.getVatRate();
-    this.fullTotal = baseTotal * (1 + vatRate);
+    this.fullTotal = this.checkoutService.calculateTotalWithVat(baseTotal);
     
     const selectedPlan = this.checkoutForm.get('paymentPlan')?.value;
     if (selectedPlan === 0) {
@@ -266,13 +256,12 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   private getVatRate(): number {
     const country = this.checkoutForm.get('country')?.value;
-    return this.VAT_RATES[country] ?? this.DEFAULT_VAT_RATE;
+    return this.checkoutService.getVatRate(country);
   }
 
   getVatAmount(): number {
     const baseTotal = this.cartProducts.reduce((sum, product) => sum + product.price, 0);
-    const vatRate = this.getVatRate();
-    return baseTotal * vatRate;
+    return this.checkoutService.calculateVatAmount(baseTotal);
   }
 
   getBasePrice(): number {
@@ -281,9 +270,8 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   getMonthlyPrice(price: number): number {
     const selectedPlan = this.checkoutForm.get('paymentPlan')?.value;
-    const vatRate = this.getVatRate();
-    const priceWithVat = price * (1 + vatRate);
-    return selectedPlan === 0 ? priceWithVat : priceWithVat / selectedPlan;
+    const totalWithVat = this.checkoutService.calculateTotalWithVat(price);
+    return selectedPlan === 0 ? totalWithVat : totalWithVat / selectedPlan;
   }
 
   getVatLabel(): string {
@@ -421,43 +409,73 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.paymentError = '';
 
     try {
-      // Get the selected payment plan
-      const paymentPlan = this.checkoutForm.get('paymentPlan')?.value;
-      const priceId = this.getStripePriceId(paymentPlan);
+      // Get form values
+      const formValues = this.checkoutForm.value;
+      const country = formValues.country || 'AT';
+      const paymentPlan = formValues.paymentPlan;
 
+      // Get the price ID for the selected payment plan
+      const priceId = this.getStripePriceId(paymentPlan);
       if (!priceId) {
         throw new Error('Kein gültiger Zahlungsplan ausgewählt');
       }
 
+      // Calculate base price and VAT
+      const basePrice = this.getBasePrice();
+      const vatRate = this.getVatRate();
+      const vatAmount = this.getVatAmount();
+      const totalAmount = this.fullTotal;
+
       // Prepare customer data
       const customerData = {
-        email: this.checkoutForm.get('email')?.value,
-        firstName: this.checkoutForm.get('firstName')?.value,
-        lastName: this.checkoutForm.get('lastName')?.value,
-        street: this.checkoutForm.get('street')?.value,
-        streetNumber: this.checkoutForm.get('streetNumber')?.value,
-        zipCode: this.checkoutForm.get('zipCode')?.value,
-        city: this.checkoutForm.get('city')?.value,
-        country: this.checkoutForm.get('country')?.value,
-        mobile: this.checkoutForm.get('mobile')?.value
+        email: formValues.email,
+        firstName: formValues.firstName,
+        lastName: formValues.lastName,
+        street: formValues.street,
+        streetNumber: formValues.streetNumber,
+        zipCode: formValues.zipCode,
+        city: formValues.city,
+        country: country,
+        mobile: formValues.mobile,
+        paymentPlan: paymentPlan,
+        newsletter: formValues.newsletter,
+        becomePartner: formValues.becomePartner
       };
 
-      console.log('Creating checkout session with data:', { priceId, customerData });
+      // Prepare tax data
+      const taxData = {
+        vatRate,
+        basePrice,
+        vatAmount,
+        totalAmount,
+        country,
+        tax_behavior: 'exclusive',
+        tax_type: 'vat',
+        tax_code: 'txcd_10201000',
+        product_type: 'digital_goods',
+        eu_vat: country !== 'CH'
+      };
+
+      console.log('Creating checkout session with data:', { 
+        priceId, 
+        customerData,
+        taxData
+      });
 
       // Create checkout session
-      const { url } = await firstValueFrom(
-        this.stripeService.createCheckoutSession(priceId, customerData)
+      const response = await firstValueFrom(
+        this.stripeService.createCheckoutSession(priceId, customerData, taxData)
       );
 
-      if (!url) {
+      if (!response?.url) {
         throw new Error('Keine Checkout-URL erhalten');
       }
 
-      // Store acceptance of terms in local storage or your backend if needed
+      // Store acceptance of terms in local storage
       localStorage.setItem('terms_accepted', new Date().toISOString());
 
       // Redirect to Stripe Checkout
-      window.location.href = url;
+      window.location.href = response.url;
     } catch (error: any) {
       console.error('Payment error:', error);
       this.paymentError = error.message || 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.';
@@ -720,7 +738,7 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   calculatePriceWithVAT(price: number): number {
-    return price * 1.2; // Add 20% VAT
+    return this.checkoutService.calculateTotalWithVat(price);
   }
 
   openPaymentSchedule() {

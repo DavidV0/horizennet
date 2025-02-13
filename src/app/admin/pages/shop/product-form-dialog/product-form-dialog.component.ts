@@ -88,6 +88,7 @@ export class ProductFormDialogComponent implements OnInit {
       this.isLoading = true;
       try {
         const formValue = this.productForm.getRawValue();
+        console.log('Submitting product form with values:', formValue);
         
         const productData: Partial<ShopProduct> = {
           name: formValue.name.trim(),
@@ -96,16 +97,25 @@ export class ProductFormDialogComponent implements OnInit {
           oldPrice: formValue.oldPrice ? Number(formValue.oldPrice) : undefined,
           tag: formValue.tag ? formValue.tag.trim() : undefined,
           courseIds: formValue.courseIds,
-          image: this.data?.product?.image || '', // Will be updated after upload
-          stripeProductId: this.data?.product?.stripeProductId || '', // Will be set by the service
+          image: this.data?.product?.image || '',
+          stripeProductId: this.data?.product?.stripeProductId || '',
           stripePriceIds: this.data?.product?.stripePriceIds || {
             fullPayment: '',
             sixMonths: '',
             twelveMonths: '',
             eighteenMonths: '',
             thirtyMonths: ''
+          },
+          metadata: {
+            tax_behavior: 'exclusive',
+            tax_code: 'txcd_10201000',
+            product_type: 'digital_goods',
+            eu_vat: 'true',
+            created_at: new Date().toISOString()
           }
         };
+
+        console.log('Prepared product data:', JSON.stringify(productData, null, 2));
 
         this.dialogRef.close({
           product: productData,

@@ -1,9 +1,12 @@
 export interface ShopProduct {
   id: string;
   name: string;
+  description: string;
   price: number;
+  priceWithVat?: number; // Optional property for price including VAT
   oldPrice?: number;
   image: string;
+  courseIds: string[];
   tag?: string;
   stripeProductId: string;
   stripePriceIds: {
@@ -13,8 +16,11 @@ export interface ShopProduct {
     eighteenMonths: string; // Price ID for 18-month plan
     thirtyMonths: string;   // Price ID for 30-month plan
   };
-  courseIds: string[];      // IDs of courses included in this product
-  description?: string;     // Product description
-  features?: string[];      // List of product features
-  type?: 'academy' | 'crypto';
+  metadata?: {
+    tax_behavior?: string;
+    tax_code?: string;
+    product_type?: string;
+    eu_vat?: string;
+    created_at?: string;
+  };
 } 

@@ -38,6 +38,20 @@ const COUNTRY_CURRENCIES: Record<CountryCode, string> = {
   default: 'eur'
 };
 
+// Pre-defined tax rate IDs from Stripe
+const TAX_RATE_IDS: Record<CountryCode, string> = {
+  AT: 'txr_1Qs2NFGmKQzZmpXRXRFdrrtZ', // Austria 20%
+  DE: 'txr_1Qs2NbGmKQzZmpXRkRPkcorhJ', // Germany 19%
+  CH: 'txr_1Qs2NwGmKQzZmpXRvtcQU1S8', // Switzerland 7.7%
+  GB: 'txr_1Qs2QKGmKQzZmpXRXyVXXmS5', // UK 20%
+  US: 'txr_1Qs2OMGmKQzZmpXR2QfUa18Z', // US 8%
+  CA: 'txr_1Qs2PzGmKQzZmpXRb6dpF4e', // Canada 5%
+  default: 'txr_1Qs2NFGmKQzZmpXRXRFdrrtZ' // Default to Austrian VAT
+};
+
+// Create or get tax rates
+
+
 export const paymentController = {
   createPaymentIntent: async (req: Request, res: Response): Promise<void> => {
     try {
@@ -275,11 +289,18 @@ export const paymentController = {
 
       console.log('Creating checkout session with:', { priceId, customerData });
 
-      // Get the price to determine if it's a one-time or recurring payment
+      // Get the price and product details
       let price;
+      let productName = 'Test';
       try {
-        price = await stripe.prices.retrieve(priceId);
+        price = await stripe.prices.retrieve(priceId, {
+          expand: ['product']
+        });
         console.log('Retrieved price:', { id: price.id, type: price.type });
+        
+        if (price.product && typeof price.product !== 'string' && !price.product.deleted) {
+          productName = price.product.name;
+        }
       } catch (error) {
         console.error('Error retrieving price:', error);
         return res.status(400).json({ 
@@ -287,6 +308,11 @@ export const paymentController = {
           details: error instanceof Error ? error.message : String(error)
         });
       }
+
+      // Get country and tax rate ID
+      const country = customerData?.country || 'AT';
+      const taxRateId = TAX_RATE_IDS[country as CountryCode] ?? TAX_RATE_IDS.default;
+      console.log('Using tax rate:', taxRateId, 'for country:', country);
 
       // Create customer first
       let customer;
@@ -302,8 +328,9 @@ export const paymentController = {
             country: customerData.country,
           } : undefined,
           metadata: {
-            firstName: customerData?.firstName,
-            lastName: customerData?.lastName
+            firstName: customerData?.firstName || '',
+            lastName: customerData?.lastName || '',
+            paymentPlan: String(customerData?.paymentPlan || '0')
           }
         });
         console.log('Created customer:', { id: customer.id });
@@ -318,48 +345,53 @@ export const paymentController = {
       const mode = price.type === 'recurring' ? 'subscription' : 'payment';
       console.log('Session mode:', mode);
 
-      // Ensure paymentPlan is a string
-      const paymentPlan = (customerData?.paymentPlan || '0').toString();
-      console.log('Payment plan:', paymentPlan);
-
-      // Calculate tax based on country
-      const country = customerData?.country || 'AT';
-      const vatRate = VAT_RATES[country as CountryCode] ?? VAT_RATES.default;
-      const unitAmount = price.unit_amount || 0;
-      const taxAmount = Math.round(unitAmount * vatRate);
-
+      // Create session configuration with tax rate
       const sessionConfig: Stripe.Checkout.SessionCreateParams = {
         payment_method_types: ['card'],
-        line_items: [
-          {
-            price: priceId,
-            quantity: 1,
-            tax_rates: [], // We'll handle tax manually
+        line_items: req.body.taxData?.use_price_data ? [{
+          price_data: {
+            currency: COUNTRY_CURRENCIES[country as CountryCode] || 'eur',
+            unit_amount: price.unit_amount || 0,
+            tax_behavior: 'exclusive',
+            product_data: {
+              name: productName,
+              tax_code: 'txcd_10201000',
+              metadata: {
+                tax_behavior: 'exclusive',
+                tax_type: 'vat',
+                tax_code: 'txcd_10201000',
+                tax_rate_id: taxRateId,
+                country: country,
+                vat_rate: VAT_RATES[country as CountryCode].toString()
+              }
+            },
+            recurring: price.type === 'recurring' ? {
+              interval: 'month',
+              interval_count: 1
+            } : undefined
           },
-        ],
+          quantity: 1,
+          tax_rates: [taxRateId],
+          adjustable_quantity: {
+            enabled: false
+          }
+        }] : [{
+          price: priceId,
+          quantity: 1,
+          tax_rates: [taxRateId],
+          adjustable_quantity: {
+            enabled: false
+          }
+        }],
         mode: mode as Stripe.Checkout.SessionCreateParams.Mode,
         success_url: successUrl || `${req.headers.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: cancelUrl || `${req.headers.origin}/cancel`,
         customer: customer.id,
-        ...(mode === 'subscription' ? {
-          payment_method_collection: 'always',
-          subscription_data: {
-            metadata: {
-              paymentPlan
-            },
-            trial_end: Math.floor(Date.now() / 1000)
-          }
-        } : {}),
         billing_address_collection: 'required',
         phone_number_collection: { enabled: true },
-        metadata: {
-          firstName: customerData?.firstName,
-          lastName: customerData?.lastName,
-          vatRate: vatRate.toString(),
-          taxAmount: taxAmount.toString(),
-          paymentPlan,
-          paymentMode: mode,
-          paymentType: mode
+        customer_update: {
+          address: 'auto',
+          name: 'auto'
         },
         custom_text: {
           submit: {
@@ -368,17 +400,67 @@ export const paymentController = {
         },
         locale: 'de',
         allow_promotion_codes: true,
-        customer_update: {
-          address: 'auto',
-          name: 'auto'
+        tax_id_collection: {
+          enabled: true
+        },
+        automatic_tax: {
+          enabled: false
+        },
+        metadata: {
+          tax_rate_id: taxRateId,
+          tax_behavior: 'exclusive',
+          tax_type: 'vat',
+          tax_code: 'txcd_10201000',
+          country: country,
+          vat_rate: VAT_RATES[country as CountryCode].toString()
         }
       };
 
-      console.log('Creating session with config:', sessionConfig);
+      // First update the price with tax settings
+      try {
+        await stripe.prices.update(priceId, {
+          tax_behavior: 'exclusive',
+          metadata: {
+            tax_behavior: 'exclusive',
+            tax_type: 'vat',
+            tax_code: 'txcd_10201000',
+            tax_rate_id: taxRateId,
+            country: country,
+            vat_rate: VAT_RATES[country as CountryCode].toString()
+          }
+        });
+
+        // Also update the product with tax code
+        const priceDetails = await stripe.prices.retrieve(priceId, {
+          expand: ['product']
+        });
+        
+        if (priceDetails.product && typeof priceDetails.product !== 'string') {
+          await stripe.products.update(priceDetails.product.id, {
+            tax_code: 'txcd_10201000',
+            metadata: {
+              tax_behavior: 'exclusive',
+              tax_type: 'vat',
+              tax_code: 'txcd_10201000',
+              tax_rate_id: taxRateId,
+              country: country,
+              vat_rate: VAT_RATES[country as CountryCode].toString()
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error updating price/product tax settings:', error);
+        // Continue anyway as we'll use the tax_rates array
+      }
+
+      console.log('Creating session with config:', JSON.stringify({
+        ...sessionConfig,
+        line_items: sessionConfig.line_items,
+        metadata: sessionConfig.metadata
+      }, null, 2));
 
       const session = await stripe.checkout.sessions.create(sessionConfig);
-
-      console.log('Session created:', { id: session.id, url: session.url });
+      console.log('Created session:', session.id);
 
       return res.json({
         sessionId: session.id,
@@ -496,7 +578,7 @@ export const paymentController = {
       }
 
       // Create recurring payment prices
-      const recurringPrices = ['sixMonths', 'twelveMonths', 'eighteenMonths'];
+      const recurringPrices = ['sixMonths', 'twelveMonths', 'eighteenMonths', 'thirtyMonths'];
       for (const key of recurringPrices) {
         if (prices[key]) {
           const recurringPrice = await stripe.prices.create({
